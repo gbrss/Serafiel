@@ -34,7 +34,8 @@ jobs:
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
           else
-            echo "::warning::Falta el secret GOOGLE_SERVICES_JSON: el APK compila pero Firebase (login/chat) no funcionará."
+            echo "::error::Falta el secret GOOGLE_SERVICES_JSON (Settings > Secrets and variables > Actions). Pega ahí el contenido de google-services.json de tu proyecto Firebase."
+            exit 1
           fi
 
       # Opcional: MAPS_API_KEY solo para sugerencias de Google Places
