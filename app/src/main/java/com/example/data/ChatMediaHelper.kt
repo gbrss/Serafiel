@@ -1,0 +1,476 @@
+package com.example.data
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
+import android.media.MediaMetadataRetriever
+import android.media.MediaPlayer
+import android.media.MediaRecorder
+import android.net.Uri
+import android.os.Build
+import android.provider.OpenableColumns
+import android.util.Base64
+import androidx.core.content.FileProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import kotlin.math.max
+import kotlin.math.roundToInt
+
+data class EncodedMediaPayload(
+    val base64Data: String,
+    val mimeType: String,
+    val displayName: String,
+    val durationSec: Long = 0L,
+)
+
+data class AudioPlaybackUiState(
+    val activeMessageId: String? = null,
+    val isPlaying: Boolean = false,
+    val progress: Float = 0f,
+    val currentSec: Long = 0L,
+)
+
+object ChatMediaHelper {
+    private const val MAX_IMAGE_DIMENSION_PX = 640
+    private const val MAX_IMAGE_BYTES = 220_000
+    private const val MAX_AVATAR_DIMENSION_PX = 256
+    private const val MAX_AVATAR_BYTES = 65_000
+    private const val MAX_AUDIO_BYTES = 450_000
+
+    fun createTempCameraImageUri(context: Context): Uri {
+        val dir = File(context.cacheDir, "camera").apply { mkdirs() }
+        val photoFile = File(dir, "cam_${System.currentTimeMillis()}.jpg")
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            photoFile,
+        )
+    }
+
+    private fun applyExifRotation(context: Context, uri: Uri, bitmap: Bitmap): Bitmap {
+        val orientation = try {
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                ExifInterface(stream).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL,
+                )
+            } ?: ExifInterface.ORIENTATION_NORMAL
+        } catch (_: Exception) {
+            ExifInterface.ORIENTATION_NORMAL
+        }
+
+        val degrees = when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            else -> 0f
+        }
+        if (degrees == 0f) return bitmap
+
+        val matrix = Matrix().apply { postRotate(degrees) }
+        return try {
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true).also {
+                if (it !== bitmap) bitmap.recycle()
+            }
+        } catch (_: Exception) {
+            bitmap
+        }
+    }
+
+    suspend fun compressAvatarToBase64(context: Context, uri: Uri): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                val resolver = context.contentResolver
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                    return@withContext Result.failure(IllegalArgumentException("No se pudo leer la foto de perfil."))
+                }
+
+                var sampleSize = 1
+                val minSideOrig = kotlin.math.min(bounds.outWidth, bounds.outHeight)
+                while (minSideOrig / sampleSize > MAX_AVATAR_DIMENSION_PX * 2) {
+                    sampleSize *= 2
+                }
+                val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                val sampled = resolver.openInputStream(uri)?.use {
+                    BitmapFactory.decodeStream(it, null, decodeOpts)
+                } ?: return@withContext Result.failure(IllegalArgumentException("No se pudo abrir la foto seleccionada."))
+
+                val cropSize = kotlin.math.min(sampled.width, sampled.height)
+                val cropX = ((sampled.width - cropSize) / 2).coerceAtLeast(0)
+                val cropY = ((sampled.height - cropSize) / 2).coerceAtLeast(0)
+                val square = Bitmap.createBitmap(sampled, cropX, cropY, cropSize, cropSize).also {
+                    if (it !== sampled) sampled.recycle()
+                }
+                val scaled = if (cropSize > MAX_AVATAR_DIMENSION_PX) {
+                    Bitmap.createScaledBitmap(square, MAX_AVATAR_DIMENSION_PX, MAX_AVATAR_DIMENSION_PX, true).also {
+                        if (it !== square) square.recycle()
+                    }
+                } else {
+                    square
+                }
+
+                val baos = ByteArrayOutputStream()
+                var quality = 80
+                scaled.compress(Bitmap.CompressFormat.JPEG, quality, baos)
+                while (baos.size() > MAX_AVATAR_BYTES && quality > 30) {
+                    baos.reset()
+                    quality -= 10
+                    scaled.compress(Bitmap.CompressFormat.JPEG, quality, baos)
+                }
+                val bytes = baos.toByteArray()
+                scaled.recycle()
+                Result.success(Base64.encodeToString(bytes, Base64.NO_WRAP))
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    suspend fun compressImageToBase64(context: Context, uri: Uri): Result<EncodedMediaPayload> =
+        withContext(Dispatchers.IO) {
+            try {
+                val resolver = context.contentResolver
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                    return@withContext Result.failure(IllegalArgumentException("No se pudo leer la imagen seleccionada."))
+                }
+
+                var sampleSize = 1
+                val maxSide = max(bounds.outWidth, bounds.outHeight)
+                while (maxSide / sampleSize > MAX_IMAGE_DIMENSION_PX * 2) {
+                    sampleSize *= 2
+                }
+
+                val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                val sampledRaw = resolver.openInputStream(uri)?.use {
+                    BitmapFactory.decodeStream(it, null, decodeOpts)
+                } ?: return@withContext Result.failure(IllegalArgumentException("No se pudo abrir la imagen."))
+                val sampled = applyExifRotation(context, uri, sampledRaw)
+
+                val scale = MAX_IMAGE_DIMENSION_PX.toFloat() / max(sampled.width, sampled.height).toFloat()
+                val bitmap = if (scale < 1f) {
+                    val targetW = (sampled.width * scale).roundToInt().coerceAtLeast(1)
+                    val targetH = (sampled.height * scale).roundToInt().coerceAtLeast(1)
+                    Bitmap.createScaledBitmap(sampled, targetW, targetH, true).also {
+                        if (it !== sampled) sampled.recycle()
+                    }
+                } else {
+                    sampled
+                }
+
+                val baos = ByteArrayOutputStream()
+                var quality = 82
+                bitmap.compress(Bitmap.CompressFormat.JPEG, quality, baos)
+                while (baos.size() > MAX_IMAGE_BYTES && quality > 28) {
+                    baos.reset()
+                    quality -= 12
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, quality, baos)
+                }
+                val bytes = baos.toByteArray()
+                bitmap.recycle()
+
+                if (bytes.size > MAX_IMAGE_BYTES * 2) {
+                    return@withContext Result.failure(IllegalArgumentException("La imagen sigue siendo muy pesada para enviarla."))
+                }
+
+                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                val name = queryDisplayName(context, uri) ?: "imagen.jpg"
+                Result.success(
+                    EncodedMediaPayload(
+                        base64Data = base64,
+                        mimeType = "image/jpeg",
+                        displayName = name.take(120),
+                    )
+                )
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    suspend fun readAudioToBase64(context: Context, uri: Uri): Result<EncodedMediaPayload> =
+        withContext(Dispatchers.IO) {
+            try {
+                val resolver = context.contentResolver
+                val mime = resolver.getType(uri)?.takeIf { it.startsWith("audio/") } ?: "audio/mp4"
+                val name = queryDisplayName(context, uri) ?: "audio.m4a"
+                val bytes = resolver.openInputStream(uri)?.use { input ->
+                    val buffer = ByteArrayOutputStream()
+                    val chunk = ByteArray(8192)
+                    var total = 0
+                    while (true) {
+                        val read = input.read(chunk)
+                        if (read <= 0) break
+                        total += read
+                        if (total > MAX_AUDIO_BYTES) {
+                            return@withContext Result.failure(
+                                IllegalArgumentException("El audio supera el límite de 450 KB para envío instantáneo.")
+                            )
+                        }
+                        buffer.write(chunk, 0, read)
+                    }
+                    buffer.toByteArray()
+                } ?: return@withContext Result.failure(IllegalArgumentException("No se pudo leer el archivo de audio."))
+
+                if (bytes.isEmpty()) {
+                    return@withContext Result.failure(IllegalArgumentException("El archivo de audio está vacío."))
+                }
+
+                val durationSec = extractAudioDurationSec(context, uri)
+                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                Result.success(
+                    EncodedMediaPayload(
+                        base64Data = base64,
+                        mimeType = mime.take(64),
+                        displayName = name.take(120),
+                        durationSec = durationSec,
+                    )
+                )
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    fun decodeBase64Bitmap(base64Data: String?): Bitmap? {
+        if (base64Data.isNullOrBlank()) return null
+        return try {
+            val bytes = Base64.decode(base64Data, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun extractAudioDurationSec(context: Context, uri: Uri): Long {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(context, uri)
+            val ms = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+            (ms / 1000L).coerceIn(0L, 3600L)
+        } catch (_: Exception) {
+            0L
+        } finally {
+            try {
+                retriever.release()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun queryDisplayName(context: Context, uri: Uri): String? {
+        return try {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (idx >= 0) cursor.getString(idx) else null
+                } else null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+}
+
+class VoiceNoteRecorder(private val context: Context) {
+    private var recorder: MediaRecorder? = null
+    private var outputFile: File? = null
+    private var startedAtMs: Long = 0L
+
+    fun startRecording(): Result<Unit> {
+        stopSilently()
+        return try {
+            val dir = File(context.cacheDir, "voice_notes").apply { mkdirs() }
+            val file = File(dir, "rec_${System.currentTimeMillis()}.m4a")
+            val mr = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(context.applicationContext)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaRecorder()
+            }
+            mr.setAudioSource(MediaRecorder.AudioSource.MIC)
+            mr.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            mr.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            mr.setAudioEncodingBitRate(24_000)
+            mr.setAudioSamplingRate(16_000)
+            mr.setMaxDuration(60_000)
+            mr.setOutputFile(file.absolutePath)
+            mr.prepare()
+            mr.start()
+            recorder = mr
+            outputFile = file
+            startedAtMs = System.currentTimeMillis()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            stopSilently()
+            Result.failure(e)
+        }
+    }
+
+    fun cancelRecording() {
+        stopSilently()
+        outputFile?.delete()
+        outputFile = null
+    }
+
+    suspend fun finishAndEncode(): Result<EncodedMediaPayload> = withContext(Dispatchers.IO) {
+        val file = outputFile
+        val elapsedSec = ((System.currentTimeMillis() - startedAtMs) / 1000L).coerceAtLeast(1L)
+        stopSilently()
+        outputFile = null
+
+        if (file == null || !file.exists() || file.length() == 0L) {
+            return@withContext Result.failure(IllegalStateException("No se grabó audio válido."))
+        }
+
+        return@withContext try {
+            val bytes = file.readBytes()
+            file.delete()
+            if (bytes.size > 480_000) {
+                Result.failure(IllegalArgumentException("La nota de voz es demasiado larga."))
+            } else {
+                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                Result.success(
+                    EncodedMediaPayload(
+                        base64Data = base64,
+                        mimeType = "audio/mp4",
+                        displayName = "nota_voz.m4a",
+                        durationSec = elapsedSec.coerceIn(1L, 60L),
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            file.delete()
+            Result.failure(e)
+        }
+    }
+
+    private fun stopSilently() {
+        val mr = recorder ?: return
+        recorder = null
+        try {
+            mr.stop()
+        } catch (_: Exception) {
+        }
+        try {
+            mr.release()
+        } catch (_: Exception) {
+        }
+    }
+}
+
+object ChatAudioPlayer {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var mediaPlayer: MediaPlayer? = null
+    private var progressJob: Job? = null
+    private var tempFile: File? = null
+
+    private val _playbackState = MutableStateFlow(AudioPlaybackUiState())
+    val playbackState: StateFlow<AudioPlaybackUiState> = _playbackState.asStateFlow()
+
+    fun togglePlay(context: Context, messageId: String, base64Data: String?) {
+        val current = _playbackState.value
+        if (current.activeMessageId == messageId && mediaPlayer != null) {
+            val mp = mediaPlayer
+            if (mp != null) {
+                if (mp.isPlaying) {
+                    mp.pause()
+                    progressJob?.cancel()
+                    _playbackState.value = current.copy(isPlaying = false)
+                } else {
+                    mp.start()
+                    _playbackState.value = current.copy(isPlaying = true)
+                    startProgressTicker()
+                }
+            }
+            return
+        }
+
+        if (base64Data.isNullOrBlank()) return
+        stop()
+
+        scope.launch {
+            val file = withContext(Dispatchers.IO) {
+                try {
+                    val bytes = Base64.decode(base64Data, Base64.DEFAULT)
+                    val dir = File(context.cacheDir, "audio_play").apply { mkdirs() }
+                    val f = File(dir, "play_${messageId.hashCode()}.m4a")
+                    FileOutputStream(f).use { it.write(bytes) }
+                    f
+                } catch (_: Exception) {
+                    null
+                }
+            } ?: return@launch
+
+            try {
+                tempFile = file
+                val mp = MediaPlayer().apply {
+                    setDataSource(file.absolutePath)
+                    setOnCompletionListener {
+                        stop()
+                    }
+                    prepare()
+                    start()
+                }
+                mediaPlayer = mp
+                _playbackState.value = AudioPlaybackUiState(
+                    activeMessageId = messageId,
+                    isPlaying = true,
+                    progress = 0f,
+                    currentSec = 0L,
+                )
+                startProgressTicker()
+            } catch (_: Exception) {
+                stop()
+            }
+        }
+    }
+
+    private fun startProgressTicker() {
+        progressJob?.cancel()
+        progressJob = scope.launch {
+            while (true) {
+                val mp = mediaPlayer ?: break
+                if (!mp.isPlaying) break
+                val duration = mp.duration.coerceAtLeast(1)
+                val pos = mp.currentPosition.coerceAtLeast(0)
+                _playbackState.value = _playbackState.value.copy(
+                    isPlaying = true,
+                    progress = (pos.toFloat() / duration.toFloat()).coerceIn(0f, 1f),
+                    currentSec = (pos / 1000L),
+                )
+                delay(200L)
+            }
+        }
+    }
+
+    fun stop() {
+        progressJob?.cancel()
+        progressJob = null
+        try {
+            mediaPlayer?.stop()
+        } catch (_: Exception) {
+        }
+        try {
+            mediaPlayer?.release()
+        } catch (_: Exception) {
+        }
+        mediaPlayer = null
+        tempFile?.delete()
+        tempFile = null
+        _playbackState.value = AudioPlaybackUiState()
+    }
+}

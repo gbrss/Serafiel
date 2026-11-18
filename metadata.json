@@ -1,0 +1,6 @@
+{
+  "name": "Serafiel",
+  "description": "Radar social y chat de proximidad en tiempo real, cálido, abierto y seguro basado en ubicación.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

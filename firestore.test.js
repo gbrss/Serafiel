@@ -1,0 +1,618 @@
+const {
+  initializeTestEnvironment,
+  assertFails,
+  assertSucceeds,
+} = require("@firebase/rules-unit-testing");
+const { test, before, after, beforeEach } = require("node:test");
+const fs = require("node:fs");
+
+let testEnv;
+const PROJECT_ID = process.env.GCP_PROJECT || "demo-no-project";
+const ALICE_UID = "alice_uid_101";
+const BOB_UID = "bob_uid_202";
+const CHARLIE_UID = "charlie_uid_303";
+
+const [emulatorHost, emulatorPortStr] = (process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8085").split(":");
+const emulatorPort = parseInt(emulatorPortStr, 10);
+
+function pastDate(msOffset = 2000) {
+  return new Date(Date.now() - msOffset);
+}
+
+before(async () => {
+  const rules = fs.readFileSync("./firestore.rules", "utf8");
+  testEnv = await initializeTestEnvironment({
+    projectId: PROJECT_ID,
+    firestore: {
+      rules,
+      host: emulatorHost,
+      port: emulatorPort,
+    },
+  });
+});
+
+after(async () => {
+  if (testEnv) {
+    await testEnv.cleanup();
+  }
+});
+
+beforeEach(async () => {
+  if (testEnv) {
+    await testEnv.clearFirestore();
+  }
+});
+
+test("Unauthenticated users: denied across all collections", async () => {
+  const unauth = testEnv.unauthenticatedContext().firestore();
+  await assertFails(unauth.collection("users").doc(ALICE_UID).get());
+  await assertFails(unauth.collection("beacons").where("active", "==", true).get());
+  await assertFails(unauth.collection("zone_rooms").doc("3778_-12242").collection("messages").where("zoneKey", "==", "3778_-12242").where("archived", "==", false).get());
+  await assertFails(unauth.collection("chats").where("participantIds", "array-contains", ALICE_UID).get());
+  await assertFails(unauth.collection("reports").where("reporterId", "==", ALICE_UID).get());
+});
+
+test("Users collection: strict owner isolation, shadow field rejection, and partial update", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const created = pastDate(10000);
+
+  // Valid create
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).set({
+      userId: ALICE_UID,
+      displayName: "Alicia Luz",
+      bio: "Abierta a café y charlas de diseño.",
+      avatarColor: "amber",
+      online: true,
+      showOnline: true,
+      lastSeenAt: created,
+      preferredPurposes: ["FRIENDSHIP", "NETWORKING"],
+      blockedUserIds: [],
+      safetyAccepted: true,
+      createdAt: created,
+      updatedAt: created,
+    })
+  );
+
+  // Partial update succeeds (including toggling showOnline / online)
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).update({
+      bio: "Explorando el centro hoy.",
+      blockedUserIds: [CHARLIE_UID],
+      online: false,
+      showOnline: false,
+      lastSeenAt: pastDate(1000),
+      updatedAt: pastDate(1000),
+    })
+  );
+
+  // Invalid online type rejected
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).update({
+      online: "yes",
+      updatedAt: pastDate(800),
+    })
+  );
+
+  // Shadow field rejected
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).update({
+      isAdmin: true,
+      updatedAt: pastDate(500),
+    })
+  );
+
+  // Cross-user read & write rejected
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).get());
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).update({ displayName: "Hack", updatedAt: pastDate(500) }));
+
+  // Future timestamp rejected
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).update({
+      bio: "Future",
+      updatedAt: new Date(Date.now() + 60000),
+    })
+  );
+});
+
+test("Beacons: owner writes, filtered active query succeeds, unfiltered query and hidden beacon read fail", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const created = pastDate(10000);
+
+  await assertSucceeds(
+    aliceDb.collection("beacons").doc(ALICE_UID).set({
+      userId: ALICE_UID,
+      displayName: "Alicia Luz",
+      purpose: "TOURISM",
+      statusText: "Buscando recomendaciones de librerías cerca.",
+      avatarColor: "sage",
+      online: true,
+      lastSeenAt: created,
+      accuracyMeters: 18,
+      languages: ["Español", "English"],
+      zoneKey: "3778_-12242",
+      zoneName: "Zona Centro",
+      approxLat: 37.78123,
+      approxLon: -122.42123,
+      active: true,
+      verifiedGoogle: true,
+      radiusKm: 500,
+      createdAt: created,
+      updatedAt: created,
+    })
+  );
+
+  // Out-of-bounds accuracyMeters fails
+  await assertFails(
+    aliceDb.collection("beacons").doc(ALICE_UID).update({
+      accuracyMeters: 60000,
+      updatedAt: pastDate(2500),
+    })
+  );
+
+  // Expanding radius up to 25000 km (global) succeeds, exceeding 25000 km fails
+  await assertSucceeds(
+    aliceDb.collection("beacons").doc(ALICE_UID).update({
+      radiusKm: 25000,
+      online: false,
+      updatedAt: pastDate(2000),
+    })
+  );
+  await assertFails(
+    aliceDb.collection("beacons").doc(ALICE_UID).update({
+      radiusKm: 30000,
+      updatedAt: pastDate(1500),
+    })
+  );
+
+  // Bob's filtered active query succeeds
+  await assertSucceeds(bobDb.collection("beacons").where("active", "==", true).get());
+
+  // Unfiltered list query fails
+  await assertFails(bobDb.collection("beacons").get());
+
+  // Bob cannot update Alice's beacon
+  await assertFails(
+    bobDb.collection("beacons").doc(ALICE_UID).update({
+      statusText: "Hijacked",
+      updatedAt: pastDate(500),
+    })
+  );
+
+  // Alice hides her beacon
+  await assertSucceeds(
+    aliceDb.collection("beacons").doc(ALICE_UID).update({
+      active: false,
+      updatedAt: pastDate(500),
+    })
+  );
+
+  // Bob cannot get hidden beacon directly, while Alice still can
+  await assertFails(bobDb.collection("beacons").doc(ALICE_UID).get());
+  await assertSucceeds(aliceDb.collection("beacons").doc(ALICE_UID).get());
+});
+
+test("Zone room messages: filtered query succeeds, sender can soft-archive, others cannot tamper", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const zoneKey = "-3505_-7176";
+  const created = pastDate(8000);
+
+  await assertSucceeds(
+    aliceDb.collection("zone_rooms").doc(zoneKey).collection("messages").doc("msg_1").set({
+      zoneKey,
+      senderId: ALICE_UID,
+      senderName: "Alicia Luz",
+      senderColor: "amber",
+      purpose: "HELP",
+      text: "¿Alguien sabe dónde hay un café tranquilo con enchufes?",
+      archived: false,
+      createdAt: created,
+      updatedAt: created,
+    })
+  );
+
+  // Bob's rule-aligned query succeeds
+  await assertSucceeds(
+    bobDb.collection("zone_rooms").doc(zoneKey).collection("messages")
+      .where("zoneKey", "==", zoneKey)
+      .where("archived", "==", false)
+      .get()
+  );
+
+  // Unfiltered list fails
+  await assertFails(bobDb.collection("zone_rooms").doc(zoneKey).collection("messages").get());
+
+  // Spoofed senderId fails
+  await assertFails(
+    bobDb.collection("zone_rooms").doc(zoneKey).collection("messages").doc("msg_spoof").set({
+      zoneKey,
+      senderId: ALICE_UID,
+      senderName: "Alicia Luz",
+      senderColor: "amber",
+      purpose: "CASUAL",
+      text: "Soy Alicia falsa",
+      archived: false,
+      createdAt: created,
+      updatedAt: created,
+    })
+  );
+
+  // Bob cannot archive Alice's message
+  await assertFails(
+    bobDb.collection("zone_rooms").doc(zoneKey).collection("messages").doc("msg_1").update({
+      archived: true,
+      updatedAt: pastDate(500),
+    })
+  );
+
+  // Alice can archive her own message
+  await assertSucceeds(
+    aliceDb.collection("zone_rooms").doc(zoneKey).collection("messages").doc("msg_1").update({
+      archived: true,
+      updatedAt: pastDate(500),
+    })
+  );
+});
+
+test("1:1 Chats & Messages: participant isolation, delete & cleanup, legacy closed reopen, and third-party denial", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+  const chatId = `${ALICE_UID}_${BOB_UID}`;
+  const created = pastDate(10000);
+
+  // Pre-creation existence check parity with Kotlin startOrOpenDirectChat
+  await assertSucceeds(aliceDb.collection("chats").doc(chatId).get());
+  await assertFails(charlieDb.collection("chats").doc(chatId).get());
+
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).set({
+      participantIds: [ALICE_UID, BOB_UID],
+      participantNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+      participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+      initiatorId: ALICE_UID,
+      purpose: "FRIENDSHIP",
+      status: "active",
+      lastMessage: "¡Hola! Vi tu baliza en Zona Centro.",
+      zoneName: "Zona Centro",
+      createdAt: created,
+      updatedAt: created,
+    })
+  );
+
+  // Charlie cannot read, query, or delete Alice-Bob chat
+  await assertFails(charlieDb.collection("chats").doc(chatId).get());
+  await assertFails(charlieDb.collection("chats").where("participantIds", "array-contains", ALICE_UID).get());
+  await assertFails(charlieDb.collection("chats").doc(chatId).delete());
+
+  // Bob queries his chats and sends a message
+  await assertSucceeds(bobDb.collection("chats").where("participantIds", "array-contains", BOB_UID).get());
+  await assertSucceeds(
+    bobDb.collection("chats").doc(chatId).collection("messages").doc("dm_1").set({
+      chatId,
+      participantIds: [ALICE_UID, BOB_UID],
+      senderId: BOB_UID,
+      senderName: "Roberto Sol",
+      text: "¡Hola Alicia! Qué gusto saludarte.",
+      createdAt: pastDate(4000),
+    })
+  );
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_2").set({
+      chatId,
+      participantIds: [ALICE_UID, BOB_UID],
+      senderId: ALICE_UID,
+      senderName: "Alicia Luz",
+      text: "¡Hola Roberto!",
+      createdAt: pastDate(3800),
+    })
+  );
+  await assertSucceeds(
+    bobDb.collection("chats").doc(chatId).update({
+      lastMessage: "¡Hola Alicia! Qué gusto saludarte.",
+      updatedAt: pastDate(3500),
+    })
+  );
+
+  // Charlie cannot read or inject into chat messages
+  await assertFails(
+    charlieDb.collection("chats").doc(chatId).collection("messages")
+      .where("participantIds", "array-contains", ALICE_UID)
+      .get()
+  );
+
+  // While chat exists, Alice cannot delete Bob's message individually
+  await assertFails(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_1").delete()
+  );
+
+  // Legacy closed chat can be messaged and reopened seamlessly
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("chats").doc(chatId).update({
+      status: "closed",
+    });
+  });
+  await assertSucceeds(
+    bobDb.collection("chats").doc(chatId).collection("messages").doc("dm_3").set({
+      chatId,
+      participantIds: [ALICE_UID, BOB_UID],
+      senderId: BOB_UID,
+      senderName: "Roberto Sol",
+      text: "Reabriendo conversación",
+      createdAt: pastDate(1500),
+    })
+  );
+  await assertSucceeds(
+    bobDb.collection("chats").doc(chatId).update({
+      status: "active",
+      lastMessage: "Reabriendo conversación",
+      updatedAt: pastDate(1000),
+    })
+  );
+
+  // Participant Alice can delete the conversation and clean up all messages (including Bob's), while Charlie cannot
+  await assertSucceeds(aliceDb.collection("chats").doc(chatId).delete());
+  await assertFails(
+    charlieDb.collection("chats").doc(chatId).collection("messages").doc("dm_1").delete()
+  );
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_1").delete()
+  );
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_2").delete()
+  );
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_3").delete()
+  );
+});
+
+test("1:1 Rich messages: image/voice/location validation and sender-only live_location updates", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const chatId = `${ALICE_UID}_${BOB_UID}`;
+  const created = pastDate(10000);
+
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).set({
+      participantIds: [ALICE_UID, BOB_UID],
+      participantNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+      participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+      initiatorId: ALICE_UID,
+      purpose: "FRIENDSHIP",
+      status: "active",
+      lastMessage: "Hola",
+      zoneName: "Zona Abierta",
+      createdAt: created,
+      updatedAt: created,
+    })
+  );
+
+  // Text message can be edited by sender with edited=true, cannot be edited by peer or without edited=true, and can be deleted only by sender
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_txt").set({
+      chatId,
+      participantIds: [ALICE_UID, BOB_UID],
+      senderId: ALICE_UID,
+      senderName: "Alicia Luz",
+      messageType: "text",
+      text: "Hola Roberto 😊",
+      replyToMessageId: "dm_0",
+      replyToSenderName: "Roberto Sol",
+      replyToPreview: "¿Cómo estás?",
+      createdAt: pastDate(8000),
+    })
+  );
+  await assertFails(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_txt").update({
+      text: "Editado sin bandera",
+    })
+  );
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_txt").update({
+      text: "Hola Roberto, ¡editado!",
+      edited: true,
+      editedAt: pastDate(1500),
+      updatedAt: pastDate(1500),
+    })
+  );
+  await assertFails(
+    bobDb.collection("chats").doc(chatId).collection("messages").doc("dm_txt").update({
+      text: "Secuestro",
+      edited: true,
+      editedAt: pastDate(1000),
+      updatedAt: pastDate(1000),
+    })
+  );
+  await assertFails(
+    bobDb.collection("chats").doc(chatId).collection("messages").doc("dm_txt").delete()
+  );
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_txt").delete()
+  );
+
+  // Voice note with empty text succeeds; voice note without mediaData fails
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_voice").set({
+      chatId,
+      participantIds: [ALICE_UID, BOB_UID],
+      senderId: ALICE_UID,
+      senderName: "Alicia Luz",
+      messageType: "voice",
+      text: "",
+      mediaData: "UklGRg==",
+      mediaMimeType: "audio/mp4",
+      mediaName: "nota_voz.m4a",
+      durationSec: 7,
+      createdAt: pastDate(7000),
+      updatedAt: pastDate(7000),
+    })
+  );
+  await assertFails(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_voice_bad").set({
+      chatId,
+      participantIds: [ALICE_UID, BOB_UID],
+      senderId: ALICE_UID,
+      senderName: "Alicia Luz",
+      messageType: "voice",
+      text: "",
+      durationSec: 5,
+      createdAt: pastDate(6500),
+    })
+  );
+
+  // Live location message with comment and longer address label succeeds and sender can update coordinates/liveActive, peer cannot
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_live").set({
+      chatId,
+      participantIds: [ALICE_UID, BOB_UID],
+      senderId: ALICE_UID,
+      senderName: "Alicia Luz",
+      messageType: "live_location",
+      text: "Voy caminando hacia la entrada principal",
+      latitude: -35.05123,
+      longitude: -71.76234,
+      locationLabel: "Estanque del Retiro\nParque del Retiro, Madrid, España 28009",
+      liveActive: true,
+      liveExpiresAtMs: Date.now() + 900000,
+      createdAt: pastDate(6000),
+      updatedAt: pastDate(6000),
+    })
+  );
+
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("dm_live").update({
+      latitude: -35.05211,
+      longitude: -71.76345,
+      locationLabel: "Estanque del Retiro\nParque del Retiro, Madrid, España 28009",
+      liveActive: true,
+      updatedAt: pastDate(2000),
+    })
+  );
+
+  await assertFails(
+    bobDb.collection("chats").doc(chatId).collection("messages").doc("dm_live").update({
+      liveActive: false,
+      updatedAt: pastDate(1000),
+    })
+  );
+});
+
+test("Social groups: creator isolation, member messaging, and third-party denial", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+  const groupId = "group_fam_01";
+  const created = pastDate(10000);
+
+  await assertSucceeds(
+    aliceDb.collection("groups").doc(groupId).set({
+      name: "Familia Cercana",
+      category: "FAMILY",
+      colorKey: "amber",
+      creatorId: ALICE_UID,
+      memberIds: [ALICE_UID, BOB_UID],
+      memberNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+      memberColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+      lastMessage: "Grupo creado",
+      createdAt: created,
+      updatedAt: created,
+    })
+  );
+
+  // Member Bob can query, send, edit and delete own group messages (Alice cannot tamper)
+  await assertSucceeds(bobDb.collection("groups").where("memberIds", "array-contains", BOB_UID).get());
+  await assertSucceeds(
+    bobDb.collection("groups").doc(groupId).collection("messages").doc("gm_1").set({
+      groupId,
+      memberIds: [ALICE_UID, BOB_UID],
+      senderId: BOB_UID,
+      senderName: "Roberto Sol",
+      messageType: "text",
+      text: "¡Hola familia!",
+      createdAt: pastDate(4000),
+    })
+  );
+  await assertSucceeds(
+    bobDb.collection("groups").doc(groupId).collection("messages").doc("gm_1").update({
+      text: "¡Hola familia querida!",
+      edited: true,
+      editedAt: pastDate(3700),
+      updatedAt: pastDate(3700),
+    })
+  );
+  await assertFails(
+    aliceDb.collection("groups").doc(groupId).collection("messages").doc("gm_1").delete()
+  );
+  await assertSucceeds(
+    bobDb.collection("groups").doc(groupId).collection("messages").doc("gm_1").delete()
+  );
+  await assertSucceeds(
+    bobDb.collection("groups").doc(groupId).update({
+      lastMessage: "¡Hola familia querida!",
+      updatedAt: pastDate(3500),
+    })
+  );
+
+  // Non-member Charlie cannot read or message
+  await assertFails(charlieDb.collection("groups").doc(groupId).get());
+  await assertFails(
+    charlieDb.collection("groups").doc(groupId).collection("messages").doc("gm_bad").set({
+      groupId,
+      memberIds: [ALICE_UID, BOB_UID, CHARLIE_UID],
+      senderId: CHARLIE_UID,
+      senderName: "Carlos",
+      text: "Intruso",
+      createdAt: pastDate(500),
+    })
+  );
+
+  // Bob cannot rename group (only creator can), while creator Alice can
+  await assertFails(
+    bobDb.collection("groups").doc(groupId).update({
+      name: "Otro Nombre",
+      updatedAt: pastDate(400),
+    })
+  );
+  await assertSucceeds(
+    aliceDb.collection("groups").doc(groupId).update({
+      name: "Familia & Amigos",
+      updatedAt: pastDate(300),
+    })
+  );
+});
+
+test("Safety reports: reporter can create and list own reports, cannot self-report or tamper", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const created = pastDate(5000);
+
+  await assertSucceeds(
+    aliceDb.collection("reports").doc("rep_1").set({
+      reporterId: ALICE_UID,
+      reportedUserId: CHARLIE_UID,
+      targetType: "beacon",
+      targetId: CHARLIE_UID,
+      reason: "spam",
+      details: "Publicidad repetida en la zona.",
+      createdAt: created,
+    })
+  );
+
+  await assertSucceeds(aliceDb.collection("reports").where("reporterId", "==", ALICE_UID).get());
+  await assertFails(bobDb.collection("reports").doc("rep_1").get());
+  await assertFails(aliceDb.collection("reports").doc("rep_1").update({ reason: "other" }));
+  await assertFails(
+    aliceDb.collection("reports").doc("rep_self").set({
+      reporterId: ALICE_UID,
+      reportedUserId: ALICE_UID,
+      targetType: "beacon",
+      targetId: ALICE_UID,
+      reason: "spam",
+      details: "",
+      createdAt: created,
+    })
+  );
+});

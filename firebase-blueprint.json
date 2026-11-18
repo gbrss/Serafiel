@@ -1,0 +1,554 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private authenticated user profile, preferred social purposes, and personal safety blocklist.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID matching the document ID."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Public display name shown in beacons and chats (2-40 chars)."
+        },
+        "bio": {
+          "type": "string",
+          "description": "Short self-introduction (0-200 chars)."
+        },
+        "avatarColor": {
+          "type": "string",
+          "enum": ["amber", "sage", "coral", "sun", "teal", "indigo"],
+          "description": "Selected warm avatar badge theme."
+        },
+        "photoData": {
+          "type": "string",
+          "description": "Optional Base64-encoded compressed profile photo thumbnail."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "Optional Google account profile photo URL."
+        },
+        "online": {
+          "type": "boolean",
+          "description": "Whether the user is currently active online."
+        },
+        "showOnline": {
+          "type": "boolean",
+          "description": "User preference for showing online presence indicator."
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last online heartbeat."
+        },
+        "preferredPurposes": {
+          "type": "array",
+          "description": "Up to 5 social purposes the user is open to."
+        },
+        "blockedUserIds": {
+          "type": "array",
+          "description": "Private list of user IDs blocked by this user (max 100)."
+        },
+        "safetyAccepted": {
+          "type": "boolean",
+          "description": "Whether the user has accepted Serafiel community safety guidelines."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "bio",
+        "avatarColor",
+        "preferredPurposes",
+        "blockedUserIds",
+        "safetyAccepted",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ProximityBeacon": {
+      "title": "ProximityBeacon",
+      "description": "Open location presence beacon for the Serafiel social radar.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase UID matching beaconId."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name shown on the proximity radar."
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["FRIENDSHIP", "NETWORKING", "TOURISM", "HELP", "CASUAL"],
+          "description": "Current open connection intent."
+        },
+        "statusText": {
+          "type": "string",
+          "description": "Short message describing what the user is up for right now (0-160 chars)."
+        },
+        "avatarColor": {
+          "type": "string",
+          "enum": ["amber", "sage", "coral", "sun", "teal", "indigo"],
+          "description": "Avatar badge palette key."
+        },
+        "photoData": {
+          "type": "string",
+          "description": "Optional Base64-encoded profile photo thumbnail visible on radar."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "Optional Google profile photo URL visible on radar."
+        },
+        "online": {
+          "type": "boolean",
+          "description": "Whether the user has active online status visible on their avatar."
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last online presence update."
+        },
+        "accuracyMeters": {
+          "type": "integer",
+          "description": "Optional GPS horizontal accuracy in meters."
+        },
+        "languages": {
+          "type": "array",
+          "description": "Spoken languages (max 5)."
+        },
+        "zoneKey": {
+          "type": "string",
+          "description": "Area grid identifier (e.g. 3778_-12242)."
+        },
+        "zoneName": {
+          "type": "string",
+          "description": "Human-friendly neighborhood or city name."
+        },
+        "approxLat": {
+          "type": "number",
+          "description": "Beacon latitude coordinate."
+        },
+        "approxLon": {
+          "type": "number",
+          "description": "Coarsened longitude rounded for user privacy."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether the beacon is currently visible on the proximity radar."
+        },
+        "verifiedGoogle": {
+          "type": "boolean",
+          "description": "True when authenticated via Google Sign-In."
+        },
+        "radiusKm": {
+          "type": "integer",
+          "description": "Beacon discovery radius in kilometers (1 to 25000, where >1000 enables worldwide reach)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "purpose",
+        "statusText",
+        "avatarColor",
+        "languages",
+        "zoneKey",
+        "zoneName",
+        "approxLat",
+        "approxLon",
+        "active",
+        "verifiedGoogle",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ZoneMessage": {
+      "title": "ZoneMessage",
+      "description": "Real-time message posted to a local proximity zone chat room.",
+      "type": "object",
+      "properties": {
+        "zoneKey": {
+          "type": "string",
+          "description": "Zone key matching parent document."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Author Firebase UID."
+        },
+        "senderName": {
+          "type": "string",
+          "description": "Author display name."
+        },
+        "senderColor": {
+          "type": "string",
+          "enum": ["amber", "sage", "coral", "sun", "teal", "indigo"],
+          "description": "Author avatar badge color."
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["FRIENDSHIP", "NETWORKING", "TOURISM", "HELP", "CASUAL"],
+          "description": "Purpose tag for the message."
+        },
+        "text": {
+          "type": "string",
+          "description": "Message body (1-500 chars)."
+        },
+        "archived": {
+          "type": "boolean",
+          "description": "Soft-delete flag controlled by the sender."
+        },
+        "replyToMessageId": { "type": "string" },
+        "replyToSenderName": { "type": "string" },
+        "replyToPreview": { "type": "string" },
+        "edited": { "type": "boolean" },
+        "editedAt": { "type": "string", "format": "date-time" },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": [
+        "zoneKey",
+        "senderId",
+        "senderName",
+        "senderColor",
+        "purpose",
+        "text",
+        "archived",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DirectChat": {
+      "title": "DirectChat",
+      "description": "1:1 proximity conversation between two authenticated users.",
+      "type": "object",
+      "properties": {
+        "participantIds": {
+          "type": "array",
+          "description": "Exact two participant UIDs."
+        },
+        "participantNames": {
+          "type": "object",
+          "description": "Map of UID to display name."
+        },
+        "participantColors": {
+          "type": "object",
+          "description": "Map of UID to avatar color key."
+        },
+        "initiatorId": {
+          "type": "string",
+          "description": "UID of the user who initiated the chat."
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["FRIENDSHIP", "NETWORKING", "TOURISM", "HELP", "CASUAL"],
+          "description": "Shared connection purpose."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "closed"],
+          "description": "Conversation lifecycle status."
+        },
+        "lastMessage": {
+          "type": "string",
+          "description": "Preview of the latest message."
+        },
+        "zoneName": {
+          "type": "string",
+          "description": "Zone label where the connection started."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": [
+        "participantIds",
+        "participantNames",
+        "participantColors",
+        "initiatorId",
+        "purpose",
+        "status",
+        "lastMessage",
+        "zoneName",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DirectMessage": {
+      "title": "DirectMessage",
+      "description": "Individual text, emoji, image, voice note, audio, static location, or live-updating location message inside a 1:1 DirectChat subcollection.",
+      "type": "object",
+      "properties": {
+        "chatId": {
+          "type": "string",
+          "description": "Parent chat ID."
+        },
+        "participantIds": {
+          "type": "array",
+          "description": "Denormalized participant UIDs for local rule checks."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Sender Firebase UID."
+        },
+        "senderName": {
+          "type": "string",
+          "description": "Sender display name."
+        },
+        "text": {
+          "type": "string",
+          "description": "Message text or optional media caption (0-1000 chars; >=1 for plain text)."
+        },
+        "messageType": {
+          "type": "string",
+          "enum": ["text", "image", "voice", "audio", "location", "live_location"],
+          "description": "Type of 1:1 message payload."
+        },
+        "mediaData": {
+          "type": "string",
+          "description": "Base64-encoded compressed image, voice note, or audio file."
+        },
+        "mediaMimeType": {
+          "type": "string",
+          "description": "MIME type of the encoded media payload."
+        },
+        "mediaName": {
+          "type": "string",
+          "description": "Original or generated filename for audio/media."
+        },
+        "durationSec": {
+          "type": "integer",
+          "description": "Duration in seconds for voice notes and audio clips."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Latitude coordinate for location and live_location messages."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude coordinate for location and live_location messages."
+        },
+        "locationLabel": {
+          "type": "string",
+          "description": "Human-friendly area label for shared location."
+        },
+        "liveActive": {
+          "type": "boolean",
+          "description": "True while real-time location sharing is active."
+        },
+        "liveExpiresAtMs": {
+          "type": "integer",
+          "description": "Epoch millis when live location sharing expires."
+        },
+        "replyToMessageId": { "type": "string" },
+        "replyToSenderName": { "type": "string" },
+        "replyToPreview": { "type": "string" },
+        "edited": { "type": "boolean" },
+        "editedAt": { "type": "string", "format": "date-time" },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp updated during live location sharing."
+        }
+      },
+      "required": [
+        "chatId",
+        "participantIds",
+        "senderId",
+        "senderName",
+        "text",
+        "createdAt"
+      ]
+    },
+    "SafetyReport": {
+      "title": "SafetyReport",
+      "description": "Immutable user safety report for abusive behavior or policy violations.",
+      "type": "object",
+      "properties": {
+        "reporterId": {
+          "type": "string",
+          "description": "Reporting user UID."
+        },
+        "reportedUserId": {
+          "type": "string",
+          "description": "Reported user UID."
+        },
+        "targetType": {
+          "type": "string",
+          "enum": ["beacon", "zone_message", "chat"],
+          "description": "Category of reported content."
+        },
+        "targetId": {
+          "type": "string",
+          "description": "ID of reported document."
+        },
+        "reason": {
+          "type": "string",
+          "enum": ["harassment", "spam", "inappropriate", "impersonation", "other"],
+          "description": "Report reason category."
+        },
+        "details": {
+          "type": "string",
+          "description": "Optional context provided by reporter (0-500 chars)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": [
+        "reporterId",
+        "reportedUserId",
+        "targetType",
+        "targetId",
+        "reason",
+        "details",
+        "createdAt"
+      ]
+    },
+    "SocialGroup": {
+      "title": "SocialGroup",
+      "description": "User-created social circle or group (e.g. Family, Friends, Work) with shared member list and group chat.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Group name (2-50 chars)." },
+        "category": { "type": "string", "enum": ["FAMILY", "FRIENDS", "WORK", "NEIGHBORS", "COMMUNITY", "CUSTOM"] },
+        "colorKey": { "type": "string", "enum": ["amber", "sage", "coral", "sun", "teal", "indigo"] },
+        "creatorId": { "type": "string", "description": "Creator Firebase UID." },
+        "memberIds": { "type": "array", "description": "List of group member UIDs (1-50)." },
+        "memberNames": { "type": "object", "description": "Map of member UID to display name." },
+        "memberColors": { "type": "object", "description": "Map of member UID to avatar color key." },
+        "lastMessage": { "type": "string", "description": "Latest message preview." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "name",
+        "category",
+        "colorKey",
+        "creatorId",
+        "memberIds",
+        "memberNames",
+        "memberColors",
+        "lastMessage",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GroupMessage": {
+      "title": "GroupMessage",
+      "description": "Message inside a SocialGroup subcollection supporting text, emojis, images, voice notes, audio, and static/live locations.",
+      "type": "object",
+      "properties": {
+        "groupId": { "type": "string" },
+        "memberIds": { "type": "array" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "messageType": { "type": "string", "enum": ["text", "image", "voice", "audio", "location", "live_location"] },
+        "mediaData": { "type": "string" },
+        "mediaMimeType": { "type": "string" },
+        "mediaName": { "type": "string" },
+        "durationSec": { "type": "integer" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "locationLabel": { "type": "string" },
+        "liveActive": { "type": "boolean" },
+        "liveExpiresAtMs": { "type": "integer" },
+        "replyToMessageId": { "type": "string" },
+        "replyToSenderName": { "type": "string" },
+        "replyToPreview": { "type": "string" },
+        "edited": { "type": "boolean" },
+        "editedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "groupId",
+        "memberIds",
+        "senderId",
+        "senderName",
+        "text",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Owner-isolated user profile, preferences, and personal blocklist."
+    },
+    "/beacons/{beaconId}": {
+      "schema": { "$ref": "#/entities/ProximityBeacon" },
+      "description": "Active privacy-safe proximity beacons indexed by coarse zone."
+    },
+    "/zone_rooms/{zoneKey}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ZoneMessage" },
+      "description": "Real-time open proximity chat messages scoped to a zone."
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/DirectChat" },
+      "description": "1:1 proximity conversations isolated to their two participants."
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/DirectMessage" },
+      "description": "Messages inside a 1:1 proximity conversation."
+    },
+    "/groups/{groupId}": {
+      "schema": { "$ref": "#/entities/SocialGroup" },
+      "description": "User-created social groups isolated to group members."
+    },
+    "/groups/{groupId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/GroupMessage" },
+      "description": "Rich messages inside a SocialGroup conversation."
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/SafetyReport" },
+      "description": "User-submitted safety reports for community moderation."
+    }
+  }
+}

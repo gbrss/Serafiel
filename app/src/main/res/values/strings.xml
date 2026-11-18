@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Serafiel</string>
+    <string name="tagline_welcome">Cercanía, luz y conexión humana</string>
+    <string name="auth_subtitle">Radar social abierto y gratuito para conocer personas cerca de ti: amistad, networking, turismo, ayuda o conversación casual.</string>
+    <string name="auth_continue_google">Continuar con Google</string>
+    <string name="auth_trust_approx">Ubicación aproximada segura: nunca mostramos tu dirección exacta.</string>
+    <string name="auth_trust_authentic">Perfiles auténticos verificados con cuenta Google.</string>
+    <string name="auth_trust_safety">Bloqueo inmediato, reportes y pausa de visibilidad en un toque.</string>
+    <string name="nav_radar">Radar</string>
+    <string name="nav_zone_room">Sala Local</string>
+    <string name="nav_chats">Chats</string>
+    <string name="nav_groups">Grupos</string>
+    <string name="beacon_visible_on">Visible en el radar</string>
+    <string name="beacon_visible_off">Modo pausa (invisible)</string>
+    <string name="empty_radar_title">Tu zona está tranquila por ahora</string>
+    <string name="empty_radar_subtitle">Activa tu baliza o saluda en la Sala Local para encender la conversación en tu barrio.</string>
+    <string name="cd_welcome_illustration">Ilustración de comunidad conectada al atardecer</string>
+    <string name="cd_empty_radar">Ilustración de ondas cálidas de radar sobre el horizonte</string>
+    <string name="cd_profile_button">Abrir perfil y seguridad</string>
+    <string name="cd_refresh_location">Actualizar zona aproximada</string>
+    <string name="cd_edit_beacon">Editar mi baliza</string>
+    <string name="cd_send_message">Enviar mensaje</string>
+    <string name="cd_back">Volver</string>
+    <string name="cd_safety_menu">Opciones de seguridad y reporte</string>
+    <string name="notif_channel_dm_name">Mensajes directos</string>
+    <string name="notif_channel_dm_desc">Avisos instantáneos cuando alguien te saluda o responde en un chat 1:1.</string>
+    <string name="notif_channel_zone_name">Sala Local</string>
+    <string name="notif_channel_zone_desc">Mensajes nuevos en la sala abierta de tu zona.</string>
+</resources>
