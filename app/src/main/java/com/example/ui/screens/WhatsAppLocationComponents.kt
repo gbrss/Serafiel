@@ -1,7 +1,10 @@
 package com.example.ui.screens
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
@@ -118,20 +121,12 @@ import com.example.model.AvatarColor
 import com.example.model.DirectMessage
 import com.example.model.NearbyPlaceSuggestion
 import com.example.model.ZoneLocation
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMapOptions
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.CameraMoveStartedReason
-import com.google.maps.android.compose.CameraPositionState
-import com.google.maps.android.compose.Circle
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapType
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.MarkerComposable
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberUpdatedMarkerState
+import com.example.ui.map.MapAccuracyCircle
+import com.example.ui.map.MapLibreCameraState
+import com.example.ui.map.MapLibreMapView
+import com.example.ui.map.MapLibreStaticPreview
+import com.example.ui.map.MapMarker
+import com.example.ui.map.rememberMapLibreCameraState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -250,8 +245,8 @@ private fun MapAvatarPinContent(
 }
 
 @Composable
-private fun InteractiveGoogleMapBox(
-    cameraPositionState: CameraPositionState,
+private fun InteractiveMapBox(
+    cameraState: MapLibreCameraState,
     markerLat: Double,
     markerLon: Double,
     accuracyMeters: Int,
@@ -263,68 +258,36 @@ private fun InteractiveGoogleMapBox(
     avatarPhotoData: String?,
     avatarPhotoUrl: String?,
     onGestureMove: (lat: Double, lon: Double) -> Unit,
-    onZoomIn: () -> Unit,
-    onZoomOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hasValidMarker = markerLat != 0.0 || markerLon != 0.0
-    val markerLatLng = remember(markerLat, markerLon) {
-        LatLng(markerLat.coerceIn(-85.0, 85.0), markerLon.coerceIn(-180.0, 180.0))
-    }
-    val markerState = rememberUpdatedMarkerState(position = markerLatLng)
     val avatarBitmap = if (avatarName != null) {
         rememberPreloadedAvatarImageBitmap(photoData = avatarPhotoData, photoUrl = avatarPhotoUrl)
     } else {
         null
     }
 
-    LaunchedEffect(
-        cameraPositionState.isMoving,
-        cameraPositionState.position,
-        cameraPositionState.cameraMoveStartedReason,
-    ) {
-        if (cameraPositionState.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) {
-            val target = cameraPositionState.position.target
-            onGestureMove(target.latitude, target.longitude)
-        }
-    }
-
     Box(
-        modifier = modifier.background(Color(0xFFECE9E1)),
+        modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
-        GoogleMap(
+        MapLibreMapView(
+            state = cameraState,
+            onGestureMove = onGestureMove,
             modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(
-                isMyLocationEnabled = false,
-                mapType = MapType.NORMAL,
-            ),
-            uiSettings = MapUiSettings(
-                compassEnabled = false,
-                indoorLevelPickerEnabled = false,
-                mapToolbarEnabled = false,
-                myLocationButtonEnabled = false,
-                rotationGesturesEnabled = true,
-                scrollGesturesEnabled = true,
-                scrollGesturesEnabledDuringRotateOrZoom = true,
-                tiltGesturesEnabled = true,
-                zoomControlsEnabled = false,
-                zoomGesturesEnabled = true,
-            ),
         ) {
             if (hasValidMarker && showAccuracyCircle) {
-                Circle(
-                    center = markerLatLng,
-                    radius = accuracyMeters.coerceIn(10, 5_000).toDouble(),
-                    fillColor = Color(0x2E2196F3),
-                    strokeColor = Color(0x992196F3),
-                    strokeWidth = 3f,
+                MapAccuracyCircle(
+                    state = cameraState,
+                    lat = markerLat,
+                    lon = markerLon,
+                    radiusMeters = accuracyMeters.coerceIn(10, 5_000).toDouble(),
                 )
                 if (avatarName == null) {
-                    MarkerComposable(
-                        keys = arrayOf("gps_blue_dot"),
-                        state = markerState,
+                    MapMarker(
+                        state = cameraState,
+                        lat = markerLat,
+                        lon = markerLon,
                         anchor = Offset(0.5f, 0.5f),
                     ) {
                         Box(
@@ -347,16 +310,10 @@ private fun InteractiveGoogleMapBox(
             }
 
             if (hasValidMarker && avatarName != null) {
-                MarkerComposable(
-                    keys = arrayOf(
-                        "live_avatar_pin",
-                        avatarName,
-                        avatarColor.key,
-                        avatarPhotoData.orEmpty(),
-                        avatarPhotoUrl.orEmpty(),
-                        avatarBitmap != null,
-                    ),
-                    state = markerState,
+                MapMarker(
+                    state = cameraState,
+                    lat = markerLat,
+                    lon = markerLon,
                     anchor = Offset(0.5f, 0.85f),
                 ) {
                     MapAvatarPinContent(
@@ -366,9 +323,10 @@ private fun InteractiveGoogleMapBox(
                     )
                 }
             } else if (hasValidMarker && showStaticMarkerPin) {
-                MarkerComposable(
-                    keys = arrayOf("static_red_pin"),
-                    state = markerState,
+                MapMarker(
+                    state = cameraState,
+                    lat = markerLat,
+                    lon = markerLon,
                     anchor = Offset(0.5f, 0.9f),
                 ) {
                     Icon(
@@ -405,7 +363,7 @@ private fun InteractiveGoogleMapBox(
                 modifier = Modifier.minimumInteractiveComponentSize(),
             ) {
                 IconButton(
-                    onClick = onZoomIn,
+                    onClick = { cameraState.zoomIn() },
                     modifier = Modifier.size(42.dp),
                 ) {
                     Icon(
@@ -423,7 +381,7 @@ private fun InteractiveGoogleMapBox(
                 modifier = Modifier.minimumInteractiveComponentSize(),
             ) {
                 IconButton(
-                    onClick = onZoomOut,
+                    onClick = { cameraState.zoomOut() },
                     modifier = Modifier.size(42.dp),
                 ) {
                     Icon(
@@ -436,6 +394,21 @@ private fun InteractiveGoogleMapBox(
             }
         }
     }
+}
+
+/** Busca la Activity real aunque el Context venga envuelto (ContextThemeWrapper, etc). */
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+/** Alto de la barra de navegación del sistema como último recurso si los insets llegan en 0. */
+@SuppressLint("DiscouragedApi", "InternalInsetResource")
+private fun systemNavigationBarHeightPx(context: Context): Int {
+    val res = context.resources
+    val id = res.getIdentifier("navigation_bar_height", "dimen", "android")
+    return if (id > 0) res.getDimensionPixelSize(id) else 0
 }
 
 @Composable
@@ -452,7 +425,6 @@ fun WhatsAppSendLocationDialog(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val hasMapsApiKey = remember { LocationHelper.hasConfiguredGoogleMapsKey() }
 
     var pickerMode by remember { mutableStateOf(WhatsAppPickerMode.MENU) }
     var isLoadingLocation by remember { mutableStateOf(true) }
@@ -476,14 +448,12 @@ fun WhatsAppSendLocationDialog(
     var mapCenterLon by remember { mutableDoubleStateOf(fallbackZone.approxLon) }
     var userHasPanned by remember { mutableStateOf(false) }
 
-    val initialLatLng = remember {
-        val lat = fallbackZone.approxLat.takeIf { it != 0.0 || fallbackZone.approxLon != 0.0 } ?: -33.4489
-        val lon = fallbackZone.approxLon.takeIf { it != 0.0 || fallbackZone.approxLat != 0.0 } ?: -70.6693
-        LatLng(lat.coerceIn(-85.0, 85.0), lon.coerceIn(-180.0, 180.0))
-    }
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(initialLatLng, 16f)
-    }
+    val hasFallbackCoords = fallbackZone.approxLat != 0.0 || fallbackZone.approxLon != 0.0
+    val cameraState = rememberMapLibreCameraState(
+        initialLat = if (hasFallbackCoords) fallbackZone.approxLat else -33.4489,
+        initialLon = if (hasFallbackCoords) fallbackZone.approxLon else -70.6693,
+        initialZoom = 16.0,
+    )
 
     var nearbyPlaces by remember { mutableStateOf<List<NearbyPlaceSuggestion>>(emptyList()) }
     var remoteSearchPlaces by remember { mutableStateOf<List<NearbyPlaceSuggestion>>(emptyList()) }
@@ -494,16 +464,13 @@ fun WhatsAppSendLocationDialog(
     var selectedLiveMinutes by remember { mutableIntStateOf(60) }
     var liveComment by remember { mutableStateOf("") }
 
-    suspend fun centerMapOn(lat: Double, lon: Double, zoom: Float? = null, animate: Boolean = true) {
+    fun centerMapOn(lat: Double, lon: Double, zoom: Double? = null, animate: Boolean = true) {
         if (lat == 0.0 && lon == 0.0) return
-        val target = LatLng(lat.coerceIn(-85.0, 85.0), lon.coerceIn(-180.0, 180.0))
-        val targetZoom = zoom ?: cameraPositionState.position.zoom.coerceIn(14f, 18f)
-        val update = CameraUpdateFactory.newLatLngZoom(target, targetZoom)
+        val targetZoom = zoom ?: cameraState.zoom.coerceIn(14.0, 18.0)
         if (animate) {
-            runCatching { cameraPositionState.animate(update, durationMs = 450) }
-                .onFailure { cameraPositionState.move(update) }
+            cameraState.animateTo(lat, lon, targetZoom, durationMs = 450)
         } else {
-            cameraPositionState.move(update)
+            cameraState.moveTo(lat, lon, targetZoom)
         }
     }
 
@@ -530,7 +497,7 @@ fun WhatsAppSendLocationDialog(
             if (point.latitude != 0.0 || point.longitude != 0.0) {
                 mapCenterLat = point.latitude
                 mapCenterLon = point.longitude
-                centerMapOn(point.latitude, point.longitude, zoom = 16f, animate = true)
+                centerMapOn(point.latitude, point.longitude, zoom = 16.0, animate = true)
             }
             userHasPanned = false
             isLoadingLocation = false
@@ -645,23 +612,33 @@ fun WhatsAppSendLocationDialog(
             onDispose {}
         }
 
-        val activityRootInsets = remember(context, dialogView) {
-            (context as? Activity)?.window?.decorView?.let { ViewCompat.getRootWindowInsets(it) }
-        }
+        // Insets robustos: en algunos equipos el Dialog recibe 0 en WindowInsets y el
+        // Context no es la Activity directa, por lo que el pie quedaba bajo la barra
+        // de navegación (botones de duración / enviar fuera de pantalla).
+        val hostActivity = remember(context) { context.findActivity() }
+        val activityRootInsets = hostActivity?.window?.decorView?.let { ViewCompat.getRootWindowInsets(it) }
+        val dialogRootInsets = ViewCompat.getRootWindowInsets(dialogView)
         val activityStatusTopPx = activityRootInsets
             ?.getInsets(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout())
             ?.top ?: 0
         val activityNavBottomPx = activityRootInsets
-            ?.getInsets(WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout())
+            ?.getInsets(WindowInsetsCompat.Type.navigationBars())
+            ?.bottom ?: 0
+        val dialogRootNavBottomPx = dialogRootInsets
+            ?.getInsets(WindowInsetsCompat.Type.navigationBars())
             ?.bottom ?: 0
         val dialogStatusTopPx = WindowInsets.statusBars.getTop(density)
         val dialogNavBottomPx = WindowInsets.navigationBars.getBottom(density)
-        val imeBottomPx = WindowInsets.ime.getBottom(density)
+        val imeBottomPx = maxOf(
+            WindowInsets.ime.getBottom(density),
+            dialogRootInsets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0,
+        )
+        val navFallbackPx = remember(context) { systemNavigationBarHeightPx(context) }
+        val navBottomPx = maxOf(activityNavBottomPx, dialogRootNavBottomPx, dialogNavBottomPx)
+            .takeIf { it > 0 } ?: navFallbackPx
 
         val topStatusInsetDp = with(density) { maxOf(activityStatusTopPx, dialogStatusTopPx).toDp() }
-        val bottomClearanceDp = with(density) {
-            maxOf(activityNavBottomPx, dialogNavBottomPx, imeBottomPx).toDp()
-        }
+        val bottomClearanceDp = with(density) { maxOf(navBottomPx, imeBottomPx).toDp() }
 
         Surface(
             modifier = Modifier
@@ -761,7 +738,7 @@ fun WhatsAppSendLocationDialog(
                     }
                 }
 
-                // Interactive Google Map View
+                // Interactive MapLibre View (OpenFreeMap)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -775,8 +752,8 @@ fun WhatsAppSendLocationDialog(
                             }
                         ),
                 ) {
-                    InteractiveGoogleMapBox(
-                        cameraPositionState = cameraPositionState,
+                    InteractiveMapBox(
+                        cameraState = cameraState,
                         markerLat = gpsPoint.latitude,
                         markerLon = gpsPoint.longitude,
                         accuracyMeters = gpsPoint.accuracyMeters,
@@ -791,16 +768,6 @@ fun WhatsAppSendLocationDialog(
                             userHasPanned = true
                             mapCenterLat = nextLat
                             mapCenterLon = nextLon
-                        },
-                        onZoomIn = {
-                            scope.launch {
-                                runCatching { cameraPositionState.animate(CameraUpdateFactory.zoomIn(), 250) }
-                            }
-                        },
-                        onZoomOut = {
-                            scope.launch {
-                                runCatching { cameraPositionState.animate(CameraUpdateFactory.zoomOut(), 250) }
-                            }
                         },
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -912,24 +879,6 @@ fun WhatsAppSendLocationDialog(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            )
-                        }
-                    } else if (!hasMapsApiKey) {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.95f),
-                            shadowElevation = 2.dp,
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 12.dp, start = 62.dp, end = 62.dp),
-                        ) {
-                            Text(
-                                text = "Configura MAPS_API_KEY en Secrets de AI Studio",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             )
                         }
                     }
@@ -1380,18 +1329,6 @@ fun WhatsAppLocationMessageCard(
         }
     }
 
-    val previewTarget = remember(lat, lon) {
-        LatLng(lat.coerceIn(-85.0, 85.0), lon.coerceIn(-180.0, 180.0))
-    }
-    val previewCameraState = rememberCameraPositionState(key = "card_${message.id}") {
-        position = CameraPosition.fromLatLngZoom(previewTarget, 16f)
-    }
-    LaunchedEffect(lat, lon) {
-        if (hasValidCoords) {
-            previewCameraState.move(CameraUpdateFactory.newLatLngZoom(previewTarget, 16f))
-        }
-    }
-
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
@@ -1413,23 +1350,11 @@ fun WhatsAppLocationMessageCard(
                 contentAlignment = Alignment.Center,
             ) {
                 if (hasValidCoords) {
-                    GoogleMap(
+                    MapLibreStaticPreview(
+                        lat = lat,
+                        lon = lon,
+                        zoom = 15.5,
                         modifier = Modifier.fillMaxSize(),
-                        cameraPositionState = previewCameraState,
-                        googleMapOptionsFactory = { GoogleMapOptions().liteMode(true) },
-                        uiSettings = MapUiSettings(
-                            compassEnabled = false,
-                            indoorLevelPickerEnabled = false,
-                            mapToolbarEnabled = false,
-                            myLocationButtonEnabled = false,
-                            rotationGesturesEnabled = false,
-                            scrollGesturesEnabled = false,
-                            scrollGesturesEnabledDuringRotateOrZoom = false,
-                            tiltGesturesEnabled = false,
-                            zoomControlsEnabled = false,
-                            zoomGesturesEnabled = false,
-                        ),
-                        onMapClick = { onOpenInAppLocation() },
                     )
                 }
 
@@ -1576,7 +1501,6 @@ fun InAppDynamicLocationDialog(
     onStopLiveLocation: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
     val isLiveType = message.messageType == DirectMessage.TYPE_LIVE_LOCATION
     val stillWithinWindow = !isLiveType ||
         (message.liveActive && (message.liveExpiresAtMs == 0L || System.currentTimeMillis() < message.liveExpiresAtMs))
@@ -1596,25 +1520,21 @@ fun InAppDynamicLocationDialog(
     )
 
     var followMarker by remember(message.id) { mutableStateOf(true) }
-    val initialLatLng = remember(message.id) {
-        LatLng(targetLat.coerceIn(-85.0, 85.0), targetLon.coerceIn(-180.0, 180.0))
-    }
-    val cameraPositionState = rememberCameraPositionState(key = "dialog_${message.id}") {
-        position = CameraPosition.fromLatLngZoom(initialLatLng, 16f)
-    }
+    val cameraState = rememberMapLibreCameraState(
+        key = "dialog_${message.id}",
+        initialLat = targetLat,
+        initialLon = targetLon,
+        initialZoom = 16.0,
+    )
 
     LaunchedEffect(targetLat, targetLon, followMarker) {
         if (followMarker && (targetLat != 0.0 || targetLon != 0.0)) {
-            val latLng = LatLng(targetLat.coerceIn(-85.0, 85.0), targetLon.coerceIn(-180.0, 180.0))
-            val currentZoom = cameraPositionState.position.zoom.coerceIn(13f, 18f)
-            runCatching {
-                cameraPositionState.animate(
-                    CameraUpdateFactory.newLatLngZoom(latLng, currentZoom),
-                    durationMs = 500,
-                )
-            }.onFailure {
-                cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(latLng, currentZoom))
-            }
+            cameraState.animateTo(
+                lat = targetLat,
+                lon = targetLon,
+                zoom = cameraState.zoom.coerceIn(13.0, 18.0),
+                durationMs = 500,
+            )
         }
     }
 
@@ -1704,14 +1624,14 @@ fun InAppDynamicLocationDialog(
                     }
                 }
 
-                // Dynamic Interactive Google Map Viewport
+                // Dynamic Interactive MapLibre Viewport
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(340.dp),
                 ) {
-                    InteractiveGoogleMapBox(
-                        cameraPositionState = cameraPositionState,
+                    InteractiveMapBox(
+                        cameraState = cameraState,
                         markerLat = animatedMarkerLat.toDouble(),
                         markerLon = animatedMarkerLon.toDouble(),
                         accuracyMeters = 20,
@@ -1724,16 +1644,6 @@ fun InAppDynamicLocationDialog(
                         avatarPhotoUrl = senderPhotoUrl,
                         onGestureMove = { _, _ ->
                             followMarker = false
-                        },
-                        onZoomIn = {
-                            scope.launch {
-                                runCatching { cameraPositionState.animate(CameraUpdateFactory.zoomIn(), 250) }
-                            }
-                        },
-                        onZoomOut = {
-                            scope.launch {
-                                runCatching { cameraPositionState.animate(CameraUpdateFactory.zoomOut(), 250) }
-                            }
                         },
                         modifier = Modifier.fillMaxSize(),
                     )

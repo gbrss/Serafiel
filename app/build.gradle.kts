@@ -20,7 +20,6 @@ android {
     versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    manifestPlaceholders.putIfAbsent("MAPS_API_KEY", "MY_MAPS_API_KEY")
   }
 
   // Do not remove or modify these signingConfigs. They are necessary for building, installing,
@@ -122,7 +121,7 @@ dependencies {
   // implementation(libs.moshi.kotlin)
   // implementation(libs.okhttp)
   implementation(libs.play.services.location)
-  implementation(libs.maps.compose)
+  implementation(libs.maplibre.android)
   // implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
