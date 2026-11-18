@@ -17,7 +17,10 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - uses: android-actions/setup-android@v3
+      # El runner ya trae el Android SDK; solo aceptamos licencias para que Gradle
+      # pueda descargar la plataforma / build-tools que pida el proyecto.
+      - name: Aceptar licencias del SDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
 
       - uses: gradle/actions/setup-gradle@v4
         with:
