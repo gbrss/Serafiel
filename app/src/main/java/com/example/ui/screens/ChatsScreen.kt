@@ -649,8 +649,10 @@ private fun DirectChatDetailScreen(
         onShowMessage = onShowMessage,
     )
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
-    val nowTick = rememberTicker()
-    val peerTyping = remember(chat.typingAt, nowTick) { chat.isPeerTyping(currentUserId, nowTick) }
+    // El reloj solo corre mientras el otro tiene una marca de "escribiendo".
+    val hasPeerTypingEntry = chat.typingAt.keys.any { it != currentUserId }
+    val nowTick = if (hasPeerTypingEntry) rememberTicker() else System.currentTimeMillis()
+    val peerTyping = hasPeerTypingEntry && chat.isPeerTyping(currentUserId, nowTick)
 
     val audioPlaybackState by ChatAudioPlayer.playbackState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
