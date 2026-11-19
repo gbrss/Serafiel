@@ -30,14 +30,18 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 data class EncodedMediaPayload(
+    /** Contenido en línea (imagen estándar, miniatura de video o audio corto). Puede ir vacío. */
     val base64Data: String,
     val mimeType: String,
     val displayName: String,
     val durationSec: Long = 0L,
+    /** Archivo completo que se sube troceado (HD, audio largo, video). */
+    val fullFile: File? = null,
 )
 
 data class AudioPlaybackUiState(
     val activeMessageId: String? = null,
+    val isLoading: Boolean = false,
     val isPlaying: Boolean = false,
     val progress: Float = 0f,
     val currentSec: Long = 0L,
@@ -140,6 +144,57 @@ object ChatMediaHelper {
             }
         }
 
+    private const val HD_IMAGE_DIMENSION_PX = 2048
+    private const val HD_IMAGE_MAX_BYTES = 3_500_000
+
+    /**
+     * Comprime la imagen a calidad estándar (en línea) y, si [hd] está activo, además
+     * genera una versión HD (hasta 2048 px) que se sube troceada.
+     */
+    suspend fun compressImageToBase64(context: Context, uri: Uri, hd: Boolean): Result<EncodedMediaPayload> {
+        val standard = compressImageToBase64(context, uri)
+        if (!hd || standard.isFailure) return standard
+        val hdFile = withContext(Dispatchers.IO) {
+            runCatching { encodeHdImageFile(context, uri) }.getOrNull()
+        }
+        return Result.success(standard.getOrThrow().copy(fullFile = hdFile))
+    }
+
+    private fun encodeHdImageFile(context: Context, uri: Uri): File? {
+        val resolver = context.contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        var sampleSize = 1
+        val maxSide = max(bounds.outWidth, bounds.outHeight)
+        while (maxSide / (sampleSize * 2) >= HD_IMAGE_DIMENSION_PX) sampleSize *= 2
+        val raw = resolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sampleSize })
+        } ?: return null
+        val rotated = applyExifRotation(context, uri, raw)
+        val scale = HD_IMAGE_DIMENSION_PX.toFloat() / max(rotated.width, rotated.height).toFloat()
+        val bitmap = if (scale < 1f) {
+            Bitmap.createScaledBitmap(
+                rotated,
+                (rotated.width * scale).roundToInt().coerceAtLeast(1),
+                (rotated.height * scale).roundToInt().coerceAtLeast(1),
+                true,
+            ).also { if (it !== rotated) rotated.recycle() }
+        } else {
+            rotated
+        }
+        val dir = File(context.cacheDir, "outgoing_media").apply { mkdirs() }
+        val out = File(dir, "hd_${System.currentTimeMillis()}.jpg")
+        var quality = 90
+        while (true) {
+            FileOutputStream(out).use { bitmap.compress(Bitmap.CompressFormat.JPEG, quality, it) }
+            if (out.length() <= HD_IMAGE_MAX_BYTES || quality <= 60) break
+            quality -= 8
+        }
+        bitmap.recycle()
+        return out
+    }
+
     suspend fun compressImageToBase64(context: Context, uri: Uri): Result<EncodedMediaPayload> =
         withContext(Dispatchers.IO) {
             try {
@@ -208,38 +263,42 @@ object ChatMediaHelper {
                 val resolver = context.contentResolver
                 val mime = resolver.getType(uri)?.takeIf { it.startsWith("audio/") } ?: "audio/mp4"
                 val name = queryDisplayName(context, uri) ?: "audio.m4a"
-                val bytes = resolver.openInputStream(uri)?.use { input ->
-                    val buffer = ByteArrayOutputStream()
-                    val chunk = ByteArray(8192)
-                    var total = 0
-                    while (true) {
-                        val read = input.read(chunk)
-                        if (read <= 0) break
-                        total += read
-                        if (total > MAX_AUDIO_BYTES) {
-                            return@withContext Result.failure(
-                                IllegalArgumentException("El audio supera el límite de 450 KB para envío instantáneo.")
-                            )
+                val dir = File(context.cacheDir, "outgoing_media").apply { mkdirs() }
+                val copy = File(dir, "audio_${System.currentTimeMillis()}")
+                val total = resolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(copy).use { out ->
+                        val chunk = ByteArray(8192)
+                        var total = 0L
+                        while (true) {
+                            val read = input.read(chunk)
+                            if (read <= 0) break
+                            total += read
+                            if (total > ChunkedMediaStore.MAX_CHUNKED_BYTES) {
+                                copy.delete()
+                                return@withContext Result.failure(
+                                    IllegalArgumentException("El audio supera el límite de 24 MB.")
+                                )
+                            }
+                            out.write(chunk, 0, read)
                         }
-                        buffer.write(chunk, 0, read)
+                        total
                     }
-                    buffer.toByteArray()
                 } ?: return@withContext Result.failure(IllegalArgumentException("No se pudo leer el archivo de audio."))
 
-                if (bytes.isEmpty()) {
+                if (total <= 0L) {
+                    copy.delete()
                     return@withContext Result.failure(IllegalArgumentException("El archivo de audio está vacío."))
                 }
 
                 val durationSec = extractAudioDurationSec(context, uri)
-                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                Result.success(
-                    EncodedMediaPayload(
-                        base64Data = base64,
-                        mimeType = mime.take(64),
-                        displayName = name.take(120),
-                        durationSec = durationSec,
-                    )
-                )
+                val payload = if (total <= MAX_AUDIO_BYTES) {
+                    val base64 = Base64.encodeToString(copy.readBytes(), Base64.NO_WRAP)
+                    copy.delete()
+                    EncodedMediaPayload(base64, mime.take(64), name.take(120), durationSec)
+                } else {
+                    EncodedMediaPayload("", mime.take(64), name.take(120), durationSec, fullFile = copy)
+                }
+                Result.success(payload)
             } catch (e: Exception) {
                 Result.failure(e)
             }
@@ -286,7 +345,21 @@ object ChatMediaHelper {
 }
 
 class VoiceNoteRecorder(private val context: Context) {
+    companion object {
+        const val MAX_VOICE_NOTE_SEC = 300L
+        const val MAX_VOICE_NOTE_MS = (MAX_VOICE_NOTE_SEC * 1000L).toInt()
+    }
+
     private var recorder: MediaRecorder? = null
+
+    val isRecording: Boolean get() = recorder != null
+
+    /** Nivel de entrada 0..1 desde la última llamada (para la onda de grabación). */
+    fun currentLevel(): Float {
+        val amp = runCatching { recorder?.maxAmplitude ?: 0 }.getOrDefault(0)
+        return (amp / 18_000f).coerceIn(0f, 1f)
+    }
+
     private var outputFile: File? = null
     private var startedAtMs: Long = 0L
 
@@ -306,7 +379,7 @@ class VoiceNoteRecorder(private val context: Context) {
             mr.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
             mr.setAudioEncodingBitRate(24_000)
             mr.setAudioSamplingRate(16_000)
-            mr.setMaxDuration(60_000)
+            mr.setMaxDuration(MAX_VOICE_NOTE_MS)
             mr.setOutputFile(file.absolutePath)
             mr.prepare()
             mr.start()
@@ -337,20 +410,13 @@ class VoiceNoteRecorder(private val context: Context) {
         }
 
         return@withContext try {
-            val bytes = file.readBytes()
-            file.delete()
-            if (bytes.size > 480_000) {
-                Result.failure(IllegalArgumentException("La nota de voz es demasiado larga."))
+            val duration = elapsedSec.coerceIn(1L, MAX_VOICE_NOTE_SEC)
+            if (file.length() <= ChunkedMediaStore.INLINE_LIMIT_BYTES) {
+                val base64 = Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
+                file.delete()
+                Result.success(EncodedMediaPayload(base64, "audio/mp4", "nota_voz.m4a", duration))
             } else {
-                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                Result.success(
-                    EncodedMediaPayload(
-                        base64Data = base64,
-                        mimeType = "audio/mp4",
-                        displayName = "nota_voz.m4a",
-                        durationSec = elapsedSec.coerceIn(1L, 60L),
-                    )
-                )
+                Result.success(EncodedMediaPayload("", "audio/mp4", "nota_voz.m4a", duration, fullFile = file))
             }
         } catch (e: Exception) {
             file.delete()
@@ -380,6 +446,53 @@ object ChatAudioPlayer {
 
     private val _playbackState = MutableStateFlow(AudioPlaybackUiState())
     val playbackState: StateFlow<AudioPlaybackUiState> = _playbackState.asStateFlow()
+
+    /** Reproduce un mensaje de voz/audio, descargando sus trozos si hace falta. */
+    fun togglePlayMessage(context: Context, message: com.example.model.DirectMessage) {
+        if (message.chunkCount <= 0L) {
+            togglePlay(context, message.id, message.mediaData)
+            return
+        }
+        val current = _playbackState.value
+        if (current.activeMessageId == message.id && mediaPlayer != null) {
+            togglePlay(context, message.id, null)
+            return
+        }
+        stop()
+        _playbackState.value = AudioPlaybackUiState(activeMessageId = message.id, isLoading = true)
+        val appContext = context.applicationContext
+        scope.launch {
+            val file = ChunkedMediaStore.resolveFullMedia(appContext, message)
+            if (_playbackState.value.activeMessageId != message.id) return@launch
+            if (file == null) {
+                _playbackState.value = AudioPlaybackUiState()
+                return@launch
+            }
+            startPlayer(message.id, file, deleteOnStop = false)
+        }
+    }
+
+    private fun startPlayer(messageId: String, file: File, deleteOnStop: Boolean) {
+        try {
+            tempFile = if (deleteOnStop) file else null
+            val mp = MediaPlayer().apply {
+                setDataSource(file.absolutePath)
+                setOnCompletionListener { stop() }
+                prepare()
+                start()
+            }
+            mediaPlayer = mp
+            _playbackState.value = AudioPlaybackUiState(
+                activeMessageId = messageId,
+                isPlaying = true,
+                progress = 0f,
+                currentSec = 0L,
+            )
+            startProgressTicker()
+        } catch (_: Exception) {
+            stop()
+        }
+    }
 
     fun togglePlay(context: Context, messageId: String, base64Data: String?) {
         val current = _playbackState.value

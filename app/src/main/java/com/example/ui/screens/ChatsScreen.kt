@@ -108,6 +108,9 @@ import com.example.model.SocialPurpose
 import com.example.model.UiState
 import com.example.model.ZoneLocation
 import com.example.ui.viewmodel.SerafielViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -141,6 +144,10 @@ fun ChatsTabScreen(
     onDeleteChats: (List<String>) -> Unit = {},
     onBlockUser: (String, String) -> Unit,
     onSubmitReport: (String, String, String, ReportReason, String, Boolean) -> Unit,
+    onReactToMessage: (DirectChat, String, String?) -> Unit = { _, _, _ -> },
+    onComposerTyping: (DirectChat, Boolean) -> Unit = { _, _ -> },
+    onMarkChatRead: (DirectChat, String) -> Unit = { _, _ -> },
+    mediaUploadLabel: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val chatsList = (myChatsState as? UiState.Success)?.data.orEmpty()
@@ -180,6 +187,10 @@ fun ChatsTabScreen(
             onAddPeerToGroup = onAddPeerToGroup,
             onBlockUser = onBlockUser,
             onSubmitReport = onSubmitReport,
+            onReactToMessage = { msgId, emoji -> onReactToMessage(activeChat, msgId, emoji) },
+            onComposerTyping = { hasText -> onComposerTyping(activeChat, hasText) },
+            onMarkChatRead = { latestId -> onMarkChatRead(activeChat, latestId) },
+            mediaUploadLabel = mediaUploadLabel,
             modifier = modifier,
         )
     } else {
@@ -602,6 +613,10 @@ private fun DirectChatDetailScreen(
     onAddPeerToGroup: (String, String, String) -> Unit,
     onBlockUser: (String, String) -> Unit,
     onSubmitReport: (String, String, String, ReportReason, String, Boolean) -> Unit,
+    onReactToMessage: (String, String?) -> Unit,
+    onComposerTyping: (Boolean) -> Unit,
+    onMarkChatRead: (String) -> Unit,
+    mediaUploadLabel: String?,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -624,11 +639,18 @@ private fun DirectChatDetailScreen(
     var showAttachmentsPanel by remember { mutableStateOf(false) }
     var showWhatsAppLocationPicker by remember { mutableStateOf(false) }
     var fullscreenImageBase64 by remember { mutableStateOf<String?>(null) }
+    var fullscreenImageMessage by remember { mutableStateOf<DirectMessage?>(null) }
+    var openVideoMessage by remember(chat.id) { mutableStateOf<DirectMessage?>(null) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
-    val voiceRecorder = remember(context) { VoiceNoteRecorder(context) }
-    var isRecordingVoice by remember { mutableStateOf(false) }
-    var recordingSeconds by remember { mutableLongStateOf(0L) }
+    val voiceController = rememberVoiceNoteController(
+        key = chat.id,
+        onSend = onSendVoiceNote,
+        onShowMessage = onShowMessage,
+    )
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val nowTick = rememberTicker()
+    val peerTyping = remember(chat.typingAt, nowTick) { chat.isPeerTyping(currentUserId, nowTick) }
 
     val audioPlaybackState by ChatAudioPlayer.playbackState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -692,28 +714,6 @@ private fun DirectChatDetailScreen(
         }
     }
 
-    fun beginVoiceRecording() {
-        val started = voiceRecorder.startRecording()
-        if (started.isSuccess) {
-            recordingSeconds = 0L
-            isRecordingVoice = true
-            showEmojiPicker = false
-            showAttachmentsPanel = false
-        } else {
-            onShowMessage("No se pudo iniciar la grabación de voz.")
-        }
-    }
-
-    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            beginVoiceRecording()
-        } else {
-            onShowMessage("Activa el permiso de micrófono para enviar notas de voz.")
-        }
-    }
-
     var hasRequestedFineUpgrade by remember(chat.id) { mutableStateOf(false) }
 
     val chatLocationPermissionLauncher = rememberLauncherForActivityResult(
@@ -746,26 +746,21 @@ private fun DirectChatDetailScreen(
         }
     }
 
-    LaunchedEffect(isRecordingVoice) {
-        if (isRecordingVoice) {
-            while (isRecordingVoice) {
-                delay(1000L)
-                recordingSeconds += 1L
-                if (recordingSeconds >= 58L) {
-                    isRecordingVoice = false
-                    val payloadRes = voiceRecorder.finishAndEncode()
-                    payloadRes.onSuccess { onSendVoiceNote(it) }
-                        .onFailure { onShowMessage(it.localizedMessage ?: "No se pudo guardar la nota de voz.") }
-                }
-            }
+    DisposableEffect(chat.id) {
+        onDispose {
+            ChatAudioPlayer.stop()
+            onComposerTyping(false)
         }
     }
 
-    DisposableEffect(chat.id) {
-        onDispose {
-            voiceRecorder.cancelRecording()
-            ChatAudioPlayer.stop()
-        }
+    // Marca como "visto" el último mensaje del otro cuando la conversación está en pantalla.
+    val latestPeerMessage = messages.lastOrNull { it.senderId != currentUserId }
+    LaunchedEffect(latestPeerMessage?.id, lifecycleState) {
+        val latest = latestPeerMessage ?: return@LaunchedEffect
+        if (!lifecycleState.isAtLeast(Lifecycle.State.RESUMED)) return@LaunchedEffect
+        val latestMs = latest.createdAt?.toDate()?.time ?: return@LaunchedEffect
+        val myReadMs = chat.lastReadAt[currentUserId]?.toDate()?.time ?: 0L
+        if (myReadMs < latestMs) onMarkChatRead(latest.id)
     }
 
     LaunchedEffect(messages.size) {
@@ -842,13 +837,17 @@ private fun DirectChatDetailScreen(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Text(
-                            text = headerSubtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isPeerOnline) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        if (peerTyping) {
+                            TypingIndicatorText(color = Color(0xFF16A34A))
+                        } else {
+                            Text(
+                                text = headerSubtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isPeerOnline) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                     Box {
                         IconButton(
@@ -977,15 +976,25 @@ private fun DirectChatDetailScreen(
                                         isMine = mine,
                                         audioPlaybackState = audioPlaybackState,
                                         onToggleAudio = { target ->
-                                            ChatAudioPlayer.togglePlay(context, target.id, target.mediaData)
+                                            ChatAudioPlayer.togglePlayMessage(context, target)
                                         },
                                         onStopLiveLocation = onStopLiveLocation,
-                                        onPreviewImage = { b64 -> fullscreenImageBase64 = b64 },
+                                        onPreviewImage = { b64 ->
+                                            fullscreenImageBase64 = b64
+                                            fullscreenImageMessage = msg
+                                        },
                                         onOpenLocation = { inspectedLocationMessageId = msg.id },
                                         onLongPressOrSelect = { selectedMessageForActions = msg },
                                         senderPhotoData = if (mine) myPhotoData else peerVisual?.photoData,
                                         senderPhotoUrl = if (mine) myPhotoUrl else peerVisual?.photoUrl,
                                         senderColor = if (mine) myAvatarColor else peerColor,
+                                        deliveryStatus = if (mine) msg.deliveryStatus(chat) else null,
+                                        myUserId = currentUserId,
+                                        onToggleReaction = { emoji ->
+                                            val mineNow = msg.reactions[currentUserId]
+                                            onReactToMessage(msg.id, if (mineNow == emoji) null else emoji)
+                                        },
+                                        onOpenVideo = { openVideoMessage = msg },
                                     )
                                 }
                             }
@@ -1001,7 +1010,7 @@ private fun DirectChatDetailScreen(
                             onTakeCameraPhoto = { launchCameraFlow() },
                             onPickImage = {
                                 photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
                                 )
                             },
                             onPickAudio = {
@@ -1023,6 +1032,10 @@ private fun DirectChatDetailScreen(
                         )
                     }
 
+                    if (mediaUploadLabel != null) {
+                        MediaUploadBanner(mediaUploadLabel)
+                    }
+
                     ReplyOrEditComposerBanner(
                         replyDraft = replyDraft,
                         editingTextPreview = editingMessage?.text,
@@ -1040,72 +1053,17 @@ private fun DirectChatDetailScreen(
                         color = MaterialTheme.colorScheme.surface,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        if (isRecordingVoice) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(12.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.error),
-                                )
-                                Text(
-                                    text = "Grabando voz ${DirectMessage.formatDuration(recordingSeconds)} / 1:00",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                IconButton(
-                                    onClick = {
-                                        isRecordingVoice = false
-                                        voiceRecorder.cancelRecording()
-                                    },
-                                    modifier = Modifier
-                                        .minimumInteractiveComponentSize()
-                                        .testTag("cancel_voice_button"),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.DeleteOutline,
-                                        contentDescription = "Cancelar grabación",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                IconButton(
-                                    onClick = {
-                                        isRecordingVoice = false
-                                        scope.launch {
-                                            val payloadRes = voiceRecorder.finishAndEncode()
-                                            payloadRes.onSuccess { onSendVoiceNote(it) }
-                                                .onFailure {
-                                                    onShowMessage(it.localizedMessage ?: "No se pudo guardar el audio.")
-                                                }
-                                        }
-                                    },
-                                    colors = IconButtonDefaults.filledIconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                                    ),
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .testTag("send_voice_button"),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Rounded.Send,
-                                        contentDescription = "Enviar nota de voz",
-                                    )
-                                }
-                            }
+                        if (voiceController.state == VoiceRecState.LOCKED) {
+                            VoiceLockedBar(controller = voiceController)
                         } else {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
+                              if (voiceController.state == VoiceRecState.HOLDING) {
+                                VoiceHoldingContent(voiceController)
+                              } else {
                                 IconButton(
                                     onClick = {
                                         showEmojiPicker = !showEmojiPicker
@@ -1158,7 +1116,10 @@ private fun DirectChatDetailScreen(
                                 }
                                 OutlinedTextField(
                                     value = draft,
-                                    onValueChange = { draft = it.take(1000) },
+                                    onValueChange = {
+                                        draft = it.take(1000)
+                                        if (editingMessage == null) onComposerTyping(draft.isNotBlank())
+                                    },
                                     placeholder = { Text(if (editingMessage != null) "Editar mensaje..." else "Mensaje...") },
                                     maxLines = 4,
                                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
@@ -1167,32 +1128,9 @@ private fun DirectChatDetailScreen(
                                         .weight(1f)
                                         .testTag("direct_message_input"),
                                 )
-                                if (draft.trim().isEmpty()) {
-                                    IconButton(
-                                        onClick = {
-                                            val hasMic = ContextCompat.checkSelfPermission(
-                                                context,
-                                                Manifest.permission.RECORD_AUDIO,
-                                            ) == PackageManager.PERMISSION_GRANTED
-                                            if (hasMic) {
-                                                beginVoiceRecording()
-                                            } else {
-                                                recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                            }
-                                        },
-                                        colors = IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        ),
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .testTag("record_voice_button"),
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Mic,
-                                            contentDescription = "Grabar mensaje de voz",
-                                        )
-                                    }
+                              }
+                                if (draft.trim().isEmpty() || voiceController.isActive) {
+                                    VoiceMicButton(controller = voiceController)
                                 } else {
                                     IconButton(
                                         onClick = {
@@ -1215,6 +1153,7 @@ private fun DirectChatDetailScreen(
                                                 }
                                                 draft = ""
                                                 showEmojiPicker = false
+                                                onComposerTyping(false)
                                             }
                                         },
                                         colors = IconButtonDefaults.filledIconButtonColors(
@@ -1304,6 +1243,8 @@ private fun DirectChatDetailScreen(
                 draft = msg.text
             },
             onDelete = { pendingDeleteMessage = msg },
+            myReaction = msg.reactions[currentUserId],
+            onReact = { emoji -> onReactToMessage(msg.id, emoji) },
         )
     }
 
@@ -1348,8 +1289,16 @@ private fun DirectChatDetailScreen(
     fullscreenImageBase64?.let { b64 ->
         FullscreenImageDialog(
             base64Data = b64,
-            onDismiss = { fullscreenImageBase64 = null },
+            onDismiss = {
+                fullscreenImageBase64 = null
+                fullscreenImageMessage = null
+            },
+            hdMessage = fullscreenImageMessage,
         )
+    }
+
+    openVideoMessage?.let { videoMsg ->
+        VideoPlayerDialog(message = videoMsg, onDismiss = { openVideoMessage = null })
     }
 
     if (showReportDialog && peerId.isNotBlank()) {

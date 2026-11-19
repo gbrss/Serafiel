@@ -1,17 +1,16 @@
 package com.example.ui.screens
 
 import android.Manifest
-import android.annotation.SuppressLint
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
+import android.graphics.Rect
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.provider.Settings
 import android.util.Base64
+import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,12 +32,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -108,9 +104,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import coil.ImageLoader
 import coil.request.ImageRequest
@@ -396,19 +390,39 @@ private fun InteractiveMapBox(
     }
 }
 
-/** Busca la Activity real aunque el Context venga envuelto (ContextThemeWrapper, etc). */
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
+private data class VisibleFramePadding(val topPx: Int, val bottomPx: Int)
 
-/** Alto de la barra de navegación del sistema como último recurso si los insets llegan en 0. */
-@SuppressLint("DiscouragedApi", "InternalInsetResource")
-private fun systemNavigationBarHeightPx(context: Context): Int {
-    val res = context.resources
-    val id = res.getIdentifier("navigation_bar_height", "dimen", "android")
-    return if (id > 0) res.getDimensionPixelSize(id) else 0
+/**
+ * Calcula cuánto del contenedor queda tapado arriba/abajo comparando su posición
+ * en pantalla con getWindowVisibleDisplayFrame (que excluye barras del sistema y
+ * teclado). Se recalcula en cada layout global, p. ej. al abrir el teclado.
+ */
+@Composable
+private fun rememberVisibleFramePadding(view: View): VisibleFramePadding {
+    var padding by remember(view) { mutableStateOf(VisibleFramePadding(0, 0)) }
+    DisposableEffect(view) {
+        val root = view.rootView
+        val frame = Rect()
+        val loc = IntArray(2)
+        fun recompute() {
+            root.getWindowVisibleDisplayFrame(frame)
+            root.getLocationOnScreen(loc)
+            if (frame.height() <= 0 || root.height <= 0) return
+            val top = (frame.top - loc[1]).coerceIn(0, root.height / 3)
+            val bottom = (loc[1] + root.height - frame.bottom).coerceIn(0, root.height * 2 / 3)
+            val next = VisibleFramePadding(top, bottom)
+            if (next != padding) padding = next
+        }
+        val listener = ViewTreeObserver.OnGlobalLayoutListener { recompute() }
+        root.viewTreeObserver.addOnGlobalLayoutListener(listener)
+        root.post { recompute() }
+        onDispose {
+            if (root.viewTreeObserver.isAlive) {
+                root.viewTreeObserver.removeOnGlobalLayoutListener(listener)
+            }
+        }
+    }
+    return padding
 }
 
 @Composable
@@ -612,33 +626,13 @@ fun WhatsAppSendLocationDialog(
             onDispose {}
         }
 
-        // Insets robustos: en algunos equipos el Dialog recibe 0 en WindowInsets y el
-        // Context no es la Activity directa, por lo que el pie quedaba bajo la barra
-        // de navegación (botones de duración / enviar fuera de pantalla).
-        val hostActivity = remember(context) { context.findActivity() }
-        val activityRootInsets = hostActivity?.window?.decorView?.let { ViewCompat.getRootWindowInsets(it) }
-        val dialogRootInsets = ViewCompat.getRootWindowInsets(dialogView)
-        val activityStatusTopPx = activityRootInsets
-            ?.getInsets(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout())
-            ?.top ?: 0
-        val activityNavBottomPx = activityRootInsets
-            ?.getInsets(WindowInsetsCompat.Type.navigationBars())
-            ?.bottom ?: 0
-        val dialogRootNavBottomPx = dialogRootInsets
-            ?.getInsets(WindowInsetsCompat.Type.navigationBars())
-            ?.bottom ?: 0
-        val dialogStatusTopPx = WindowInsets.statusBars.getTop(density)
-        val dialogNavBottomPx = WindowInsets.navigationBars.getBottom(density)
-        val imeBottomPx = maxOf(
-            WindowInsets.ime.getBottom(density),
-            dialogRootInsets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0,
-        )
-        val navFallbackPx = remember(context) { systemNavigationBarHeightPx(context) }
-        val navBottomPx = maxOf(activityNavBottomPx, dialogRootNavBottomPx, dialogNavBottomPx)
-            .takeIf { it > 0 } ?: navFallbackPx
-
-        val topStatusInsetDp = with(density) { maxOf(activityStatusTopPx, dialogStatusTopPx).toDp() }
-        val bottomClearanceDp = with(density) { maxOf(navBottomPx, imeBottomPx).toDp() }
+        // Margen medido contra la zona realmente visible de la pantalla (sin barra de
+        // estado, barra de navegación ni teclado). En algunos equipos el Dialog
+        // arranca bajo la barra de estado pero mide toda la pantalla, y los insets
+        // llegan en 0 o duplicados; medir la geometría real evita ambos casos.
+        val visiblePadding = rememberVisibleFramePadding(dialogView)
+        val topStatusInsetDp = with(density) { visiblePadding.topPx.toDp() }
+        val bottomClearanceDp = with(density) { visiblePadding.bottomPx.toDp() }
 
         Surface(
             modifier = Modifier

@@ -38,6 +38,40 @@ service cloud.firestore {
 
     // --- VALIDATION BLUEPRINTS ---
 
+    function hasChunks(data) {
+      return 'chunkCount' in data && data.chunkCount is int && data.chunkCount >= 1 && data.chunkCount <= 64;
+    }
+
+    // Solo cambia la entrada del propio usuario en un mapa uid -> valor.
+    function onlyOwnEntryChanged(field) {
+      return incoming().get(field, {}).diff(existing().get(field, {})).affectedKeys().hasOnly([request.auth.uid]);
+    }
+
+    // Si la entrada propia cambia, o se borra o pasa a ser la hora del servidor.
+    function ownEntryIsNowOrRemoved(field) {
+      let changed = incoming().get(field, {}).diff(existing().get(field, {})).affectedKeys();
+      return !changed.hasAny([request.auth.uid]) ||
+             !(request.auth.uid in incoming().get(field, {})) ||
+             incoming().get(field, {})[request.auth.uid] == request.time;
+    }
+
+    function isValidReactionUpdate() {
+      return incoming().diff(existing()).affectedKeys().hasOnly(['reactions']) &&
+             incoming().reactions is map &&
+             onlyOwnEntryChanged('reactions') &&
+             (!(request.auth.uid in incoming().reactions) ||
+               (incoming().reactions[request.auth.uid] is string &&
+                incoming().reactions[request.auth.uid].size() >= 1 &&
+                incoming().reactions[request.auth.uid].size() <= 16));
+    }
+
+    function isValidChunk(data) {
+      return data.keys().hasOnly(['index', 'senderId', 'data']) &&
+             data.senderId == request.auth.uid &&
+             data.index is int && data.index >= 0 && data.index < 64 &&
+             data.data is string && data.data.size() >= 1 && data.data.size() <= 700000;
+    }
+
     function isValidUserProfile(data) {
       return data.userId is string && isValidId(data.userId) &&
              data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 40 &&
@@ -121,10 +155,14 @@ service cloud.firestore {
              data.senderId is string && data.senderId in data.participantIds &&
              data.senderName is string && data.senderName.size() >= 2 && data.senderName.size() <= 40 &&
              data.text is string && data.text.size() <= 1000 &&
-             (!('messageType' in data) || data.messageType in ['text', 'image', 'voice', 'audio', 'location', 'live_location']) &&
+             (!('messageType' in data) || data.messageType in ['text', 'image', 'voice', 'audio', 'location', 'live_location', 'video']) &&
              ((('messageType' in data) && data.messageType != 'text') || data.text.size() >= 1) &&
-             (!(('messageType' in data) && data.messageType in ['image', 'voice', 'audio']) ||
-               ('mediaData' in data && data.mediaData is string && data.mediaData.size() >= 1 && data.mediaData.size() <= 700000)) &&
+             (!(('messageType' in data) && data.messageType in ['image', 'voice', 'audio', 'video']) ||
+               ('mediaData' in data && data.mediaData is string && data.mediaData.size() >= 1 && data.mediaData.size() <= 700000) ||
+               hasChunks(data)) &&
+             (!('chunkCount' in data) || (data.chunkCount is int && data.chunkCount >= 0 && data.chunkCount <= 64)) &&
+             (!('mediaSizeBytes' in data) || (data.mediaSizeBytes is int && data.mediaSizeBytes >= 0 && data.mediaSizeBytes <= 33554432)) &&
+             (!('reactions' in data) || (data.reactions is map && data.reactions.size() <= 60)) &&
              (!(('messageType' in data) && data.messageType in ['location', 'live_location']) ||
                ('latitude' in data && data.latitude is number && data.latitude >= -90.0 && data.latitude <= 90.0 &&
                 'longitude' in data && data.longitude is number && data.longitude >= -180.0 && data.longitude <= 180.0)) &&
@@ -166,10 +204,14 @@ service cloud.firestore {
              data.senderId is string && data.senderId in data.memberIds &&
              data.senderName is string && data.senderName.size() >= 2 && data.senderName.size() <= 40 &&
              data.text is string && data.text.size() <= 1000 &&
-             (!('messageType' in data) || data.messageType in ['text', 'image', 'voice', 'audio', 'location', 'live_location']) &&
+             (!('messageType' in data) || data.messageType in ['text', 'image', 'voice', 'audio', 'location', 'live_location', 'video']) &&
              ((('messageType' in data) && data.messageType != 'text') || data.text.size() >= 1) &&
-             (!(('messageType' in data) && data.messageType in ['image', 'voice', 'audio']) ||
-               ('mediaData' in data && data.mediaData is string && data.mediaData.size() >= 1 && data.mediaData.size() <= 700000)) &&
+             (!(('messageType' in data) && data.messageType in ['image', 'voice', 'audio', 'video']) ||
+               ('mediaData' in data && data.mediaData is string && data.mediaData.size() >= 1 && data.mediaData.size() <= 700000) ||
+               hasChunks(data)) &&
+             (!('chunkCount' in data) || (data.chunkCount is int && data.chunkCount >= 0 && data.chunkCount <= 64)) &&
+             (!('mediaSizeBytes' in data) || (data.mediaSizeBytes is int && data.mediaSizeBytes >= 0 && data.mediaSizeBytes <= 33554432)) &&
+             (!('reactions' in data) || (data.reactions is map && data.reactions.size() <= 60)) &&
              (!(('messageType' in data) && data.messageType in ['location', 'live_location']) ||
                ('latitude' in data && data.latitude is number && data.latitude >= -90.0 && data.latitude <= 90.0 &&
                 'longitude' in data && data.longitude is number && data.longitude >= -180.0 && data.longitude <= 180.0)) &&
@@ -370,8 +412,14 @@ service cloud.firestore {
                        incoming().initiatorId == existing().initiatorId &&
                        incoming().createdAt == existing().createdAt &&
                        incoming().diff(existing()).affectedKeys().hasOnly([
-                         'lastMessage', 'status', 'updatedAt'
-                       ]);
+                         'lastMessage', 'status', 'updatedAt', 'lastSenderId',
+                         'lastReadAt', 'lastDeliveredAt', 'typingAt'
+                       ]) &&
+                       (!incoming().diff(existing()).affectedKeys().hasAny(['lastSenderId']) ||
+                         incoming().lastSenderId == request.auth.uid) &&
+                       onlyOwnEntryChanged('lastReadAt') && ownEntryIsNowOrRemoved('lastReadAt') &&
+                       onlyOwnEntryChanged('lastDeliveredAt') && ownEntryIsNowOrRemoved('lastDeliveredAt') &&
+                       onlyOwnEntryChanged('typingAt') && ownEntryIsNowOrRemoved('typingAt');
 
       allow delete: if isSignedIn() &&
                        isValidId(chatId) &&
@@ -405,7 +453,7 @@ service cloud.firestore {
                            'durationSec', 'latitude', 'longitude', 'locationLabel',
                            'liveActive', 'liveExpiresAtMs', 'updatedAt',
                            'replyToMessageId', 'replyToSenderName', 'replyToPreview',
-                           'edited', 'editedAt'
+                           'edited', 'editedAt', 'chunkCount', 'mediaSizeBytes'
                          ]) &&
                          isValidDirectMessage(incoming()) &&
                          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
@@ -413,13 +461,15 @@ service cloud.firestore {
         allow update: if isSignedIn() &&
                          isValidId(chatId) &&
                          isValidId(messageId) &&
-                         existing().senderId == request.auth.uid &&
                          incoming().chatId == existing().chatId &&
                          incoming().participantIds == existing().participantIds &&
                          incoming().senderId == existing().senderId &&
                          incoming().createdAt == existing().createdAt &&
                          isValidDirectMessage(incoming()) &&
                          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds &&
+                         (
+                           isValidReactionUpdate() ||
+                           (existing().senderId == request.auth.uid &&
                          (
                            (
                              ('messageType' in existing()) &&
@@ -437,7 +487,22 @@ service cloud.firestore {
                                'text', 'edited', 'editedAt', 'updatedAt'
                              ])
                            )
+                         ))
                          );
+
+        match /chunks/{chunkId} {
+          allow get, list: if isSignedIn() &&
+                              request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+          allow create: if isSignedIn() &&
+                           isValidId(chatId) &&
+                           isValidId(messageId) &&
+                           isValidChunk(incoming()) &&
+                           chunkId == string(incoming().index) &&
+                           request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+          allow delete: if isSignedIn() &&
+                           (existing().senderId == request.auth.uid ||
+                            !exists(/databases/$(database)/documents/chats/$(chatId)));
+        }
 
         allow delete: if isSignedIn() &&
                          isValidId(chatId) &&
@@ -528,7 +593,7 @@ service cloud.firestore {
                            'durationSec', 'latitude', 'longitude', 'locationLabel',
                            'liveActive', 'liveExpiresAtMs', 'updatedAt',
                            'replyToMessageId', 'replyToSenderName', 'replyToPreview',
-                           'edited', 'editedAt'
+                           'edited', 'editedAt', 'chunkCount', 'mediaSizeBytes'
                          ]) &&
                          isValidGroupMessage(incoming()) &&
                          request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
@@ -536,13 +601,15 @@ service cloud.firestore {
         allow update: if isSignedIn() &&
                          isValidId(groupId) &&
                          isValidId(messageId) &&
-                         existing().senderId == request.auth.uid &&
                          incoming().groupId == existing().groupId &&
                          incoming().memberIds == existing().memberIds &&
                          incoming().senderId == existing().senderId &&
                          incoming().createdAt == existing().createdAt &&
                          isValidGroupMessage(incoming()) &&
                          request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds &&
+                         (
+                           isValidReactionUpdate() ||
+                           (existing().senderId == request.auth.uid &&
                          (
                            (
                              ('messageType' in existing()) &&
@@ -560,7 +627,22 @@ service cloud.firestore {
                                'text', 'edited', 'editedAt', 'updatedAt'
                              ])
                            )
+                         ))
                          );
+
+        match /chunks/{chunkId} {
+          allow get, list: if isSignedIn() &&
+                              request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+          allow create: if isSignedIn() &&
+                           isValidId(groupId) &&
+                           isValidId(messageId) &&
+                           isValidChunk(incoming()) &&
+                           chunkId == string(incoming().index) &&
+                           request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+          allow delete: if isSignedIn() &&
+                           (existing().senderId == request.auth.uid ||
+                            !exists(/databases/$(database)/documents/groups/$(groupId)));
+        }
 
         allow delete: if isSignedIn() &&
                          isValidId(groupId) &&

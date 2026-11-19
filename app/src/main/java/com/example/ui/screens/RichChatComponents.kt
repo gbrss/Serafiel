@@ -50,6 +50,7 @@ import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -100,6 +101,7 @@ import com.example.data.AudioPlaybackUiState
 import com.example.data.ChatMediaHelper
 import com.example.model.AvatarColor
 import com.example.model.DirectMessage
+import com.example.model.MessageDeliveryStatus
 import kotlin.math.roundToInt
 
 data class MentionCandidate(
@@ -850,7 +852,10 @@ fun MessageActionsDialog(
     onCopy: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    myReaction: String? = null,
+    onReact: ((String?) -> Unit)? = null,
 ) {
+    var showFullEmojiPicker by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -863,6 +868,26 @@ fun MessageActionsDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (onReact != null) {
+                    if (showFullEmojiPicker) {
+                        EmojiPickerPanel(
+                            onEmojiSelected = { emoji ->
+                                onDismiss()
+                                onReact(emoji)
+                            },
+                        )
+                    } else {
+                        QuickReactionsRow(
+                            myReaction = myReaction,
+                            onReact = { emoji ->
+                                onDismiss()
+                                onReact(emoji)
+                            },
+                            onOpenFullPicker = { showFullEmojiPicker = true },
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                    }
+                }
                 if (previewText.isNotBlank()) {
                     Text(
                         text = previewText,
@@ -974,6 +999,10 @@ fun DirectMessageBubble(
     senderPhotoUrl: String? = null,
     senderColor: AvatarColor = AvatarColor.AMBER,
     mentionNames: List<String> = emptyList(),
+    deliveryStatus: MessageDeliveryStatus? = null,
+    myUserId: String = "",
+    onToggleReaction: ((String) -> Unit)? = null,
+    onOpenVideo: () -> Unit = {},
 ) {
     val bubbleShape = RoundedCornerShape(
         topStart = 18.dp,
@@ -996,6 +1025,7 @@ fun DirectMessageBubble(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
     ) {
+      Column(horizontalAlignment = if (isMine) Alignment.End else Alignment.Start) {
         Surface(
             shape = bubbleShape,
             color = bubbleColor,
@@ -1031,23 +1061,35 @@ fun DirectMessageBubble(
 
                 when (message.messageType) {
                     DirectMessage.TYPE_IMAGE -> {
-                        val imageBitmap = remember(message.id, message.mediaData) {
+                        val standardBitmap = remember(message.id, message.mediaData) {
                             ChatMediaHelper.decodeBase64Bitmap(message.mediaData)?.asImageBitmap()
                         }
+                        val hdBitmap = rememberHdImage(message, force = false, maxSidePx = 1080)
+                        val imageBitmap = hdBitmap ?: standardBitmap
                         if (imageBitmap != null) {
-                            Image(
-                                bitmap = imageBitmap,
-                                contentDescription = "Imagen compartida",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 120.dp, max = 230.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .combinedClickable(
-                                        onClick = { message.mediaData?.let { onPreviewImage(it) } },
-                                        onLongClick = onLongPressOrSelect,
-                                    ),
-                            )
+                            Box {
+                                Image(
+                                    bitmap = imageBitmap,
+                                    contentDescription = "Imagen compartida",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 120.dp, max = 230.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .combinedClickable(
+                                            onClick = { onPreviewImage(message.mediaData.orEmpty()) },
+                                            onLongClick = onLongPressOrSelect,
+                                        ),
+                                )
+                                if (message.chunkCount > 0L) {
+                                    HdBadge(
+                                        downloaded = hdBitmap != null,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(6.dp),
+                                    )
+                                }
+                            }
                         } else {
                             Text(
                                 text = "Imagen no disponible",
@@ -1055,6 +1097,25 @@ fun DirectMessageBubble(
                                 color = contentColor,
                             )
                         }
+                        if (message.text.isNotBlank()) {
+                            Text(
+                                text = buildMentionAnnotatedText(
+                                    text = message.text,
+                                    mentionNames = mentionNames,
+                                    highlightColor = MaterialTheme.colorScheme.primary,
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = contentColor,
+                            )
+                        }
+                    }
+
+                    DirectMessage.TYPE_VIDEO -> {
+                        VideoMessageContent(
+                            message = message,
+                            onOpen = onOpenVideo,
+                            onLongPress = onLongPressOrSelect,
+                        )
                         if (message.text.isNotBlank()) {
                             Text(
                                 text = buildMentionAnnotatedText(
@@ -1098,10 +1159,18 @@ fun DirectMessageBubble(
                                 ),
                                 modifier = Modifier.size(44.dp),
                             ) {
-                                Icon(
-                                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                    contentDescription = if (isPlaying) "Pausar audio" else "Reproducir audio",
-                                )
+                                if (isThisActive && audioPlaybackState.isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                        contentDescription = if (isPlaying) "Pausar audio" else "Reproducir audio",
+                                    )
+                                }
                             }
                             Column(
                                 modifier = Modifier.weight(1f),
@@ -1172,13 +1241,33 @@ fun DirectMessageBubble(
                 } else {
                     formatRelativeTimestamp(message.createdAt)
                 }
-                Text(
-                    text = if (message.edited) "$baseTime · Editado" else baseTime,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(
+                    modifier = Modifier.align(Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = if (message.edited) "$baseTime · Editado" else baseTime,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (isMine && deliveryStatus != null) {
+                        DeliveryTicks(status = deliveryStatus)
+                    }
+                }
             }
         }
+        if (message.reactions.isNotEmpty()) {
+            ReactionChips(
+                reactions = message.reactions,
+                myUserId = myUserId,
+                onToggleMine = { emoji -> onToggleReaction?.invoke(emoji) },
+                modifier = Modifier
+                    .offset(y = (-6).dp)
+                    .padding(horizontal = 8.dp),
+            )
+        }
+      }
     }
 }
 
@@ -1186,10 +1275,14 @@ fun DirectMessageBubble(
 fun FullscreenImageDialog(
     base64Data: String,
     onDismiss: () -> Unit,
+    hdMessage: DirectMessage? = null,
 ) {
-    val imageBitmap = remember(base64Data) {
+    val standardBitmap = remember(base64Data) {
         ChatMediaHelper.decodeBase64Bitmap(base64Data)?.asImageBitmap()
     }
+    // Al abrir a pantalla completa siempre se pide la versión HD si existe.
+    val hdBitmap = rememberHdImage(hdMessage, force = true)
+    val imageBitmap = hdBitmap ?: standardBitmap
     var scale by remember(base64Data) { mutableFloatStateOf(1f) }
     var offsetX by remember(base64Data) { mutableFloatStateOf(0f) }
     var offsetY by remember(base64Data) { mutableFloatStateOf(0f) }

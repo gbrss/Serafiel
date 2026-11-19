@@ -150,10 +150,31 @@ data class DirectChat(
     val purpose: String = SocialPurpose.CASUAL.name,
     val status: String = "active",
     val lastMessage: String = "",
+    val lastSenderId: String = "",
     val zoneName: String = "",
+    /** uid -> último instante en que ese participante vio la conversación. */
+    val lastReadAt: Map<String, Timestamp> = emptyMap(),
+    /** uid -> último instante en que al dispositivo de ese participante le llegaron mensajes. */
+    val lastDeliveredAt: Map<String, Timestamp> = emptyMap(),
+    /** uid -> último pulso de "escribiendo..." (se borra al enviar o dejar de escribir). */
+    val typingAt: Map<String, Timestamp> = emptyMap(),
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
-)
+) {
+    fun isPeerTyping(myUserId: String, nowMs: Long = System.currentTimeMillis()): Boolean {
+        return typingAt.any { (uid, ts) ->
+            uid != myUserId && (nowMs - ts.toDate().time) in -TYPING_SKEW_MS..TYPING_WINDOW_MS
+        }
+    }
+
+    companion object {
+        const val TYPING_WINDOW_MS = 7_000L
+        private const val TYPING_SKEW_MS = 30_000L
+    }
+}
+
+/** Estado de entrega de un mensaje propio en un chat 1:1. */
+enum class MessageDeliveryStatus { SENT, DELIVERED, SEEN }
 
 @Keep
 @IgnoreExtraProperties
@@ -179,11 +200,32 @@ data class DirectMessage(
     val replyToPreview: String? = null,
     val edited: Boolean = false,
     val editedAt: Timestamp? = null,
+    /** uid -> emoji con el que reaccionó. */
+    val reactions: Map<String, String> = emptyMap(),
+    /**
+     * Nº de trozos en la subcolección `chunks` con el archivo completo: HD en imágenes,
+     * el audio/video completo en el resto. 0 = todo va en [mediaData].
+     */
+    val chunkCount: Long = 0L,
+    val mediaSizeBytes: Long = 0L,
+    /** Colección padre ("chats" o "groups"); solo para la vista local, no se guarda. */
+    val sourceCollection: String = SOURCE_CHATS,
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
 ) {
+    fun deliveryStatus(chat: DirectChat?): MessageDeliveryStatus {
+        val sentMs = createdAt?.toDate()?.time ?: return MessageDeliveryStatus.SENT
+        val peerId = chat?.participantIds?.firstOrNull { it != senderId } ?: return MessageDeliveryStatus.SENT
+        val readMs = chat.lastReadAt[peerId]?.toDate()?.time ?: 0L
+        if (readMs >= sentMs) return MessageDeliveryStatus.SEEN
+        val deliveredMs = chat.lastDeliveredAt[peerId]?.toDate()?.time ?: 0L
+        if (deliveredMs >= sentMs || readMs >= sentMs) return MessageDeliveryStatus.DELIVERED
+        return MessageDeliveryStatus.SENT
+    }
+
     fun previewLabel(): String = when (messageType) {
         TYPE_IMAGE -> text.ifBlank { "Imagen compartida" }.let { if (text.isBlank()) "Foto" else "Foto: $text" }
+        TYPE_VIDEO -> if (text.isBlank()) "Video (${formatDuration(durationSec)})" else "Video: $text"
         TYPE_VOICE -> "Mensaje de voz (${formatDuration(durationSec)})"
         TYPE_AUDIO -> mediaName?.takeIf { it.isNotBlank() }?.let { "Audio: $it" } ?: "Archivo de audio"
         TYPE_LOCATION -> locationLabel?.takeIf { it.isNotBlank() }?.let { "Ubicación: $it" } ?: "Ubicación actual"
@@ -202,6 +244,10 @@ data class DirectMessage(
         const val TYPE_AUDIO = "audio"
         const val TYPE_LOCATION = "location"
         const val TYPE_LIVE_LOCATION = "live_location"
+        const val TYPE_VIDEO = "video"
+
+        const val SOURCE_CHATS = "chats"
+        const val SOURCE_GROUPS = "groups"
 
         fun formatDuration(seconds: Long): String {
             val safe = seconds.coerceAtLeast(0L)
@@ -314,6 +360,9 @@ data class GroupMessage(
     val replyToPreview: String? = null,
     val edited: Boolean = false,
     val editedAt: Timestamp? = null,
+    val reactions: Map<String, String> = emptyMap(),
+    val chunkCount: Long = 0L,
+    val mediaSizeBytes: Long = 0L,
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
 ) {
@@ -339,6 +388,10 @@ data class GroupMessage(
         replyToPreview = replyToPreview,
         edited = edited,
         editedAt = editedAt,
+        reactions = reactions,
+        chunkCount = chunkCount,
+        mediaSizeBytes = mediaSizeBytes,
+        sourceCollection = DirectMessage.SOURCE_GROUPS,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

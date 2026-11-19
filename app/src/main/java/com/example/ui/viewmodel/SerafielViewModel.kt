@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.ChatAudioPlayer
 import com.example.data.ChatLocationPoint
 import com.example.data.ChatMediaHelper
+import com.example.data.ChatMediaSettings
+import com.example.data.ChatVideoHelper
 import com.example.data.EncodedMediaPayload
 import com.example.data.LocationHelper
 import com.example.data.SerafielRepository
@@ -1114,9 +1116,32 @@ class SerafielViewModel(
     fun sendDirectImage(context: Context, chat: DirectChat, uri: Uri, caption: String = "") {
         val myName = resolveDirectSenderName(chat)
         val appContext = context.applicationContext
+        if (ChatVideoHelper.isVideo(appContext, uri)) {
+            sendVideo(appContext, uri, caption) { payload, preview ->
+                repository.sendRichDirectMessage(
+                    userId = currentUserId,
+                    chatId = chat.id,
+                    participantIds = chat.participantIds,
+                    senderName = myName,
+                    messageType = DirectMessage.TYPE_VIDEO,
+                    text = caption,
+                    mediaData = payload.base64Data.ifBlank { null },
+                    mediaMimeType = payload.mimeType,
+                    mediaName = payload.displayName,
+                    durationSec = payload.durationSec,
+                    chatPreview = preview,
+                    chunkFile = payload.fullFile,
+                ).map { }
+            }
+            return
+        }
         viewModelScope.launch {
             _isBusy.value = true
-            val encodedResult = ChatMediaHelper.compressImageToBase64(appContext, uri)
+            val encodedResult = ChatMediaHelper.compressImageToBase64(
+                appContext,
+                uri,
+                hd = ChatMediaSettings.isSendHd(appContext),
+            )
             if (encodedResult.isFailure) {
                 _isBusy.value = false
                 _snackbarEvents.tryEmit(
@@ -1137,6 +1162,7 @@ class SerafielViewModel(
                 mediaMimeType = media.mimeType,
                 mediaName = media.displayName,
                 chatPreview = preview,
+                chunkFile = media.fullFile,
             )
             _isBusy.value = false
             if (sendRes.isFailure) {
@@ -1157,11 +1183,12 @@ class SerafielViewModel(
                 senderName = myName,
                 messageType = DirectMessage.TYPE_VOICE,
                 text = "",
-                mediaData = payload.base64Data,
+                mediaData = payload.base64Data.ifBlank { null },
                 mediaMimeType = payload.mimeType,
                 mediaName = payload.displayName,
                 durationSec = payload.durationSec,
                 chatPreview = "🎤 Mensaje de voz ($durText)",
+                chunkFile = payload.fullFile,
             )
             _isBusy.value = false
             if (sendRes.isFailure) {
@@ -1191,16 +1218,115 @@ class SerafielViewModel(
                 senderName = myName,
                 messageType = DirectMessage.TYPE_AUDIO,
                 text = "",
-                mediaData = media.base64Data,
+                mediaData = media.base64Data.ifBlank { null },
                 mediaMimeType = media.mimeType,
                 mediaName = media.displayName,
                 durationSec = media.durationSec,
                 chatPreview = "🎵 ${media.displayName}",
+                chunkFile = media.fullFile,
             )
             _isBusy.value = false
             if (sendRes.isFailure) {
                 _snackbarEvents.tryEmit("No se pudo enviar el archivo de audio")
             }
+        }
+    }
+
+    private val _mediaUploadLabel = MutableStateFlow<String?>(null)
+    /** Texto de progreso mientras se comprime/sube un video ("Comprimiendo video...", etc.). */
+    val mediaUploadLabel: StateFlow<String?> = _mediaUploadLabel.asStateFlow()
+
+    private fun sendVideo(
+        appContext: Context,
+        uri: Uri,
+        caption: String,
+        send: suspend (EncodedMediaPayload, String) -> Result<Unit>,
+    ) {
+        viewModelScope.launch {
+            _isBusy.value = true
+            val hd = ChatMediaSettings.isSendHd(appContext)
+            _mediaUploadLabel.value = if (hd) "Comprimiendo video en HD..." else "Comprimiendo video..."
+            val prepared = ChatVideoHelper.prepare(appContext, uri, hd)
+            if (prepared.isFailure) {
+                _isBusy.value = false
+                _mediaUploadLabel.value = null
+                _snackbarEvents.tryEmit(prepared.exceptionOrNull()?.localizedMessage ?: "No se pudo procesar el video")
+                return@launch
+            }
+            val video = prepared.getOrThrow()
+            if (video.wasTrimmed) {
+                val maxSec = if (hd) ChatVideoHelper.HD_MAX_SEC else ChatVideoHelper.SD_MAX_SEC
+                _snackbarEvents.tryEmit("El video se recortó a ${DirectMessage.formatDuration(maxSec)}")
+            }
+            _mediaUploadLabel.value = "Enviando video..."
+            val preview = if (caption.isNotBlank()) "🎬 ${caption.trim()}" else "🎬 Video"
+            val res = send(video.payload, preview)
+            video.payload.fullFile?.delete()
+            _isBusy.value = false
+            _mediaUploadLabel.value = null
+            if (res.isFailure) {
+                _snackbarEvents.tryEmit("No se pudo enviar el video")
+            }
+        }
+    }
+
+    fun reactToDirectMessage(chat: DirectChat, messageId: String, emoji: String?) {
+        viewModelScope.launch {
+            repository.setMessageReaction(currentUserId, DirectMessage.SOURCE_CHATS, chat.id, messageId, emoji)
+                .onFailure { _snackbarEvents.tryEmit("No se pudo reaccionar al mensaje") }
+        }
+    }
+
+    fun reactToGroupMessage(group: SocialGroup, messageId: String, emoji: String?) {
+        viewModelScope.launch {
+            repository.setMessageReaction(currentUserId, DirectMessage.SOURCE_GROUPS, group.id, messageId, emoji)
+                .onFailure { _snackbarEvents.tryEmit("No se pudo reaccionar al mensaje") }
+        }
+    }
+
+    private var lastTypingPulseMs = 0L
+    private var lastTypingChatId: String? = null
+    private var typingStopJob: Job? = null
+
+    /**
+     * Llamar en cada cambio del texto del compositor. Envía un pulso de "escribiendo"
+     * como mucho cada 4 s y lo borra tras 5 s sin teclear.
+     */
+    fun onComposerTyping(chat: DirectChat, hasText: Boolean) {
+        if (!hasText) {
+            stopTyping(chat)
+            return
+        }
+        val now = System.currentTimeMillis()
+        if (lastTypingChatId != chat.id || now - lastTypingPulseMs > 4_000L) {
+            lastTypingPulseMs = now
+            lastTypingChatId = chat.id
+            viewModelScope.launch { repository.setTyping(currentUserId, chat.id, true) }
+        }
+        typingStopJob?.cancel()
+        typingStopJob = viewModelScope.launch {
+            delay(5_000L)
+            stopTyping(chat)
+        }
+    }
+
+    fun stopTyping(chat: DirectChat) {
+        typingStopJob?.cancel()
+        if (lastTypingChatId == chat.id && lastTypingPulseMs != 0L) {
+            lastTypingPulseMs = 0L
+            viewModelScope.launch { repository.setTyping(currentUserId, chat.id, false) }
+        }
+    }
+
+    private var lastReadMarkKey: String? = null
+
+    /** Marca como vistos los mensajes del otro participante hasta [latestPeerMessageId]. */
+    fun markChatRead(chat: DirectChat, latestPeerMessageId: String) {
+        val key = "${chat.id}:$latestPeerMessageId"
+        if (lastReadMarkKey == key) return
+        lastReadMarkKey = key
+        viewModelScope.launch {
+            repository.markChatRead(currentUserId, chat.id).onFailure { lastReadMarkKey = null }
         }
     }
 
@@ -1580,9 +1706,32 @@ class SerafielViewModel(
     fun sendGroupImage(context: Context, group: SocialGroup, uri: Uri, caption: String = "") {
         val myName = resolveGroupSenderName(group)
         val appContext = context.applicationContext
+        if (ChatVideoHelper.isVideo(appContext, uri)) {
+            sendVideo(appContext, uri, caption) { payload, preview ->
+                repository.sendGroupRichMessage(
+                    userId = currentUserId,
+                    groupId = group.id,
+                    memberIds = group.memberIds,
+                    senderName = myName,
+                    messageType = DirectMessage.TYPE_VIDEO,
+                    text = caption,
+                    mediaData = payload.base64Data.ifBlank { null },
+                    mediaMimeType = payload.mimeType,
+                    mediaName = payload.displayName,
+                    durationSec = payload.durationSec,
+                    groupPreview = preview,
+                    chunkFile = payload.fullFile,
+                ).map { }
+            }
+            return
+        }
         viewModelScope.launch {
             _isBusy.value = true
-            val encodedRes = ChatMediaHelper.compressImageToBase64(appContext, uri)
+            val encodedRes = ChatMediaHelper.compressImageToBase64(
+                appContext,
+                uri,
+                hd = ChatMediaSettings.isSendHd(appContext),
+            )
             if (encodedRes.isFailure) {
                 _isBusy.value = false
                 _snackbarEvents.tryEmit(
@@ -1603,6 +1752,7 @@ class SerafielViewModel(
                 mediaMimeType = media.mimeType,
                 mediaName = media.displayName,
                 groupPreview = preview,
+                chunkFile = media.fullFile,
             )
             _isBusy.value = false
             if (res.isFailure) {
@@ -1623,11 +1773,12 @@ class SerafielViewModel(
                 senderName = myName,
                 messageType = DirectMessage.TYPE_VOICE,
                 text = "",
-                mediaData = payload.base64Data,
+                mediaData = payload.base64Data.ifBlank { null },
                 mediaMimeType = payload.mimeType,
                 mediaName = payload.displayName,
                 durationSec = payload.durationSec,
                 groupPreview = "🎤 Mensaje de voz ($durText)",
+                chunkFile = payload.fullFile,
             )
             _isBusy.value = false
             if (res.isFailure) {
@@ -1657,11 +1808,12 @@ class SerafielViewModel(
                 senderName = myName,
                 messageType = DirectMessage.TYPE_AUDIO,
                 text = "",
-                mediaData = media.base64Data,
+                mediaData = media.base64Data.ifBlank { null },
                 mediaMimeType = media.mimeType,
                 mediaName = media.displayName,
                 durationSec = media.durationSec,
                 groupPreview = "🎵 ${media.displayName}",
+                chunkFile = media.fullFile,
             )
             _isBusy.value = false
             if (res.isFailure) {

@@ -253,6 +253,7 @@ private fun SerafielAuthenticatedShell(
     val selectedPurposeFilter by viewModel.selectedPurposeFilter.collectAsStateWithLifecycle()
     val isRefreshingLocation by viewModel.isRefreshingLocation.collectAsStateWithLifecycle()
     val isBusy by viewModel.isBusy.collectAsStateWithLifecycle()
+    val mediaUploadLabel by viewModel.mediaUploadLabel.collectAsStateWithLifecycle()
     val liveLocationState by viewModel.liveLocationState.collectAsStateWithLifecycle()
     val pendingNav by pendingNotificationNav.collectAsStateWithLifecycle()
 
@@ -872,6 +873,10 @@ private fun SerafielAuthenticatedShell(
                                 )
                             },
                             onDeleteChats = { chatIds -> viewModel.deleteDirectChats(chatIds) },
+                            onReactToMessage = { chat, msgId, emoji -> viewModel.reactToDirectMessage(chat, msgId, emoji) },
+                            onComposerTyping = { chat, hasText -> viewModel.onComposerTyping(chat, hasText) },
+                            onMarkChatRead = { chat, latestId -> viewModel.markChatRead(chat, latestId) },
+                            mediaUploadLabel = mediaUploadLabel,
                             onBlockUser = { uid, name -> viewModel.blockUser(uid, name) },
                             onSubmitReport = { peerId, peerName, chatId, reason, details, alsoBlock ->
                                 viewModel.submitSafetyReport(
@@ -939,6 +944,8 @@ private fun SerafielAuthenticatedShell(
                             },
                             onStopLiveLocation = { viewModel.stopLiveLocation() },
                             onShowMessage = { msg -> viewModel.emitMessage(msg) },
+                            onReactToGroupMessage = { group, msgId, emoji -> viewModel.reactToGroupMessage(group, msgId, emoji) },
+                            mediaUploadLabel = mediaUploadLabel,
                         )
                     }
                 }

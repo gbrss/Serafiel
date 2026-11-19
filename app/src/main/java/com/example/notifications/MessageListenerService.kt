@@ -12,6 +12,7 @@ import com.example.model.ZoneMessage
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.snapshots
@@ -124,6 +125,8 @@ object MessageListenerService {
                             DirectChat::class.java,
                             DocumentSnapshot.ServerTimestampBehavior.ESTIMATE,
                         )
+                        // Recibo de entrega: los mensajes del otro ya llegaron a este dispositivo.
+                        chats.forEach { chat -> markDeliveredIfNeeded(db, uid, chat) }
                         if (!initialChatsSeeded) {
                             chats.forEach { chat ->
                                 knownChatUpdatedAtMs[chat.id] = chat.updatedAt?.toDate()?.time ?: 0L
@@ -209,6 +212,31 @@ object MessageListenerService {
                             checkLatestGroupMessageAndNotify(appContext, db, uid, group)
                         }
                     }
+            }
+        }
+    }
+
+    private val deliveredMarks = Collections.synchronizedMap(mutableMapOf<String, Long>())
+
+    private fun markDeliveredIfNeeded(db: FirebaseFirestore, uid: String, chat: DirectChat) {
+        if (chat.lastSenderId.isBlank() || chat.lastSenderId == uid) return
+        val peerId = chat.participantIds.firstOrNull { it != uid } ?: return
+        if (peerId in blockedUserIds) return
+        val updatedMs = chat.updatedAt?.toDate()?.time ?: return
+        val deliveredMs = chat.lastDeliveredAt[uid]?.toDate()?.time ?: 0L
+        if (deliveredMs >= updatedMs) return
+        if ((deliveredMarks[chat.id] ?: 0L) >= updatedMs) return
+        deliveredMarks[chat.id] = updatedMs
+        monitorScope.launch {
+            try {
+                db.collection("chats").document(chat.id)
+                    .update("lastDeliveredAt.$uid", FieldValue.serverTimestamp())
+                    .await()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                deliveredMarks.remove(chat.id)
+                Log.w(TAG, "No se pudo marcar como entregado: ${e.message}")
             }
         }
     }

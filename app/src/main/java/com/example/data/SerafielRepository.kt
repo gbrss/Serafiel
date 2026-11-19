@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import java.io.File
 
 class SerafielRepository(
     private val db: FirebaseFirestore,
@@ -811,6 +812,8 @@ class SerafielRepository(
                 mapOf(
                     "status" to "active",
                     "lastMessage" to cleanText.take(240),
+                    "lastSenderId" to uid,
+                    "typingAt.$uid" to FieldValue.delete(),
                     "updatedAt" to FieldValue.serverTimestamp(),
                 )
             ).await()
@@ -844,6 +847,7 @@ class SerafielRepository(
         replyToSenderName: String? = null,
         replyToPreview: String? = null,
         chatPreview: String,
+        chunkFile: File? = null,
     ): Result<String> {
         val path = "chats/$chatId/messages"
         return try {
@@ -855,6 +859,9 @@ class SerafielRepository(
 
             val chatRef = db.collection("chats").document(chatId)
             val msgRef = chatRef.collection("messages").document()
+
+            // Los trozos se suben antes que el mensaje para que el receptor los encuentre completos.
+            val chunkCount = chunkFile?.let { ChunkedMediaStore.upload(msgRef, uid, it).toLong() }
 
             val payload = linkedMapOf<String, Any?>(
                 "chatId" to chatId,
@@ -875,15 +882,21 @@ class SerafielRepository(
                 "replyToMessageId" to replyToMessageId?.takeIf { it.isNotBlank() }?.take(120),
                 "replyToSenderName" to replyToSenderName?.takeIf { it.isNotBlank() }?.take(60),
                 "replyToPreview" to replyToPreview?.takeIf { it.isNotBlank() }?.take(160),
+                "chunkCount" to chunkCount,
+                "mediaSizeBytes" to chunkFile?.length(),
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp(),
             ).filterValues { it != null }
+                .filterNot { (key, value) -> key == "mediaData" && value == "" }
 
             msgRef.set(payload).await()
+            chunkFile?.delete()
             chatRef.update(
                 mapOf(
                     "status" to "active",
                     "lastMessage" to chatPreview.trim().take(240),
+                    "lastSenderId" to uid,
+                    "typingAt.$uid" to FieldValue.delete(),
                     "updatedAt" to FieldValue.serverTimestamp(),
                 )
             ).await()
@@ -947,7 +960,9 @@ class SerafielRepository(
             val uid = requireUserId()
             check(uid == userId)
             val chatRef = db.collection("chats").document(chatId)
-            chatRef.collection("messages").document(messageId).delete().await()
+            val msgRef = chatRef.collection("messages").document(messageId)
+            ChunkedMediaStore.deleteChunks(msgRef)
+            msgRef.delete().await()
             if (fallbackLastMessage != null) {
                 chatRef.update(
                     mapOf(
@@ -1232,6 +1247,7 @@ class SerafielRepository(
         replyToSenderName: String? = null,
         replyToPreview: String? = null,
         groupPreview: String,
+        chunkFile: File? = null,
     ): Result<String> {
         val path = "groups/$groupId/messages"
         return try {
@@ -1243,6 +1259,7 @@ class SerafielRepository(
 
             val groupRef = db.collection("groups").document(groupId)
             val msgRef = groupRef.collection("messages").document()
+            val chunkCount = chunkFile?.let { ChunkedMediaStore.upload(msgRef, uid, it).toLong() }
 
             val payload = linkedMapOf<String, Any?>(
                 "groupId" to groupId,
@@ -1263,11 +1280,15 @@ class SerafielRepository(
                 "replyToMessageId" to replyToMessageId?.takeIf { it.isNotBlank() }?.take(120),
                 "replyToSenderName" to replyToSenderName?.takeIf { it.isNotBlank() }?.take(60),
                 "replyToPreview" to replyToPreview?.takeIf { it.isNotBlank() }?.take(160),
+                "chunkCount" to chunkCount,
+                "mediaSizeBytes" to chunkFile?.length(),
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp(),
             ).filterValues { it != null }
+                .filterNot { (key, value) -> key == "mediaData" && value == "" }
 
             msgRef.set(payload).await()
+            chunkFile?.delete()
             groupRef.update(
                 mapOf(
                     "lastMessage" to "$cleanSenderName: $groupPreview".trim().take(240),
@@ -1336,7 +1357,9 @@ class SerafielRepository(
             val uid = requireUserId()
             check(uid == userId)
             val groupRef = db.collection("groups").document(groupId)
-            groupRef.collection("messages").document(messageId).delete().await()
+            val msgRef = groupRef.collection("messages").document(messageId)
+            ChunkedMediaStore.deleteChunks(msgRef)
+            msgRef.delete().await()
             if (fallbackLastMessage != null) {
                 groupRef.update(
                     mapOf(
@@ -1396,6 +1419,69 @@ class SerafielRepository(
     }
 
     // --- SAFETY REPORTS ---
+
+    // --- Reacciones, recibos de lectura y "escribiendo..." ---
+
+    /** Pone (o quita con [emoji] = null) la reacción del usuario en un mensaje. */
+    suspend fun setMessageReaction(
+        userId: String,
+        sourceCollection: String,
+        parentId: String,
+        messageId: String,
+        emoji: String?,
+    ): Result<Unit> {
+        val path = "$sourceCollection/$parentId/messages/$messageId"
+        return try {
+            val uid = requireUserId()
+            check(uid == userId)
+            require(sourceCollection == DirectMessage.SOURCE_CHATS || sourceCollection == DirectMessage.SOURCE_GROUPS)
+            val value: Any = emoji?.trim()?.take(16)?.takeIf { it.isNotEmpty() } ?: FieldValue.delete()
+            db.collection(sourceCollection).document(parentId)
+                .collection("messages").document(messageId)
+                .update("reactions.$uid", value)
+                .await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, path)
+            Result.failure(e)
+        }
+    }
+
+    /** Marca la conversación como vista (y por tanto entregada) por el usuario. */
+    suspend fun markChatRead(userId: String, chatId: String): Result<Unit> = runCatchingChatUpdate(userId, chatId) { uid ->
+        mapOf(
+            "lastReadAt.$uid" to FieldValue.serverTimestamp(),
+            "lastDeliveredAt.$uid" to FieldValue.serverTimestamp(),
+        )
+    }
+
+    /** Marca que los mensajes ya llegaron al dispositivo del usuario. */
+    suspend fun markChatDelivered(userId: String, chatId: String): Result<Unit> = runCatchingChatUpdate(userId, chatId) { uid ->
+        mapOf("lastDeliveredAt.$uid" to FieldValue.serverTimestamp())
+    }
+
+    suspend fun setTyping(userId: String, chatId: String, typing: Boolean): Result<Unit> = runCatchingChatUpdate(userId, chatId) { uid ->
+        mapOf("typingAt.$uid" to if (typing) FieldValue.serverTimestamp() else FieldValue.delete())
+    }
+
+    private suspend fun runCatchingChatUpdate(
+        userId: String,
+        chatId: String,
+        build: (String) -> Map<String, Any>,
+    ): Result<Unit> {
+        return try {
+            val uid = requireUserId()
+            check(uid == userId)
+            db.collection("chats").document(chatId).update(build(uid)).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     suspend fun submitSafetyReport(
         userId: String,

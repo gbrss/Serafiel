@@ -279,6 +279,8 @@ fun ProfileSafetySheet(
                 }
             }
 
+            MediaQualitySettingsCard()
+
             Surface(
                 shape = MaterialTheme.shapes.medium,
                 color = if (hasNotificationPermission) {
@@ -429,5 +431,68 @@ fun ProfileSafetySheet(
 
     if (showGuidelines) {
         CommunityGuidelinesDialog(onDismiss = { showGuidelines = false })
+    }
+}
+
+
+/** Calidad de fotos y videos: enviar en HD y descargar en HD automáticamente. */
+@Composable
+private fun MediaQualitySettingsCard() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var sendHd by remember { mutableStateOf(com.example.data.ChatMediaSettings.isSendHd(context)) }
+    var autoHd by remember { mutableStateOf(com.example.data.ChatMediaSettings.isAutoDownloadHd(context)) }
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Calidad de fotos y videos", style = MaterialTheme.typography.titleSmall)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Enviar en HD", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = "Fotos hasta 2048 px y videos 720p (máx. 1 min). Usa más datos y tarda más en enviarse.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = sendHd,
+                    onCheckedChange = {
+                        sendHd = it
+                        com.example.data.ChatMediaSettings.setSendHd(context, it)
+                    },
+                    modifier = Modifier.testTag("settings_send_hd_switch"),
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Recibir en HD automáticamente", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = "Descarga sola la versión HD de las fotos que te envían. Si lo apagas, se ve la versión ligera y la HD se baja al abrirla.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = autoHd,
+                    onCheckedChange = {
+                        autoHd = it
+                        com.example.data.ChatMediaSettings.setAutoDownloadHd(context, it)
+                    },
+                    modifier = Modifier.testTag("settings_auto_hd_switch"),
+                )
+            }
+        }
     }
 }

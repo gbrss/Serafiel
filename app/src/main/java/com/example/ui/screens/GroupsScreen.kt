@@ -148,6 +148,8 @@ fun GroupsTabScreen(
     onLocationDetected: (ChatLocationPoint) -> Unit = {},
     onStopLiveLocation: () -> Unit,
     onShowMessage: (String) -> Unit,
+    onReactToGroupMessage: (SocialGroup, String, String?) -> Unit = { _, _, _ -> },
+    mediaUploadLabel: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val groupsList = (myGroupsState as? UiState.Success)?.data.orEmpty()
@@ -188,6 +190,8 @@ fun GroupsTabScreen(
             onLocationDetected = onLocationDetected,
             onStopLiveLocation = onStopLiveLocation,
             onShowMessage = onShowMessage,
+            onReactToMessage = { msgId, emoji -> onReactToGroupMessage(activeGroup, msgId, emoji) },
+            mediaUploadLabel = mediaUploadLabel,
             modifier = modifier,
         )
     } else {
@@ -841,6 +845,8 @@ private fun GroupDetailScreen(
     onLocationDetected: (ChatLocationPoint) -> Unit = {},
     onStopLiveLocation: () -> Unit,
     onShowMessage: (String) -> Unit,
+    onReactToMessage: (String, String?) -> Unit,
+    mediaUploadLabel: String?,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -861,11 +867,15 @@ private fun GroupDetailScreen(
     var showAttachmentsPanel by remember { mutableStateOf(false) }
     var showWhatsAppLocationPicker by remember { mutableStateOf(false) }
     var fullscreenImageBase64 by remember { mutableStateOf<String?>(null) }
+    var fullscreenImageMessage by remember { mutableStateOf<DirectMessage?>(null) }
+    var openVideoMessage by remember(group.id) { mutableStateOf<DirectMessage?>(null) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
-    val voiceRecorder = remember(context) { VoiceNoteRecorder(context) }
-    var isRecordingVoice by remember { mutableStateOf(false) }
-    var recordingSeconds by remember { mutableLongStateOf(0L) }
+    val voiceController = rememberVoiceNoteController(
+        key = group.id,
+        onSend = onSendVoiceNote,
+        onShowMessage = onShowMessage,
+    )
 
     val audioPlaybackState by ChatAudioPlayer.playbackState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -960,28 +970,6 @@ private fun GroupDetailScreen(
         }
     }
 
-    fun beginVoiceRecording() {
-        val started = voiceRecorder.startRecording()
-        if (started.isSuccess) {
-            recordingSeconds = 0L
-            isRecordingVoice = true
-            showEmojiPicker = false
-            showAttachmentsPanel = false
-        } else {
-            onShowMessage("No se pudo iniciar la grabación de voz.")
-        }
-    }
-
-    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            beginVoiceRecording()
-        } else {
-            onShowMessage("Activa el permiso de micrófono para enviar notas de voz.")
-        }
-    }
-
     var hasRequestedFineUpgrade by remember(group.id) { mutableStateOf(false) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -1014,24 +1002,8 @@ private fun GroupDetailScreen(
         }
     }
 
-    LaunchedEffect(isRecordingVoice) {
-        if (isRecordingVoice) {
-            while (isRecordingVoice) {
-                delay(1000L)
-                recordingSeconds += 1L
-                if (recordingSeconds >= 58L) {
-                    isRecordingVoice = false
-                    voiceRecorder.finishAndEncode()
-                        .onSuccess { onSendVoiceNote(it) }
-                        .onFailure { onShowMessage(it.localizedMessage ?: "No se pudo guardar la nota de voz.") }
-                }
-            }
-        }
-    }
-
     DisposableEffect(group.id) {
         onDispose {
-            voiceRecorder.cancelRecording()
             ChatAudioPlayer.stop()
         }
     }
@@ -1270,15 +1242,25 @@ private fun GroupDetailScreen(
                                             )
                                         },
                                     ) {
+                                        val msgView = msg.toDirectMessageView()
                                         DirectMessageBubble(
-                                            message = msg.toDirectMessageView(),
+                                            message = msgView,
                                             isMine = mine,
                                             audioPlaybackState = audioPlaybackState,
                                             onToggleAudio = { target ->
-                                                ChatAudioPlayer.togglePlay(context, target.id, target.mediaData)
+                                                ChatAudioPlayer.togglePlayMessage(context, target)
                                             },
                                             onStopLiveLocation = onStopLiveLocation,
-                                            onPreviewImage = { b64 -> fullscreenImageBase64 = b64 },
+                                            onPreviewImage = { b64 ->
+                                                fullscreenImageBase64 = b64
+                                                fullscreenImageMessage = msgView
+                                            },
+                                            myUserId = currentUserId,
+                                            onToggleReaction = { emoji ->
+                                                val mineNow = msg.reactions[currentUserId]
+                                                onReactToMessage(msg.id, if (mineNow == emoji) null else emoji)
+                                            },
+                                            onOpenVideo = { openVideoMessage = msgView },
                                             onOpenLocation = { inspectedLocationMessageId = msg.id },
                                             onLongPressOrSelect = { selectedMessageForActions = msg },
                                             senderLabel = msg.senderName,
@@ -1301,7 +1283,7 @@ private fun GroupDetailScreen(
                         onTakeCameraPhoto = { launchCameraFlow() },
                         onPickImage = {
                             photoPickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
                             )
                         },
                         onPickAudio = {
@@ -1334,6 +1316,10 @@ private fun GroupDetailScreen(
                     )
                 }
 
+                if (mediaUploadLabel != null) {
+                    MediaUploadBanner(mediaUploadLabel)
+                }
+
                 ReplyOrEditComposerBanner(
                     replyDraft = replyDraft,
                     editingTextPreview = editingMessage?.text,
@@ -1351,65 +1337,17 @@ private fun GroupDetailScreen(
                     color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    if (isRecordingVoice) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.error),
-                            )
-                            Text(
-                                text = "Grabando voz ${DirectMessage.formatDuration(recordingSeconds)} / 1:00",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.weight(1f),
-                            )
-                            IconButton(
-                                onClick = {
-                                    isRecordingVoice = false
-                                    voiceRecorder.cancelRecording()
-                                },
-                                modifier = Modifier.minimumInteractiveComponentSize(),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.DeleteOutline,
-                                    contentDescription = "Cancelar grabación",
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    isRecordingVoice = false
-                                    scope.launch {
-                                        voiceRecorder.finishAndEncode()
-                                            .onSuccess { onSendVoiceNote(it) }
-                                            .onFailure { onShowMessage(it.localizedMessage ?: "No se pudo guardar el audio.") }
-                                    }
-                                },
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                                ),
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.Send,
-                                    contentDescription = "Enviar nota de voz",
-                                )
-                            }
-                        }
+                    if (voiceController.state == VoiceRecState.LOCKED) {
+                        VoiceLockedBar(controller = voiceController)
                     } else {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
+                          if (voiceController.state == VoiceRecState.HOLDING) {
+                            VoiceHoldingContent(voiceController)
+                          } else {
                             IconButton(
                                 onClick = {
                                     showEmojiPicker = !showEmojiPicker
@@ -1465,32 +1403,9 @@ private fun GroupDetailScreen(
                                     .weight(1f)
                                     .testTag("group_message_input"),
                             )
-                            if (draft.text.trim().isEmpty()) {
-                                IconButton(
-                                    onClick = {
-                                        val hasMic = ContextCompat.checkSelfPermission(
-                                            context,
-                                            Manifest.permission.RECORD_AUDIO,
-                                        ) == PackageManager.PERMISSION_GRANTED
-                                        if (hasMic) {
-                                            beginVoiceRecording()
-                                        } else {
-                                            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                        }
-                                    },
-                                    colors = IconButtonDefaults.filledIconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    ),
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .testTag("group_record_voice_button"),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Mic,
-                                        contentDescription = "Grabar nota de voz",
-                                    )
-                                }
+                          }
+                            if (draft.text.trim().isEmpty() || voiceController.isActive) {
+                                VoiceMicButton(controller = voiceController, testTag = "group_record_voice_button")
                             } else {
                                 IconButton(
                                     onClick = {
@@ -1604,6 +1519,8 @@ private fun GroupDetailScreen(
                 draft = TextFieldValue(msg.text, TextRange(msg.text.length))
             },
             onDelete = { pendingDeleteMessage = msg },
+            myReaction = msg.reactions[currentUserId],
+            onReact = { emoji -> onReactToMessage(msg.id, emoji) },
         )
     }
 
@@ -1650,7 +1567,15 @@ private fun GroupDetailScreen(
     fullscreenImageBase64?.let { b64 ->
         FullscreenImageDialog(
             base64Data = b64,
-            onDismiss = { fullscreenImageBase64 = null },
+            onDismiss = {
+                fullscreenImageBase64 = null
+                fullscreenImageMessage = null
+            },
+            hdMessage = fullscreenImageMessage,
         )
+    }
+
+    openVideoMessage?.let { videoMsg ->
+        VideoPlayerDialog(message = videoMsg, onDismiss = { openVideoMessage = null })
     }
 }

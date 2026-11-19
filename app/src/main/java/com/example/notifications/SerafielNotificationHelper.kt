@@ -12,6 +12,8 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.Person
+import androidx.core.app.RemoteInput
 import androidx.core.content.ContextCompat
 import com.example.MainActivity
 import com.example.R
@@ -58,6 +60,81 @@ object SerafielNotificationHelper {
     const val EXTRA_OPEN_GROUP_ID = "serafiel_open_group_id"
 
     const val FOREGROUND_SERVICE_NOTIFICATION_ID = 4001
+
+    const val KEY_REPLY_TEXT = "serafiel_reply_text"
+    const val EXTRA_NOTIFICATION_ID = "serafiel_notification_id"
+    const val ACTION_REPLY = "com.example.serafiel.ACTION_REPLY"
+    const val ACTION_MARK_READ = "com.example.serafiel.ACTION_MARK_READ"
+
+    /** Acción "Responder" con campo de texto en la propia notificación. */
+    private fun replyAction(
+        context: Context,
+        notificationId: Int,
+        chatId: String?,
+        groupId: String?,
+    ): NotificationCompat.Action {
+        val intent = Intent(context, NotificationReplyReceiver::class.java).apply {
+            action = ACTION_REPLY
+            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            chatId?.let { putExtra(EXTRA_OPEN_CHAT_ID, it) }
+            groupId?.let { putExtra(EXTRA_OPEN_GROUP_ID, it) }
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
+        val pending = PendingIntent.getBroadcast(context, notificationId, intent, flags)
+        val remoteInput = RemoteInput.Builder(KEY_REPLY_TEXT)
+            .setLabel("Escribe una respuesta")
+            .build()
+        return NotificationCompat.Action.Builder(R.drawable.ic_stat_serafiel, "Responder", pending)
+            .addRemoteInput(remoteInput)
+            .setAllowGeneratedReplies(true)
+            .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+            .setShowsUserInterface(false)
+            .build()
+    }
+
+    private fun markReadAction(context: Context, notificationId: Int, chatId: String): NotificationCompat.Action {
+        val intent = Intent(context, NotificationReplyReceiver::class.java).apply {
+            action = ACTION_MARK_READ
+            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(EXTRA_OPEN_CHAT_ID, chatId)
+        }
+        val pending = PendingIntent.getBroadcast(
+            context,
+            notificationId + 1,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        return NotificationCompat.Action.Builder(R.drawable.ic_stat_serafiel, "Marcar como leído", pending)
+            .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)
+            .setShowsUserInterface(false)
+            .build()
+    }
+
+    private fun messagingStyle(title: String?, senderName: String, text: String): NotificationCompat.MessagingStyle {
+        val me = Person.Builder().setName("Tú").build()
+        val sender = Person.Builder().setName(senderName).build()
+        return NotificationCompat.MessagingStyle(me)
+            .setConversationTitle(title)
+            .setGroupConversation(title != null)
+            .addMessage(text, System.currentTimeMillis(), sender)
+    }
+
+    fun showReplyFailedNotification(context: Context, notificationId: Int, chatId: String?, groupId: String?) {
+        if (!hasNotificationPermission(context)) return
+        ensureChannels(context)
+        val notification = NotificationCompat.Builder(context, CHANNEL_DIRECT_MESSAGES)
+            .setSmallIcon(R.drawable.ic_stat_serafiel)
+            .setContentTitle("No se pudo enviar tu respuesta")
+            .setContentText("Revisa tu conexión y vuelve a intentarlo.")
+            .setAutoCancel(true)
+            .addAction(replyAction(context, notificationId, chatId, groupId))
+            .build()
+        try {
+            NotificationManagerCompat.from(context).notify(notificationId, notification)
+        } catch (_: SecurityException) {
+        }
+    }
 
     fun hasNotificationPermission(context: Context): Boolean {
         val grantedRuntime = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -148,12 +225,14 @@ object SerafielNotificationHelper {
             .setSmallIcon(R.drawable.ic_stat_serafiel)
             .setContentTitle(senderName)
             .setContentText(messageText)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(messageText))
+            .setStyle(messagingStyle(null, senderName, messageText))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setAutoCancel(true)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)
+            .addAction(replyAction(context, requestCode, chatId = chatId, groupId = null))
+            .addAction(markReadAction(context, requestCode, chatId))
             .build()
 
         try {
@@ -230,12 +309,13 @@ object SerafielNotificationHelper {
             .setSmallIcon(R.drawable.ic_stat_serafiel)
             .setContentTitle("$groupName · $senderName")
             .setContentText(messageText)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(messageText))
+            .setStyle(messagingStyle(groupName, senderName, messageText))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setAutoCancel(true)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)
+            .addAction(replyAction(context, requestCode, chatId = null, groupId = groupId))
             .build()
 
         try {
