@@ -124,27 +124,24 @@ El inicio de sesión es con cuenta de Google y toda la información vive en Clou
 
 ## 🏗️ Arquitectura
 
-```
-┌──────────────────────────── UI (Jetpack Compose) ────────────────────────────┐
-│ RadarScreen · ZoneRoomScreen · ChatsScreen · GroupsScreen · ProfileSafetySheet │
-│ WhatsAppLocationComponents · VoiceNoteComposer · ChatExtras · MapLibreMap      │
-└──────────────────────────────────────┬────────────────────────────────────────┘
-                                       │ StateFlow / eventos
-                         ┌─────────────▼─────────────┐
-                         │      SerafielViewModel     │
-                         └─────────────┬─────────────┘
-          ┌────────────────────────────┼─────────────────────────────┐
-┌─────────▼─────────┐    ┌─────────────▼────────────┐    ┌───────────▼──────────┐
-│ SerafielRepository │    │ ChatMediaHelper           │    │ LocationHelper        │
-│ (Firestore + Auth) │    │ ChatVideoHelper           │    │ (GPS, zonas, lugares) │
-└─────────┬─────────┘    │ ChunkedMediaStore         │    └──────────────────────┘
-          │              └─────────────┬────────────┘
-          └────────────────┬───────────┘
-                    ┌──────▼──────┐        ┌────────────────────────────────┐
-                    │  Firestore  │◄───────┤ MessageListenerService           │
-                    └─────────────┘        │ (notificaciones + "entregado")   │
-                                           │ NotificationReplyReceiver        │
-                                           └────────────────────────────────┘
+```mermaid
+flowchart TD
+    UI["<b>UI · Jetpack Compose</b><br/>RadarScreen · ZoneRoomScreen · ChatsScreen · GroupsScreen<br/>ProfileSafetySheet · WhatsAppLocationComponents<br/>VoiceNoteComposer · ChatExtras · MapLibreMap"]
+    VM["<b>SerafielViewModel</b><br/>StateFlow + eventos"]
+    REPO["<b>SerafielRepository</b><br/>Firestore + Auth"]
+    MEDIA["<b>ChatMediaHelper</b><br/>ChatVideoHelper<br/>ChunkedMediaStore"]
+    LOC["<b>LocationHelper</b><br/>GPS · zonas · lugares"]
+    FS[("<b>Cloud Firestore</b>")]
+    SVC["<b>MessageListenerService</b><br/>notificaciones + «entregado»<br/>NotificationReplyReceiver"]
+
+    UI -->|acciones| VM
+    VM -->|estado| UI
+    VM --> REPO
+    VM --> MEDIA
+    VM --> LOC
+    REPO --> FS
+    MEDIA --> FS
+    SVC -->|escucha| FS
 ```
 
 ---
