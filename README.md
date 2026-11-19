@@ -13,6 +13,11 @@ Descubre personas activas cerca de ti, conversa en salas locales, chatea en priv
 ![MapLibre](https://img.shields.io/badge/Mapas-MapLibre%20%2B%20OpenFreeMap-396CB2)
 ![Build](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
 ![License](https://img.shields.io/badge/Licencia-GPL%20v3-blue)
+[![Release](https://img.shields.io/github/v/release/gbrss/Serafiel?label=Release&color=FFC928)](https://github.com/gbrss/Serafiel/releases/latest)
+
+### 📲 [Descargar el APK (Release)](https://github.com/gbrss/Serafiel/releases/download/latest/Serafiel-debug.apk)
+
+<sub>Se actualiza solo con cada cambio en `main` · [Ver todas las releases](https://github.com/gbrss/Serafiel/releases)</sub>
 
 </div>
 
