@@ -12,6 +12,7 @@ Descubre personas activas cerca de ti, conversa en salas locales, chatea en priv
 ![Firebase](https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-FFCA28?logo=firebase&logoColor=black)
 ![MapLibre](https://img.shields.io/badge/Mapas-MapLibre%20%2B%20OpenFreeMap-396CB2)
 ![Build](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
+![License](https://img.shields.io/badge/Licencia-GPL%20v3-blue)
 
 </div>
 
@@ -31,6 +32,8 @@ Descubre personas activas cerca de ti, conversa en salas locales, chatea en priv
 - [Pruebas de reglas](#-pruebas-de-reglas)
 - [Estructura del proyecto](#-estructura-del-proyecto)
 - [Límites conocidos y hoja de ruta](#-límites-conocidos-y-hoja-de-ruta)
+- [Contribuir](#-contribuir)
+- [Licencia](#-licencia)
 
 ---
 
@@ -299,6 +302,25 @@ app/src/main/java/com/example/
 | Estados en grupos | Solo reacciones | "Escribiendo" y "visto por" en grupos |
 | Almacenamiento de medios | Firestore troceado (cuenta en la cuota) | Migrar a Cloud Storage si crece el volumen |
 | Videos | Máx. 24 MB tras comprimir | Subida en segundo plano con WorkManager |
+
+---
+
+## 🤝 Contribuir
+
+¡Las contribuciones son bienvenidas!
+
+1. Haz un *fork* y crea una rama: `git checkout -b feat/mi-mejora`.
+2. Usa **tu propio proyecto de Firebase** para probar: registra el paquete, agrega tus SHA-1/SHA-256, publica `firestore.rules` y coloca tu `google-services.json` en `app/` (está en `.gitignore`).
+3. Si tocas `firestore.rules`, agrega casos en `firestore.test.js`; el CI los corre en el emulador.
+4. Usa mensajes de commit claros (`feat:`, `fix:`, `docs:`, `ci:`…) y abre un *Pull Request* describiendo el cambio.
+
+**Nunca subas** `google-services.json`, keystores, archivos `.env` ni APKs al repositorio.
+
+---
+
+## 📜 Licencia
+
+Serafiel es software libre bajo la **[GNU General Public License v3.0](LICENSE)**: puedes usarlo, estudiarlo, modificarlo y redistribuirlo, siempre que las versiones derivadas se publiquen con la misma licencia y su código fuente.
 
 ---
 
