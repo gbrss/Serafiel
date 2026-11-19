@@ -751,3 +751,36 @@ test("Medios troceados: trozos solo para participantes y mensajes de voz/video s
   await assertFails(chunk(bobDb, 0).delete());
   await assertSucceeds(chunk(aliceDb, 0).delete());
 });
+
+test("Chats: contador de no leídos (+1 al otro al enviar, 0 propio al leer) y onda de voz", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const chatId = `${ALICE_UID}_${BOB_UID}`;
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("chats").doc(chatId).set({
+      participantIds: [ALICE_UID, BOB_UID],
+      participantNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+      participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+      initiatorId: ALICE_UID, purpose: "FRIENDSHIP", status: "active", lastMessage: "Hola",
+      zoneName: "Zona Abierta", createdAt: pastDate(10000), updatedAt: pastDate(10000),
+    });
+  });
+  const chatRef = (db) => db.collection("chats").doc(chatId);
+  const inc = () => firebaseCompat.firestore.FieldValue.increment(1);
+
+  await assertSucceeds(chatRef(aliceDb).update({ lastMessage: "1", lastSenderId: ALICE_UID, updatedAt: serverNow(), [`unreadCount.${BOB_UID}`]: inc() }));
+  await assertSucceeds(chatRef(aliceDb).update({ lastMessage: "2", lastSenderId: ALICE_UID, updatedAt: serverNow(), [`unreadCount.${BOB_UID}`]: inc() }));
+  await assertFails(chatRef(aliceDb).update({ [`unreadCount.${BOB_UID}`]: 50 }));
+  await assertFails(chatRef(aliceDb).update({ [`unreadCount.${BOB_UID}`]: 0 }));
+  await assertFails(chatRef(aliceDb).update({ [`unreadCount.${ALICE_UID}`]: 3 }));
+  await assertSucceeds(chatRef(bobDb).update({ [`lastReadAt.${BOB_UID}`]: serverNow(), [`unreadCount.${BOB_UID}`]: 0 }));
+  await assertFails(chatRef(bobDb).update({ [`unreadCount.${CHARLIE_UID}`]: inc() }));
+
+  const msgs = aliceDb.collection("chats").doc(chatId).collection("messages");
+  const base = {
+    chatId, participantIds: [ALICE_UID, BOB_UID], senderId: ALICE_UID, senderName: "Alicia Luz",
+    messageType: "voice", text: "", mediaData: "QUJD", mediaMimeType: "audio/mp4", durationSec: 4, createdAt: serverNow(),
+  };
+  await assertSucceeds(msgs.doc("w1").set({ ...base, waveform: "0123456789abcdefghijklmnopqrstuv0123456789abcdef" }));
+  await assertFails(msgs.doc("w2").set({ ...base, waveform: "x".repeat(65) }));
+});

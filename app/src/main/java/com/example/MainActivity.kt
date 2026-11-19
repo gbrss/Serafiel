@@ -44,6 +44,10 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -405,6 +409,21 @@ private fun SerafielAuthenticatedShell(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.undoEvents.collect { event ->
+            // Cada aviso con "Deshacer" se resuelve en su propia corrutina para no
+            // bloquear los siguientes.
+            launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = event.message,
+                    actionLabel = event.actionLabel,
+                    duration = SnackbarDuration.Long,
+                )
+                if (result == SnackbarResult.ActionPerformed) event.onUndo() else event.onTimeout()
+            }
+        }
+    }
+
     var showBeaconEditor by remember { mutableStateOf(false) }
     var showProfileSheet by remember { mutableStateOf(false) }
     var hasPromptedOnboarding by remember { mutableStateOf(false) }
@@ -458,7 +477,9 @@ private fun SerafielAuthenticatedShell(
             if (currentRoute == ROUTE_GROUPS) selectedGroupId else null
     }
 
-    val activeChatsCount = ((myChatsState as? UiState.Success)?.data ?: emptyList()).size
+    // Mensajes sin leer (no chats): suma de unreadCount propio en cada conversación.
+    val unreadMessagesCount = ((myChatsState as? UiState.Success)?.data ?: emptyList())
+        .sumOf { (it.unreadCount[currentUserId] ?: 0L).coerceAtLeast(0L) }
 
     val destinations = remember {
         listOf(
@@ -525,7 +546,7 @@ private fun SerafielAuthenticatedShell(
 
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            snackbarHost = {},
             topBar = {
                 TopAppBar(
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -597,8 +618,8 @@ private fun SerafielAuthenticatedShell(
                                 },
                                 icon = {
                                     val iconVector = if (selected) dest.selectedIcon else dest.unselectedIcon
-                                    if (dest.route == ROUTE_CHATS && activeChatsCount > 0) {
-                                        BadgedBox(badge = { Badge { Text("$activeChatsCount") } }) {
+                                    if (dest.route == ROUTE_CHATS && unreadMessagesCount > 0) {
+                                        BadgedBox(badge = { UnreadBadge(unreadMessagesCount) }) {
                                             Icon(iconVector, contentDescription = null)
                                         }
                                     } else {
@@ -638,8 +659,8 @@ private fun SerafielAuthenticatedShell(
                                 },
                                 icon = {
                                     val iconVector = if (selected) dest.selectedIcon else dest.unselectedIcon
-                                    if (dest.route == ROUTE_CHATS && activeChatsCount > 0) {
-                                        BadgedBox(badge = { Badge { Text("$activeChatsCount") } }) {
+                                    if (dest.route == ROUTE_CHATS && unreadMessagesCount > 0) {
+                                        BadgedBox(badge = { UnreadBadge(unreadMessagesCount) }) {
                                             Icon(iconVector, contentDescription = null)
                                         }
                                     } else {
@@ -951,6 +972,23 @@ private fun SerafielAuthenticatedShell(
                 }
             }
         }
+
+        // Avisos flotantes: centrados y compactos.
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(horizontal = 32.dp),
+        ) { data ->
+            Snackbar(
+                snackbarData = data,
+                shape = RoundedCornerShape(18.dp),
+                containerColor = androidx.compose.ui.graphics.Color(0xF02B2520),
+                contentColor = androidx.compose.ui.graphics.Color.White,
+                actionColor = androidx.compose.ui.graphics.Color(0xFFFFD54F),
+                modifier = Modifier.widthIn(max = 320.dp),
+            )
+        }
     }
 
     if (showBeaconEditor) {
@@ -1032,5 +1070,17 @@ private fun SerafielAuthenticatedShell(
                 )
             },
         )
+    }
+}
+
+
+/** Círculo rojo con el número de mensajes sin leer (99+ como máximo). */
+@Composable
+private fun UnreadBadge(count: Long) {
+    Badge(
+        containerColor = androidx.compose.ui.graphics.Color(0xFFE53935),
+        contentColor = androidx.compose.ui.graphics.Color.White,
+    ) {
+        Text(if (count > 99) "99+" else count.toString())
     }
 }

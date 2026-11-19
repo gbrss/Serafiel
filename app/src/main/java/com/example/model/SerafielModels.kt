@@ -158,6 +158,8 @@ data class DirectChat(
     val lastDeliveredAt: Map<String, Timestamp> = emptyMap(),
     /** uid -> último pulso de "escribiendo..." (se borra al enviar o dejar de escribir). */
     val typingAt: Map<String, Timestamp> = emptyMap(),
+    /** uid -> mensajes sin leer de ese participante. */
+    val unreadCount: Map<String, Long> = emptyMap(),
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
 ) {
@@ -208,6 +210,8 @@ data class DirectMessage(
      */
     val chunkCount: Long = 0L,
     val mediaSizeBytes: Long = 0L,
+    /** Onda de la nota de voz (48 niveles codificados). */
+    val waveform: String = "",
     /** Colección padre ("chats" o "groups"); solo para la vista local, no se guarda. */
     val sourceCollection: String = SOURCE_CHATS,
     @ServerTimestamp val createdAt: Timestamp? = null,
@@ -363,6 +367,7 @@ data class GroupMessage(
     val reactions: Map<String, String> = emptyMap(),
     val chunkCount: Long = 0L,
     val mediaSizeBytes: Long = 0L,
+    val waveform: String = "",
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
 ) {
@@ -391,6 +396,7 @@ data class GroupMessage(
         reactions = reactions,
         chunkCount = chunkCount,
         mediaSizeBytes = mediaSizeBytes,
+        waveform = waveform,
         sourceCollection = DirectMessage.SOURCE_GROUPS,
         createdAt = createdAt,
         updatedAt = updatedAt,

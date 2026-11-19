@@ -815,7 +815,7 @@ class SerafielRepository(
                     "lastSenderId" to uid,
                     "typingAt.$uid" to FieldValue.delete(),
                     "updatedAt" to FieldValue.serverTimestamp(),
-                )
+                ) + unreadIncrement(uid, participantIds)
             ).await()
 
             Result.success(Unit)
@@ -848,6 +848,7 @@ class SerafielRepository(
         replyToPreview: String? = null,
         chatPreview: String,
         chunkFile: File? = null,
+        waveform: String? = null,
     ): Result<String> {
         val path = "chats/$chatId/messages"
         return try {
@@ -884,6 +885,7 @@ class SerafielRepository(
                 "replyToPreview" to replyToPreview?.takeIf { it.isNotBlank() }?.take(160),
                 "chunkCount" to chunkCount,
                 "mediaSizeBytes" to chunkFile?.length(),
+                "waveform" to waveform?.take(64),
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp(),
             ).filterValues { it != null }
@@ -898,7 +900,7 @@ class SerafielRepository(
                     "lastSenderId" to uid,
                     "typingAt.$uid" to FieldValue.delete(),
                     "updatedAt" to FieldValue.serverTimestamp(),
-                )
+                ) + unreadIncrement(uid, participantIds)
             ).await()
 
             Result.success(msgRef.id)
@@ -1248,6 +1250,7 @@ class SerafielRepository(
         replyToPreview: String? = null,
         groupPreview: String,
         chunkFile: File? = null,
+        waveform: String? = null,
     ): Result<String> {
         val path = "groups/$groupId/messages"
         return try {
@@ -1282,6 +1285,7 @@ class SerafielRepository(
                 "replyToPreview" to replyToPreview?.takeIf { it.isNotBlank() }?.take(160),
                 "chunkCount" to chunkCount,
                 "mediaSizeBytes" to chunkFile?.length(),
+                "waveform" to waveform?.take(64),
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp(),
             ).filterValues { it != null }
@@ -1454,8 +1458,13 @@ class SerafielRepository(
         mapOf(
             "lastReadAt.$uid" to FieldValue.serverTimestamp(),
             "lastDeliveredAt.$uid" to FieldValue.serverTimestamp(),
+            "unreadCount.$uid" to 0L,
         )
     }
+
+    /** Suma 1 a los no leídos del otro participante (chats 1:1). */
+    private fun unreadIncrement(uid: String, participantIds: List<String>): Map<String, Any> =
+        participantIds.filter { it != uid }.associate { "unreadCount.$it" to FieldValue.increment(1L) }
 
     /** Marca que los mensajes ya llegaron al dispositivo del usuario. */
     suspend fun markChatDelivered(userId: String, chatId: String): Result<Unit> = runCatchingChatUpdate(userId, chatId) { uid ->

@@ -127,6 +127,12 @@ object MessageListenerService {
                         )
                         // Recibo de entrega: los mensajes del otro ya llegaron a este dispositivo.
                         chats.forEach { chat -> markDeliveredIfNeeded(db, uid, chat) }
+                        // Si el chat ya se leyó (aquí o en otro dispositivo), se retira su notificación.
+                        chats.forEach { chat ->
+                            if (chat.unreadCount[uid] == 0L) {
+                                SerafielNotificationHelper.cancelChatNotification(appContext, chat.id)
+                            }
+                        }
                         if (!initialChatsSeeded) {
                             chats.forEach { chat ->
                                 knownChatUpdatedAtMs[chat.id] = chat.updatedAt?.toDate()?.time ?: 0L
@@ -299,6 +305,13 @@ object MessageListenerService {
 
             val latest = messages.lastOrNull() ?: return
             if (latest.senderId == uid || latest.senderId in blockedUserIds) return
+            // Ya leído: nada que avisar.
+            if (chat.unreadCount[uid] == 0L) return
+            val latestMs = latest.createdAt?.toDate()?.time ?: return
+            val readMs = chat.lastReadAt[uid]?.toDate()?.time ?: 0L
+            if (readMs >= latestMs) return
+            // Ya avisado antes (sobrevive a reinicios de la app y a la caché inicial de Firestore).
+            if (!NotifiedStore.markIfNew(appContext, "chat:${chat.id}", latestMs)) return
             if (!notifiedDirectMessageIds.add(latest.id)) return
 
             val senderName = chat.participantNames[peerId]
@@ -338,6 +351,8 @@ object MessageListenerService {
 
             val latest = messages.lastOrNull() ?: return
             if (latest.senderId == uid || latest.senderId in blockedUserIds) return
+            val latestMs = latest.createdAt?.toDate()?.time ?: return
+            if (!NotifiedStore.markIfNew(appContext, "group:${group.id}", latestMs)) return
             if (!notifiedGroupMessageIds.add(latest.id)) return
 
             val senderName = group.memberNames[latest.senderId]
@@ -355,5 +370,24 @@ object MessageListenerService {
         } catch (e: Exception) {
             Log.w(TAG, "Failed fetching latest group message for notification: ${e.message}")
         }
+    }
+}
+
+
+/**
+ * Recuerda (en disco) la hora del último mensaje notificado por conversación, para no
+ * volver a avisar del mismo mensaje al reiniciar la app o cuando Firestore entrega
+ * primero datos de la caché y luego del servidor.
+ */
+internal object NotifiedStore {
+    private const val PREFS = "serafiel_notified"
+
+    @Synchronized
+    fun markIfNew(context: Context, key: String, messageMs: Long): Boolean {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val last = prefs.getLong(key, 0L)
+        if (messageMs <= last) return false
+        prefs.edit().putLong(key, messageMs).apply()
+        return true
     }
 }

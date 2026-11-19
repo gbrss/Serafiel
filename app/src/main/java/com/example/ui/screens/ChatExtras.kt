@@ -23,6 +23,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -408,5 +412,96 @@ fun MediaUploadBanner(label: String) {
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
+    }
+}
+
+/**
+ * Espectro de una nota de voz. Tocar o arrastrar en cualquier punto mueve la
+ * reproducción a esa posición.
+ */
+@Composable
+fun VoiceWaveformBar(
+    levels: List<Float>,
+    progress: Float,
+    playedColor: Color,
+    pendingColor: Color,
+    onSeek: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var dragFraction by remember { mutableStateOf<Float?>(null) }
+    val shown = dragFraction ?: progress
+    androidx.compose.foundation.Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(30.dp)
+            .pointerInput(levels) {
+                detectTapGestures { offset ->
+                    onSeek((offset.x / size.width).coerceIn(0f, 1f))
+                }
+            }
+            .pointerInput(levels) {
+                detectHorizontalDragGestures(
+                    onDragStart = { offset -> dragFraction = (offset.x / size.width).coerceIn(0f, 1f) },
+                    onHorizontalDrag = { change, _ ->
+                        change.consume()
+                        dragFraction = (change.position.x / size.width).coerceIn(0f, 1f)
+                    },
+                    onDragEnd = {
+                        dragFraction?.let(onSeek)
+                        dragFraction = null
+                    },
+                    onDragCancel = { dragFraction = null },
+                )
+            }
+            .testTag("voice_waveform"),
+    ) {
+        if (levels.isEmpty()) return@Canvas
+        val count = levels.size
+        val slot = size.width / count
+        val barWidth = (slot * 0.55f).coerceAtLeast(2f)
+        val minBar = size.height * 0.12f
+        levels.forEachIndexed { i, level ->
+            val h = minBar + (size.height - minBar) * level.coerceIn(0f, 1f)
+            val x = i * slot + (slot - barWidth) / 2f
+            val played = (i + 0.5f) / count <= shown
+            drawRoundRect(
+                color = if (played) playedColor else pendingColor,
+                topLeft = androidx.compose.ui.geometry.Offset(x, (size.height - h) / 2f),
+                size = androidx.compose.ui.geometry.Size(barWidth, h),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f, barWidth / 2f),
+            )
+        }
+        // Punto de posición actual.
+        drawCircle(
+            color = playedColor,
+            radius = size.height * 0.16f,
+            center = androidx.compose.ui.geometry.Offset(
+                (shown * size.width).coerceIn(size.height * 0.16f, size.width - size.height * 0.16f),
+                size.height / 2f,
+            ),
+        )
+    }
+}
+
+/** Botón 1x / 1.5x / 2x de velocidad de reproducción. */
+@Composable
+fun PlaybackSpeedChip(speed: Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val label = when (speed) {
+        1f -> "1x"
+        2f -> "2x"
+        else -> "${speed}x"
+    }
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+        modifier = modifier.testTag("voice_speed_chip"),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+        )
     }
 }

@@ -99,6 +99,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.AudioPlaybackUiState
 import com.example.data.ChatMediaHelper
+import com.example.data.ChatAudioPlayer
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
+import com.example.data.VoiceWaveformCodec
 import com.example.model.AvatarColor
 import com.example.model.DirectMessage
 import com.example.model.MessageDeliveryStatus
@@ -1194,18 +1198,36 @@ fun DirectMessageBubble(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
-                                LinearProgressIndicator(
-                                    progress = { if (isThisActive) audioPlaybackState.progress else 0f },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(4.dp)
-                                        .clip(RoundedCornerShape(4.dp)),
+                                val audioContext = LocalContext.current
+                                val playbackSpeed by ChatAudioPlayer.speed.collectAsState()
+                                val levels = remember(message.id, message.waveform) {
+                                    VoiceWaveformCodec.decode(message.waveform)
+                                        ?: VoiceWaveformCodec.pseudo(message.id)
+                                }
+                                VoiceWaveformBar(
+                                    levels = levels,
+                                    progress = if (isThisActive) audioPlaybackState.progress else 0f,
+                                    playedColor = MaterialTheme.colorScheme.secondary,
+                                    pendingColor = contentColor.copy(alpha = 0.35f),
+                                    onSeek = { fraction -> ChatAudioPlayer.seekMessage(audioContext, message, fraction) },
                                 )
-                                Text(
-                                    text = timeText,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = contentColor.copy(alpha = 0.78f),
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Text(
+                                        text = timeText,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = contentColor.copy(alpha = 0.78f),
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    if (isThisActive) {
+                                        PlaybackSpeedChip(
+                                            speed = playbackSpeed,
+                                            onClick = { ChatAudioPlayer.cycleSpeed() },
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

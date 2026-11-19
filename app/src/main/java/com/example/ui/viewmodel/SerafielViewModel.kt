@@ -88,6 +88,20 @@ class SerafielViewModel(
     private val _snackbarEvents = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val snackbarEvents: SharedFlow<String> = _snackbarEvents.asSharedFlow()
 
+    /** Aviso con acción "Deshacer" (p. ej. al eliminar un mensaje). */
+    data class UndoEvent(
+        val message: String,
+        val actionLabel: String,
+        val onUndo: () -> Unit,
+        val onTimeout: () -> Unit,
+    )
+
+    private val _undoEvents = MutableSharedFlow<UndoEvent>(extraBufferCapacity = 4)
+    val undoEvents: SharedFlow<UndoEvent> = _undoEvents.asSharedFlow()
+
+    /** Mensajes ocultos mientras se puede deshacer su eliminación. */
+    private val _hiddenMessageIds = MutableStateFlow<Set<String>>(emptySet())
+
     data class LiveLocationShareState(
         val targetType: String = "chat",
         val chatId: String = "",
@@ -345,6 +359,13 @@ class SerafielViewModel(
                         }
                 }
             }
+            .combine(_hiddenMessageIds) { state, hidden ->
+                if (state is UiState.Success && hidden.isNotEmpty()) {
+                    UiState.Success(state.data.filterNot { it.id in hidden })
+                } else {
+                    state
+                }
+            }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -378,6 +399,13 @@ class SerafielViewModel(
                             Log.w(TAG, "Error observing group messages", root)
                             emit(UiState.Error(root.message ?: "No se pudieron cargar los mensajes del grupo"))
                         }
+                }
+            }
+            .combine(_hiddenMessageIds) { state, hidden ->
+                if (state is UiState.Success && hidden.isNotEmpty()) {
+                    UiState.Success(state.data.filterNot { it.id in hidden })
+                } else {
+                    state
                 }
             }
             .stateIn(
@@ -1097,7 +1125,46 @@ class SerafielViewModel(
         }
     }
 
+    /**
+     * Oculta el mensaje y muestra "Mensaje eliminado · Deshacer". Solo se borra de
+     * verdad si el aviso se cierra sin pulsar Deshacer.
+     */
     fun deleteDirectMessage(chat: DirectChat, messageId: String, fallbackLastMessage: String?) {
+        hideWithUndo(messageId) { commitDeleteDirectMessage(chat, messageId, fallbackLastMessage) }
+    }
+
+    fun deleteGroupMessage(group: SocialGroup, messageId: String, fallbackLastMessage: String?) {
+        hideWithUndo(messageId) { commitDeleteGroupMessage(group, messageId, fallbackLastMessage) }
+    }
+
+    private fun hideWithUndo(messageId: String, commit: () -> Unit) {
+        _hiddenMessageIds.value = _hiddenMessageIds.value + messageId
+        var settled = false
+        val emitted = _undoEvents.tryEmit(
+            UndoEvent(
+                message = "Mensaje eliminado",
+                actionLabel = "Deshacer",
+                onUndo = {
+                    if (!settled) {
+                        settled = true
+                        _hiddenMessageIds.value = _hiddenMessageIds.value - messageId
+                    }
+                },
+                onTimeout = {
+                    if (!settled) {
+                        settled = true
+                        commit()
+                    }
+                },
+            )
+        )
+        if (!emitted) {
+            settled = true
+            commit()
+        }
+    }
+
+    private fun commitDeleteDirectMessage(chat: DirectChat, messageId: String, fallbackLastMessage: String?) {
         viewModelScope.launch {
             val res = repository.deleteDirectMessage(
                 userId = currentUserId,
@@ -1105,9 +1172,8 @@ class SerafielViewModel(
                 messageId = messageId,
                 fallbackLastMessage = fallbackLastMessage,
             )
-            if (res.isSuccess) {
-                _snackbarEvents.tryEmit("Mensaje eliminado")
-            } else {
+            _hiddenMessageIds.value = _hiddenMessageIds.value - messageId
+            if (res.isFailure) {
                 _snackbarEvents.tryEmit("No se pudo eliminar el mensaje")
             }
         }
@@ -1189,6 +1255,7 @@ class SerafielViewModel(
                 durationSec = payload.durationSec,
                 chatPreview = "🎤 Mensaje de voz ($durText)",
                 chunkFile = payload.fullFile,
+                waveform = payload.waveform,
             )
             _isBusy.value = false
             if (sendRes.isFailure) {
@@ -1687,7 +1754,7 @@ class SerafielViewModel(
         }
     }
 
-    fun deleteGroupMessage(group: SocialGroup, messageId: String, fallbackLastMessage: String?) {
+    private fun commitDeleteGroupMessage(group: SocialGroup, messageId: String, fallbackLastMessage: String?) {
         viewModelScope.launch {
             val res = repository.deleteGroupMessage(
                 userId = currentUserId,
@@ -1695,9 +1762,8 @@ class SerafielViewModel(
                 messageId = messageId,
                 fallbackLastMessage = fallbackLastMessage,
             )
-            if (res.isSuccess) {
-                _snackbarEvents.tryEmit("Mensaje eliminado")
-            } else {
+            _hiddenMessageIds.value = _hiddenMessageIds.value - messageId
+            if (res.isFailure) {
                 _snackbarEvents.tryEmit("No se pudo eliminar el mensaje")
             }
         }
@@ -1779,6 +1845,7 @@ class SerafielViewModel(
                 durationSec = payload.durationSec,
                 groupPreview = "🎤 Mensaje de voz ($durText)",
                 chunkFile = payload.fullFile,
+                waveform = payload.waveform,
             )
             _isBusy.value = false
             if (res.isFailure) {

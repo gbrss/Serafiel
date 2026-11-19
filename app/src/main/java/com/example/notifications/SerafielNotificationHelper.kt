@@ -120,6 +120,13 @@ object SerafielNotificationHelper {
             .addMessage(text, System.currentTimeMillis(), sender)
     }
 
+    fun directNotificationId(chatId: String): Int = 10_000 + (abs(chatId.hashCode()) % 50_000)
+
+    /** Quita la notificación de un chat (p. ej. al leerlo en la app o en otro dispositivo). */
+    fun cancelChatNotification(context: Context, chatId: String) {
+        NotificationManagerCompat.from(context).cancel(directNotificationId(chatId))
+    }
+
     fun showReplyFailedNotification(context: Context, notificationId: Int, chatId: String?, groupId: String?) {
         if (!hasNotificationPermission(context)) return
         ensureChannels(context)
@@ -213,7 +220,7 @@ object SerafielNotificationHelper {
             putExtra(EXTRA_OPEN_ROUTE, "chats")
             putExtra(EXTRA_OPEN_CHAT_ID, chatId)
         }
-        val requestCode = 10_000 + (abs(chatId.hashCode()) % 50_000)
+        val requestCode = directNotificationId(chatId)
         val pendingIntent = PendingIntent.getActivity(
             context,
             requestCode,

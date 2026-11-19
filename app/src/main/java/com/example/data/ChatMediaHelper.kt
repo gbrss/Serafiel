@@ -37,7 +37,49 @@ data class EncodedMediaPayload(
     val durationSec: Long = 0L,
     /** Archivo completo que se sube troceado (HD, audio largo, video). */
     val fullFile: File? = null,
+    /** Onda de la nota de voz codificada (ver [VoiceWaveformCodec]). */
+    val waveform: String? = null,
 )
+
+/**
+ * Codifica la onda de una nota de voz en un texto corto: [BARS] niveles de 0 a 31,
+ * un carácter por barra. Se guarda en el mensaje para dibujar el espectro.
+ */
+object VoiceWaveformCodec {
+    const val BARS = 48
+    private const val ALPHABET = "0123456789abcdefghijklmnopqrstuv"
+
+    fun encode(samples: List<Float>): String? {
+        if (samples.isEmpty()) return null
+        val bars = (0 until BARS).map { i ->
+            val from = (i * samples.size) / BARS
+            val to = (((i + 1) * samples.size) / BARS).coerceAtLeast(from + 1).coerceAtMost(samples.size)
+            samples.subList(from.coerceAtMost(samples.size - 1), to).maxOrNull() ?: 0f
+        }
+        val peak = bars.maxOrNull()?.takeIf { it > 0.01f } ?: 1f
+        return bars.joinToString("") { level ->
+            val norm = (level / peak).coerceIn(0f, 1f)
+            ALPHABET[(norm * 31f).toInt().coerceIn(0, 31)].toString()
+        }
+    }
+
+    fun decode(encoded: String?): List<Float>? {
+        if (encoded.isNullOrBlank()) return null
+        val values = encoded.mapNotNull { c -> ALPHABET.indexOf(c).takeIf { it >= 0 }?.let { it / 31f } }
+        return values.takeIf { it.size >= 8 }
+    }
+
+    /** Onda estable de relleno para mensajes antiguos (derivada del id). */
+    fun pseudo(seed: String, bars: Int = BARS): List<Float> {
+        var x = seed.hashCode().toLong() and 0xffffffffL
+        return List(bars) { i ->
+            x = (x * 1103515245L + 12345L) and 0x7fffffffL
+            val r = (x % 1000L) / 1000f
+            val envelope = 0.55f + 0.45f * kotlin.math.sin(i / bars.toFloat() * Math.PI.toFloat())
+            (0.25f + r * 0.75f) * envelope
+        }
+    }
+}
 
 data class AudioPlaybackUiState(
     val activeMessageId: String? = null,
@@ -447,19 +489,54 @@ object ChatAudioPlayer {
     private val _playbackState = MutableStateFlow(AudioPlaybackUiState())
     val playbackState: StateFlow<AudioPlaybackUiState> = _playbackState.asStateFlow()
 
-    /** Reproduce un mensaje de voz/audio, descargando sus trozos si hace falta. */
+    val speeds = listOf(1f, 1.5f, 2f)
+    private val _speed = MutableStateFlow(1f)
+    /** Velocidad de reproducción global de notas de voz (1x, 1.5x, 2x). */
+    val speed: StateFlow<Float> = _speed.asStateFlow()
+
+    fun cycleSpeed() {
+        val idx = speeds.indexOf(_speed.value).takeIf { it >= 0 } ?: 0
+        _speed.value = speeds[(idx + 1) % speeds.size]
+        applySpeedIfPlaying()
+    }
+
+    private fun applySpeedIfPlaying() {
+        val mp = mediaPlayer ?: return
+        // Cambiar playbackParams con el reproductor en pausa lo reanuda en algunos equipos.
+        if (!mp.isPlaying) return
+        runCatching { mp.playbackParams = mp.playbackParams.setSpeed(_speed.value) }
+    }
+
+    /** Reproduce/pausa un mensaje de voz o audio (en línea o troceado). */
     fun togglePlayMessage(context: Context, message: com.example.model.DirectMessage) {
-        if (message.chunkCount <= 0L) {
-            togglePlay(context, message.id, message.mediaData)
-            return
-        }
         val current = _playbackState.value
         if (current.activeMessageId == message.id && mediaPlayer != null) {
-            togglePlay(context, message.id, null)
+            pauseOrResume()
             return
         }
+        playFrom(context, message, 0f)
+    }
+
+    /**
+     * Salta a [fraction] (0..1) del mensaje. Si ya está cargado solo mueve la posición
+     * (respetando pausa/reproducción); si no, empieza a reproducir desde ahí.
+     */
+    fun seekMessage(context: Context, message: com.example.model.DirectMessage, fraction: Float) {
+        val f = fraction.coerceIn(0f, 1f)
+        val mp = mediaPlayer
+        if (_playbackState.value.activeMessageId == message.id && mp != null) {
+            val duration = mp.duration.coerceAtLeast(1)
+            val pos = (duration * f).toInt().coerceIn(0, duration - 1)
+            runCatching { mp.seekTo(pos) }
+            _playbackState.value = _playbackState.value.copy(progress = f, currentSec = pos / 1000L)
+            return
+        }
+        playFrom(context, message, f)
+    }
+
+    private fun playFrom(context: Context, message: com.example.model.DirectMessage, fraction: Float) {
         stop()
-        _playbackState.value = AudioPlaybackUiState(activeMessageId = message.id, isLoading = true)
+        _playbackState.value = AudioPlaybackUiState(activeMessageId = message.id, isLoading = true, progress = fraction)
         val appContext = context.applicationContext
         scope.launch {
             val file = ChunkedMediaStore.resolveFullMedia(appContext, message)
@@ -468,25 +545,45 @@ object ChatAudioPlayer {
                 _playbackState.value = AudioPlaybackUiState()
                 return@launch
             }
-            startPlayer(message.id, file, deleteOnStop = false)
+            startPlayer(message.id, file, deleteOnStop = false, startFraction = fraction)
         }
     }
 
-    private fun startPlayer(messageId: String, file: File, deleteOnStop: Boolean) {
+    private fun pauseOrResume() {
+        val mp = mediaPlayer ?: return
+        val current = _playbackState.value
+        if (mp.isPlaying) {
+            mp.pause()
+            progressJob?.cancel()
+            _playbackState.value = current.copy(isPlaying = false)
+        } else {
+            mp.start()
+            applySpeedIfPlaying()
+            _playbackState.value = current.copy(isPlaying = true)
+            startProgressTicker()
+        }
+    }
+
+    private fun startPlayer(messageId: String, file: File, deleteOnStop: Boolean, startFraction: Float = 0f) {
         try {
             tempFile = if (deleteOnStop) file else null
             val mp = MediaPlayer().apply {
                 setDataSource(file.absolutePath)
                 setOnCompletionListener { stop() }
                 prepare()
-                start()
             }
+            if (startFraction > 0f) {
+                val duration = mp.duration.coerceAtLeast(1)
+                mp.seekTo((duration * startFraction).toInt().coerceIn(0, duration - 1))
+            }
+            mp.start()
             mediaPlayer = mp
+            applySpeedIfPlaying()
             _playbackState.value = AudioPlaybackUiState(
                 activeMessageId = messageId,
                 isPlaying = true,
-                progress = 0f,
-                currentSec = 0L,
+                progress = startFraction,
+                currentSec = (mp.currentPosition / 1000L),
             )
             startProgressTicker()
         } catch (_: Exception) {
@@ -494,27 +591,15 @@ object ChatAudioPlayer {
         }
     }
 
+    /** Compatibilidad: reproduce audio en línea identificado solo por id + base64. */
     fun togglePlay(context: Context, messageId: String, base64Data: String?) {
         val current = _playbackState.value
         if (current.activeMessageId == messageId && mediaPlayer != null) {
-            val mp = mediaPlayer
-            if (mp != null) {
-                if (mp.isPlaying) {
-                    mp.pause()
-                    progressJob?.cancel()
-                    _playbackState.value = current.copy(isPlaying = false)
-                } else {
-                    mp.start()
-                    _playbackState.value = current.copy(isPlaying = true)
-                    startProgressTicker()
-                }
-            }
+            pauseOrResume()
             return
         }
-
         if (base64Data.isNullOrBlank()) return
         stop()
-
         scope.launch {
             val file = withContext(Dispatchers.IO) {
                 try {
@@ -527,28 +612,7 @@ object ChatAudioPlayer {
                     null
                 }
             } ?: return@launch
-
-            try {
-                tempFile = file
-                val mp = MediaPlayer().apply {
-                    setDataSource(file.absolutePath)
-                    setOnCompletionListener {
-                        stop()
-                    }
-                    prepare()
-                    start()
-                }
-                mediaPlayer = mp
-                _playbackState.value = AudioPlaybackUiState(
-                    activeMessageId = messageId,
-                    isPlaying = true,
-                    progress = 0f,
-                    currentSec = 0L,
-                )
-                startProgressTicker()
-            } catch (_: Exception) {
-                stop()
-            }
+            startPlayer(messageId, file, deleteOnStop = true)
         }
     }
 
@@ -562,10 +626,11 @@ object ChatAudioPlayer {
                 val pos = mp.currentPosition.coerceAtLeast(0)
                 _playbackState.value = _playbackState.value.copy(
                     isPlaying = true,
+                    isLoading = false,
                     progress = (pos.toFloat() / duration.toFloat()).coerceIn(0f, 1f),
                     currentSec = (pos / 1000L),
                 )
-                delay(200L)
+                delay(100L)
             }
         }
     }

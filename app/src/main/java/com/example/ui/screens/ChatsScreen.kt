@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.layout.defaultMinSize
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -531,11 +533,34 @@ private fun ChatsListScreen(
                                                 }
                                             }
                                         }
-                                        Text(
-                                            text = formatRelativeTimestamp(chat.updatedAt),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
+                                        val unread = (chat.unreadCount[currentUserId] ?: 0L).coerceAtLeast(0L)
+                                        Column(
+                                            horizontalAlignment = Alignment.End,
+                                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        ) {
+                                            Text(
+                                                text = formatRelativeTimestamp(chat.updatedAt),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (unread > 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                            if (unread > 0) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .defaultMinSize(minWidth = 22.dp, minHeight = 22.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFFE53935))
+                                                        .padding(horizontal = 6.dp),
+                                                    contentAlignment = Alignment.Center,
+                                                ) {
+                                                    Text(
+                                                        text = if (unread > 99) "99+" else unread.toString(),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = Color.White,
+                                                        fontWeight = FontWeight.Bold,
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -812,7 +837,7 @@ private fun DirectChatDetailScreen(
                         if (isPeerOnline) {
                             append("En línea")
                         } else if (peerVisual?.lastSeenAt != null) {
-                            append("Últ. vez ${formatRelativeTimestamp(peerVisual.lastSeenAt)}")
+                            append("Últ. vez ${formatLastSeen(peerVisual.lastSeenAt)}")
                         } else {
                             append(SocialPurpose.fromRaw(chat.purpose).labelEs)
                         }

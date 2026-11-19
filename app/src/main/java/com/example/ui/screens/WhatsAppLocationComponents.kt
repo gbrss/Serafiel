@@ -132,9 +132,10 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private val WhatsAppHeaderTeal = Color(0xFF075E54)
-private val WhatsAppAccentTeal = Color(0xFF00897B)
-private val WhatsAppSendGreen = Color(0xFF25D366)
+private val WhatsAppHeaderTeal = Color(0xFF753506)
+private val WhatsAppAccentTeal = Color(0xFFC99200)
+private val WhatsAppSendGreen = Color(0xFFFFC928)
+private val OnYellowInk = Color(0xFF2A1E00)
 private val WhatsAppLiveRed = Color(0xFFD32F2F)
 
 private enum class WhatsAppPickerMode {
@@ -947,7 +948,7 @@ fun WhatsAppSendLocationDialog(
                                     Icon(
                                         imageVector = Icons.Rounded.Sensors,
                                         contentDescription = null,
-                                        tint = Color.White,
+                                        tint = OnYellowInk,
                                         modifier = Modifier.size(24.dp),
                                     )
                                 }
@@ -1242,7 +1243,7 @@ fun WhatsAppSendLocationDialog(
                                             Text(
                                                 text = label,
                                                 style = MaterialTheme.typography.labelLarge,
-                                                color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                color = if (selected) OnYellowInk else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                                             )
                                         }
@@ -1270,7 +1271,7 @@ fun WhatsAppSendLocationDialog(
                                     onClick = { onSendLiveLocation(selectedLiveMinutes, liveComment, gpsPoint) },
                                     shape = CircleShape,
                                     containerColor = WhatsAppSendGreen,
-                                    contentColor = Color.White,
+                                    contentColor = OnYellowInk,
                                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
                                     modifier = Modifier
                                         .size(54.dp)

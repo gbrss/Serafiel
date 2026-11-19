@@ -66,6 +66,7 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.core.content.ContextCompat
 import com.example.data.EncodedMediaPayload
 import com.example.data.VoiceNoteRecorder
+import com.example.data.VoiceWaveformCodec
 import com.example.model.DirectMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -100,6 +101,7 @@ class VoiceNoteController internal constructor(
     internal var onSend: (EncodedMediaPayload) -> Unit = {}
     internal var onShowMessage: (String) -> Unit = {}
     private var startedAt = 0L
+    private val levelSamples = mutableListOf<Float>()
 
     val isActive: Boolean get() = state != VoiceRecState.IDLE
 
@@ -111,6 +113,7 @@ class VoiceNoteController internal constructor(
             return false
         }
         startedAt = System.currentTimeMillis()
+        levelSamples.clear()
         elapsedMs = 0L
         dragX = 0f
         dragY = 0f
@@ -135,6 +138,7 @@ class VoiceNoteController internal constructor(
     fun finishAndSend() {
         if (!isActive) return
         val tooShort = System.currentTimeMillis() - startedAt < MIN_DURATION_MS
+        val waveform = VoiceWaveformCodec.encode(levelSamples.toList())
         reset()
         if (tooShort) {
             recorder.cancelRecording()
@@ -143,7 +147,7 @@ class VoiceNoteController internal constructor(
         }
         scope.launch {
             recorder.finishAndEncode()
-                .onSuccess { onSend(it) }
+                .onSuccess { onSend(it.copy(waveform = waveform)) }
                 .onFailure { onShowMessage(it.localizedMessage ?: "No se pudo guardar la nota de voz.") }
         }
     }
@@ -151,6 +155,7 @@ class VoiceNoteController internal constructor(
     internal fun tick() {
         elapsedMs = System.currentTimeMillis() - startedAt
         level = recorder.currentLevel()
+        levelSamples += level
         if (elapsedMs >= VoiceNoteRecorder.MAX_VOICE_NOTE_SEC * 1000L) {
             onShowMessage("Llegaste al máximo de 5 minutos: nota de voz enviada.")
             finishAndSend()

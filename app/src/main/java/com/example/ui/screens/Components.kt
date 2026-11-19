@@ -238,6 +238,38 @@ fun formatRelativeTimestamp(timestamp: Timestamp?): String {
     }
 }
 
+/**
+ * "Últ. vez" estilo WhatsApp: hoy/ayer con hora, día de la semana con hora si fue
+ * esta semana, y fecha con hora si fue hace más de una semana.
+ */
+fun formatLastSeen(timestamp: Timestamp?): String {
+    if (timestamp == null) return "hace un momento"
+    val date = timestamp.toDate()
+    val now = java.util.Calendar.getInstance()
+    val then = java.util.Calendar.getInstance().apply { time = date }
+    val diffMs = now.timeInMillis - then.timeInMillis
+    if (diffMs < 60_000L) return "hace un momento"
+    val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
+    fun dayIndex(c: java.util.Calendar) = c.get(java.util.Calendar.YEAR) * 400 + c.get(java.util.Calendar.DAY_OF_YEAR)
+    val daysAgo = run {
+        val a = now.clone() as java.util.Calendar
+        var d = 0
+        while (dayIndex(a) > dayIndex(then) && d < 8) {
+            a.add(java.util.Calendar.DAY_OF_YEAR, -1)
+            d++
+        }
+        d
+    }
+    return when {
+        daysAgo == 0 -> "hoy a las $time"
+        daysAgo == 1 -> "ayer a las $time"
+        daysAgo < 7 -> SimpleDateFormat("EEEE", Locale.getDefault()).format(date) + " a las $time"
+        now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) ->
+            SimpleDateFormat("d MMM", Locale.getDefault()).format(date) + " a las $time"
+        else -> SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(date) + " a las $time"
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BeaconEditorSheet(
