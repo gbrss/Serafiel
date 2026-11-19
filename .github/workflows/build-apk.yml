@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
@@ -69,3 +71,19 @@ jobs:
           name: Serafiel-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
+
+      # En main, el APK se publica como Release con un enlace fijo para el celular:
+      # https://github.com/gbrss/Serafiel/releases/latest/download/Serafiel-debug.apk
+      - name: Publicar APK en Releases
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/*.apk Serafiel-debug.apk
+          SHORT_SHA="${GITHUB_SHA::7}"
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest Serafiel-debug.apk \
+            --target "$GITHUB_SHA" \
+            --title "Serafiel · última compilación ($SHORT_SHA)" \
+            --notes "APK de debug compilado automáticamente desde el commit $SHORT_SHA de main. Instálalo encima de la versión anterior." \
+            --latest

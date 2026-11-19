@@ -248,7 +248,11 @@ El workflow [`build-apk.yml`](.github/workflows/build-apk.yml) compila un APK de
 | `DEBUG_KEYSTORE_BASE64` | Recomendado | Keystore de debug en base64. Mantiene la firma fija para actualizar sin desinstalar y para que el SHA-1 registrado en Firebase siga siendo válido |
 | `MAPS_API_KEY` | — | Google Places (opcional) |
 
-**Descargar el APK:** pestaña **Actions** → última corrida de *Compilar APK* → **Artifacts** → `Serafiel-debug-apk`.
+**Descargar el APK:** cada compilación de `main` se publica en **Releases**, con un enlace fijo que funciona directo desde el celular:
+
+👉 **[Descargar Serafiel-debug.apk](https://github.com/gbrss/Serafiel/releases/latest/download/Serafiel-debug.apk)**
+
+(También queda como *artifact* en cada corrida de Actions.)
 
 > El log de cada compilación imprime el SHA-1 y SHA-256 del keystore usado, listos para pegar en Firebase.
 
