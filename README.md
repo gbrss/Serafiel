@@ -122,7 +122,7 @@ El inicio de sesión es con cuenta de Google y toda la información vive en Clou
 
 ---
 
-## 🏗️ Arquitectura
+## 🏗 Arquitectura
 
 ```mermaid
 flowchart TD
@@ -146,7 +146,7 @@ flowchart TD
 
 ---
 
-## 🗄️ Modelo de datos en Firestore
+## 🗄 Modelo de datos en Firestore
 
 ```
 users/{uid}                          perfil privado, bloqueos, presencia
@@ -238,7 +238,7 @@ gradle :app:assembleDebug
 
 ---
 
-## ☁️ Compilar sin Android Studio (GitHub Actions)
+## ☁ Compilar sin Android Studio (GitHub Actions)
 
 El workflow [`build-apk.yml`](.github/workflows/build-apk.yml) compila un APK de debug **en cada push**, en cualquier rama.
 
