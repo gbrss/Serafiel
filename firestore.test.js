@@ -616,3 +616,138 @@ test("Safety reports: reporter can create and list own reports, cannot self-repo
     })
   );
 });
+
+// --- Estados, reacciones y medios troceados ---
+const firebaseCompat = require("firebase/compat/app");
+require("firebase/compat/firestore");
+const serverNow = () => firebaseCompat.firestore.FieldValue.serverTimestamp();
+const deleteField = () => firebaseCompat.firestore.FieldValue.delete();
+
+test("Chats: recibos de lectura/entrega, escribiendo y lastSenderId solo sobre la propia entrada", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+  const chatId = `${ALICE_UID}_${BOB_UID}`;
+  const created = pastDate(10000);
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("chats").doc(chatId).set({
+      participantIds: [ALICE_UID, BOB_UID],
+      participantNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+      participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+      initiatorId: ALICE_UID,
+      purpose: "FRIENDSHIP",
+      status: "active",
+      lastMessage: "Hola",
+      zoneName: "Zona Abierta",
+      createdAt: created,
+      updatedAt: created,
+    });
+  });
+  const chatRef = (db) => db.collection("chats").doc(chatId);
+
+  await assertSucceeds(chatRef(bobDb).update({ [`lastReadAt.${BOB_UID}`]: serverNow(), [`lastDeliveredAt.${BOB_UID}`]: serverNow() }));
+  await assertSucceeds(chatRef(aliceDb).update({ [`typingAt.${ALICE_UID}`]: serverNow() }));
+  await assertSucceeds(chatRef(aliceDb).update({ [`typingAt.${ALICE_UID}`]: deleteField() }));
+  // Envío normal con la entrada de lectura de Bob ya presente.
+  await assertSucceeds(
+    chatRef(aliceDb).update({ lastMessage: "Nuevo", lastSenderId: ALICE_UID, updatedAt: serverNow(), [`typingAt.${ALICE_UID}`]: deleteField() })
+  );
+  // No se puede escribir la entrada de otro, ni una hora inventada, ni suplantar lastSenderId.
+  await assertFails(chatRef(aliceDb).update({ [`lastReadAt.${BOB_UID}`]: serverNow() }));
+  await assertFails(chatRef(aliceDb).update({ [`lastReadAt.${ALICE_UID}`]: pastDate(99999) }));
+  await assertFails(chatRef(aliceDb).update({ lastSenderId: BOB_UID }));
+  await assertFails(chatRef(charlieDb).update({ [`typingAt.${CHARLIE_UID}`]: serverNow() }));
+});
+
+test("Mensajes: reacciones de cualquier participante solo sobre su propia entrada", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+  const chatId = `${ALICE_UID}_${BOB_UID}`;
+  const groupId = "group_react_01";
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await db.collection("chats").doc(chatId).set({
+      participantIds: [ALICE_UID, BOB_UID],
+      participantNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+      participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+      initiatorId: ALICE_UID, purpose: "FRIENDSHIP", status: "active", lastMessage: "Hola",
+      zoneName: "Zona Abierta", createdAt: pastDate(10000), updatedAt: pastDate(10000),
+    });
+    await db.collection("chats").doc(chatId).collection("messages").doc("m1").set({
+      chatId, participantIds: [ALICE_UID, BOB_UID], senderId: ALICE_UID, senderName: "Alicia Luz",
+      messageType: "text", text: "Hola", createdAt: pastDate(9000),
+    });
+    await db.collection("groups").doc(groupId).set({
+      name: "Amigos", category: "FRIENDS", colorKey: "amber", creatorId: ALICE_UID,
+      memberIds: [ALICE_UID, BOB_UID], memberNames: {}, memberColors: {}, lastMessage: "",
+      createdAt: pastDate(10000), updatedAt: pastDate(10000),
+    });
+    await db.collection("groups").doc(groupId).collection("messages").doc("g1").set({
+      groupId, memberIds: [ALICE_UID, BOB_UID], senderId: ALICE_UID, senderName: "Alicia Luz",
+      messageType: "text", text: "Hola grupo", createdAt: pastDate(9000),
+    });
+  });
+  const dm = (db) => db.collection("chats").doc(chatId).collection("messages").doc("m1");
+  const gm = (db) => db.collection("groups").doc(groupId).collection("messages").doc("g1");
+
+  await assertSucceeds(dm(bobDb).update({ [`reactions.${BOB_UID}`]: "❤️" }));
+  await assertSucceeds(dm(aliceDb).update({ [`reactions.${ALICE_UID}`]: "😂" }));
+  await assertSucceeds(dm(bobDb).update({ [`reactions.${BOB_UID}`]: deleteField() }));
+  await assertFails(dm(bobDb).update({ [`reactions.${ALICE_UID}`]: deleteField() }));
+  await assertFails(dm(bobDb).update({ [`reactions.${BOB_UID}`]: "x".repeat(40) }));
+  await assertFails(dm(bobDb).update({ text: "hackeado", [`reactions.${BOB_UID}`]: "👍" }));
+  await assertFails(dm(charlieDb).update({ [`reactions.${CHARLIE_UID}`]: "👍" }));
+  await assertSucceeds(gm(bobDb).update({ [`reactions.${BOB_UID}`]: "👍" }));
+  await assertFails(gm(charlieDb).update({ [`reactions.${CHARLIE_UID}`]: "👍" }));
+});
+
+test("Medios troceados: trozos solo para participantes y mensajes de voz/video sin mediaData", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+  const chatId = `${ALICE_UID}_${BOB_UID}`;
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("chats").doc(chatId).set({
+      participantIds: [ALICE_UID, BOB_UID],
+      participantNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+      participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+      initiatorId: ALICE_UID, purpose: "FRIENDSHIP", status: "active", lastMessage: "Hola",
+      zoneName: "Zona Abierta", createdAt: pastDate(10000), updatedAt: pastDate(10000),
+    });
+  });
+  const msgRef = (db) => db.collection("chats").doc(chatId).collection("messages").doc("voice_long");
+  const chunk = (db, i) => msgRef(db).collection("chunks").doc(String(i));
+
+  await assertSucceeds(chunk(aliceDb, 0).set({ index: 0, senderId: ALICE_UID, data: "QUJD" }));
+  await assertSucceeds(chunk(aliceDb, 1).set({ index: 1, senderId: ALICE_UID, data: "REVG" }));
+  await assertFails(chunk(aliceDb, 2).set({ index: 3, senderId: ALICE_UID, data: "REVG" }));
+  await assertFails(chunk(aliceDb, 4).set({ index: 4, senderId: BOB_UID, data: "REVG" }));
+  await assertFails(chunk(charlieDb, 5).set({ index: 5, senderId: CHARLIE_UID, data: "REVG" }));
+
+  await assertSucceeds(
+    msgRef(aliceDb).set({
+      chatId, participantIds: [ALICE_UID, BOB_UID], senderId: ALICE_UID, senderName: "Alicia Luz",
+      messageType: "voice", text: "", mediaMimeType: "audio/mp4", durationSec: 280,
+      chunkCount: 2, mediaSizeBytes: 900000, createdAt: serverNow(),
+    })
+  );
+  await assertSucceeds(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("video_1").set({
+      chatId, participantIds: [ALICE_UID, BOB_UID], senderId: ALICE_UID, senderName: "Alicia Luz",
+      messageType: "video", text: "", mediaData: "dGh1bWI=", mediaMimeType: "video/mp4", durationSec: 30,
+      chunkCount: 3, mediaSizeBytes: 1400000, createdAt: serverNow(),
+    })
+  );
+  await assertFails(
+    aliceDb.collection("chats").doc(chatId).collection("messages").doc("voice_empty").set({
+      chatId, participantIds: [ALICE_UID, BOB_UID], senderId: ALICE_UID, senderName: "Alicia Luz",
+      messageType: "voice", text: "", createdAt: serverNow(),
+    })
+  );
+
+  await assertSucceeds(chunk(bobDb, 0).get());
+  await assertFails(chunk(charlieDb, 0).get());
+  await assertFails(chunk(bobDb, 0).delete());
+  await assertSucceeds(chunk(aliceDb, 0).delete());
+});
