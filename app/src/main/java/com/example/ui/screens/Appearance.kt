@@ -203,7 +203,17 @@ private fun Swatch(brush: Brush, selected: Boolean, tag: String, label: String? 
             .clickable(onClick = onClick)
             .testTag(tag),
     ) {
-        if (label != null) Text(label, style = MaterialTheme.typography.titleMedium)
+        if (label != null) Text(
+            label,
+            style = MaterialTheme.typography.titleMedium.copy(
+                platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false),
+                lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                    alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                    trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.Both,
+                ),
+            ),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
     }
 }
 
