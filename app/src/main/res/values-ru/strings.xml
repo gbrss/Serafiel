@@ -649,4 +649,10 @@
     <string name="appearance_apply">Применить</string>
     <string name="typing_word">печатает</string>
     <string name="group_typing_many">%1$d человек</string>
+    <string name="travel_mode">Режим путешествия</string>
+    <string name="travel_banner">Радар: %1$s</string>
+    <string name="travel_back">Назад</string>
+    <string name="travel_desc">Смотрите, кто в другом городе. Ваш маяк и местоположение не меняются.</string>
+    <string name="travel_search_hint">Поиск города…</string>
+    <string name="travel_no_results">Нет результатов</string>
 </resources>

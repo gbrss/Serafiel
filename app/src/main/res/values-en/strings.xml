@@ -649,4 +649,10 @@
     <string name="appearance_apply">Apply</string>
     <string name="typing_word">typing</string>
     <string name="group_typing_many">%1$d people</string>
+    <string name="travel_mode">Travel mode</string>
+    <string name="travel_banner">Viewing the radar of %1$s</string>
+    <string name="travel_back">Back</string>
+    <string name="travel_desc">See who is in another city. Your beacon and location don’t change.</string>
+    <string name="travel_search_hint">Search city…</string>
+    <string name="travel_no_results">No results</string>
 </resources>

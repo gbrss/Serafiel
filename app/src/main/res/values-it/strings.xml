@@ -649,4 +649,10 @@
     <string name="appearance_apply">Applica</string>
     <string name="typing_word">sta scrivendo</string>
     <string name="group_typing_many">%1$d persone</string>
+    <string name="travel_mode">Modalità viaggio</string>
+    <string name="travel_banner">Radar di %1$s</string>
+    <string name="travel_back">Indietro</string>
+    <string name="travel_desc">Guarda chi c’è in un’altra città. Il tuo faro e la tua posizione non cambiano.</string>
+    <string name="travel_search_hint">Cerca città…</string>
+    <string name="travel_no_results">Nessun risultato</string>
 </resources>

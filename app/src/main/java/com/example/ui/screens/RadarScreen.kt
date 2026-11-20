@@ -48,6 +48,9 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.WavingHand
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -114,6 +117,8 @@ import kotlin.math.sin
 @Composable
 fun RadarScreen(
     currentZone: ZoneLocation,
+    travelZone: ZoneLocation? = null,
+    onSetTravelZone: (ZoneLocation?) -> Unit = {},
     hasLocationPermission: Boolean,
     hasNotificationPermission: Boolean,
     isRefreshingLocation: Boolean,
@@ -141,6 +146,10 @@ fun RadarScreen(
     var inspectTarget by remember { mutableStateOf<ProximityBeacon?>(null) }
     var reportTarget by remember { mutableStateOf<ProximityBeacon?>(null) }
     var showZonePickerDialog by remember { mutableStateOf(false) }
+    var showTravelDialog by remember { mutableStateOf(false) }
+    val realZone = currentZone
+    @Suppress("NAME_SHADOWING")
+    val currentZone = travelZone ?: realZone
 
     val allBeacons = (nearbyBeaconsState as? UiState.Success)?.data.orEmpty()
     var onlyAvailableNow by remember { mutableStateOf(false) }
@@ -170,12 +179,42 @@ fun RadarScreen(
             // 1. Zone & Privacy Header Card
             item {
                 ZoneHeaderCard(
-                    currentZone = currentZone,
+                    currentZone = realZone,
                     hasLocationPermission = hasLocationPermission,
                     isRefreshingLocation = isRefreshingLocation,
                     onRefreshGps = onRequestLocationRefresh,
                     onPickZone = { showZonePickerDialog = true },
                 )
+            }
+
+            // Modo viaje: mirar el radar de otra ciudad sin mover mi baliza
+            item {
+                if (travelZone != null) {
+                    Surface(
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text("✈️", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                tr(R.string.travel_banner, travelZone.zoneName),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f).clickable { showTravelDialog = true },
+                            )
+                            TextButton(onClick = { onSetTravelZone(null) }) { Text(tr(R.string.travel_back)) }
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { showTravelDialog = true },
+                        modifier = Modifier.fillMaxWidth().testTag("travel_mode_button"),
+                    ) { Text("✈️  " + tr(R.string.travel_mode)) }
+                }
             }
 
             if (!hasNotificationPermission) {
@@ -488,9 +527,20 @@ fun RadarScreen(
         )
     }
 
+    if (showTravelDialog) {
+        TravelDialog(
+            realZone = realZone,
+            onDismiss = { showTravelDialog = false },
+            onPick = { zone ->
+                showTravelDialog = false
+                onSetTravelZone(zone)
+            },
+        )
+    }
+
     if (showZonePickerDialog) {
         ZonePickerDialog(
-            currentZone = currentZone,
+            currentZone = realZone,
             onDismiss = { showZonePickerDialog = false },
             onSelectZone = { zone ->
                 showZonePickerDialog = false
@@ -1591,5 +1641,73 @@ fun ZonePickerDialog(
                 Text(tr(R.string.s_cerrar))
             }
         },
+    )
+}
+
+@Composable
+private fun TravelDialog(
+    realZone: ZoneLocation,
+    onDismiss: () -> Unit,
+    onPick: (ZoneLocation) -> Unit,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var query by remember { mutableStateOf("") }
+    var results by remember { mutableStateOf<List<com.example.model.NearbyPlaceSuggestion>>(emptyList()) }
+    var searched by remember { mutableStateOf(false) }
+    LaunchedEffect(query) {
+        if (query.trim().length < 3) { results = emptyList(); searched = false; return@LaunchedEffect }
+        kotlinx.coroutines.delay(500)
+        results = LocationHelper.searchPlacesByName(context, query, realZone.approxLat, realZone.approxLon)
+        searched = true
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("✈️ " + tr(R.string.travel_mode)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    tr(R.string.travel_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it.take(60) },
+                    singleLine = true,
+                    placeholder = { Text(tr(R.string.travel_search_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                val items = if (results.isNotEmpty() || query.isNotBlank()) {
+                    results.map { r ->
+                        ZoneLocation(
+                            zoneKey = LocationHelper.formatZoneKey(r.latitude, r.longitude),
+                            zoneName = r.title,
+                            approxLat = r.latitude,
+                            approxLon = r.longitude,
+                            isFromGps = false,
+                            isManualChoice = true,
+                        )
+                    }
+                } else LocationHelper.fallbackZones
+                if (searched && results.isEmpty()) {
+                    Text(tr(R.string.travel_no_results), style = MaterialTheme.typography.bodySmall)
+                }
+                Column(
+                    modifier = Modifier.heightIn(max = 260.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items.forEach { zone ->
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            modifier = Modifier.fillMaxWidth().clickable { onPick(zone) },
+                        ) {
+                            Text(zone.zoneName, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr(R.string.s_cerrar)) } },
     )
 }

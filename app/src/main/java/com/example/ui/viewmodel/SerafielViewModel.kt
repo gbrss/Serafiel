@@ -77,6 +77,13 @@ class SerafielViewModel(
     private val _selectedGroupCategoryFilter = MutableStateFlow<GroupCategory?>(null)
     val selectedGroupCategoryFilter: StateFlow<GroupCategory?> = _selectedGroupCategoryFilter.asStateFlow()
 
+    /** Modo viaje: zona solo para mirar el radar; no mueve mi baliza ni mi sala. */
+    private val _travelZone = MutableStateFlow<ZoneLocation?>(null)
+    val travelZone: StateFlow<ZoneLocation?> = _travelZone.asStateFlow()
+    fun setTravelZone(zone: ZoneLocation?) { _travelZone.value = zone }
+    private val radarZone: StateFlow<ZoneLocation> = kotlinx.coroutines.flow.combine(_currentZone, _travelZone) { c, t -> t ?: c }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, _currentZone.value)
+
     private val _radiusKm = MutableStateFlow(DEFAULT_RADIUS_KM)
     val radiusKm: StateFlow<Int> = _radiusKm.asStateFlow()
 
@@ -204,7 +211,7 @@ class SerafielViewModel(
             rawBeaconsState,
             userProfileState,
             _selectedPurposeFilter,
-            _currentZone,
+            radarZone,
             _radiusKm,
         ) { beaconsUi, profileUi, filter, zone, radius ->
             when (beaconsUi) {
@@ -254,7 +261,7 @@ class SerafielViewModel(
             rawBeaconsState,
             userProfileState,
             _selectedPurposeFilter,
-            _currentZone,
+            radarZone,
             _radiusKm,
         ) { beaconsUi, profileUi, filter, zone, radius ->
             if (radius > ProximityBeacon.MAX_LOCAL_RADIUS_KM || !zone.hasValidCoords) {

@@ -288,6 +288,7 @@ private fun SerafielAuthenticatedShell(
     val blockedUsers by viewModel.blockedUsersState.collectAsStateWithLifecycle()
     val knownContacts by viewModel.knownContactsState.collectAsStateWithLifecycle()
     val currentZone by viewModel.currentZone.collectAsStateWithLifecycle()
+    val travelZone by viewModel.travelZone.collectAsStateWithLifecycle()
     val radiusKm by viewModel.radiusKm.collectAsStateWithLifecycle()
     val outsideRadiusCount by viewModel.outsideRadiusCountState.collectAsStateWithLifecycle()
     val selectedPurposeFilter by viewModel.selectedPurposeFilter.collectAsStateWithLifecycle()
@@ -744,6 +745,8 @@ private fun SerafielAuthenticatedShell(
                     composable(ROUTE_RADAR) {
                         RadarScreen(
                             currentZone = currentZone,
+                            travelZone = travelZone,
+                            onSetTravelZone = { viewModel.setTravelZone(it) },
                             hasLocationPermission = hasLocationPermission,
                             hasNotificationPermission = hasNotificationPermission,
                             isRefreshingLocation = isRefreshingLocation,
