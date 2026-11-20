@@ -134,25 +134,40 @@ data class PendingNotificationNav(
     val groupId: String? = null,
 )
 
-class MainActivity : ComponentActivity() {
+class MainActivity : androidx.fragment.app.FragmentActivity() {
     private val pendingNotificationNav = MutableStateFlow<PendingNotificationNav?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         com.example.data.PrivacySettings.init(this)
+        com.example.data.AppLock.init(this)
         SerafielNotificationHelper.ensureChannels(this)
         SerafielNotificationHelper.clearLegacyForegroundNotification(this)
         handleNotificationIntent(intent)
         if (savedInstanceState == null) handleShareIntent(intent)
         setContent {
             SerafielTheme {
-                AppNavigation(
-                    pendingNotificationNav = pendingNotificationNav,
-                    onConsumedNotificationNav = { pendingNotificationNav.value = null },
-                )
+                val appLocked by com.example.data.AppLock.locked.collectAsStateWithLifecycle()
+                androidx.compose.foundation.layout.Box {
+                    AppNavigation(
+                        pendingNotificationNav = pendingNotificationNav,
+                        onConsumedNotificationNav = { pendingNotificationNav.value = null },
+                    )
+                    if (appLocked) com.example.ui.screens.AppLockScreen()
+                }
             }
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        com.example.data.AppLock.onAppBackgrounded()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        com.example.data.AppLock.onAppForegrounded()
     }
 
     override fun onNewIntent(intent: Intent) {

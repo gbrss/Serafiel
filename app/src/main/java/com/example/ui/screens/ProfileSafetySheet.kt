@@ -290,6 +290,7 @@ fun ProfileSafetySheet(
                 onSetPrecision = onSetPrecision,
                 onSetGhost = onSetGhost,
             )
+            AppLockCard()
             MediaQualitySettingsCard()
             AppUpdateCard()
 
