@@ -35,7 +35,7 @@ import org.robolectric.annotation.Config
 import java.util.Date
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [36], qualifiers = "es")
 class ExampleRobolectricTest {
 
   @Before
