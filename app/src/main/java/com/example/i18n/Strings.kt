@@ -51,7 +51,7 @@ object Lang {
 
     /** Guarda el idioma y reinicia la app. */
     fun change(activity: Activity, code: String) {
-        activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, code).apply()
+        activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, code).commit()
         val intent = Intent(activity, com.example.MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         activity.startActivity(intent)
