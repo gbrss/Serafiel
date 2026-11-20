@@ -74,6 +74,10 @@ fun ProfileSafetySheet(
     currentZone: ZoneLocation,
     showOnline: Boolean = profile?.showOnline ?: true,
     onToggleShowOnline: (Boolean) -> Unit = {},
+    ghostUntilMs: Long = 0L,
+    locationPrecision: com.example.data.PrivacySettings.Precision = com.example.data.PrivacySettings.Precision.APPROX,
+    onSetGhost: (Long?) -> Unit = {},
+    onSetPrecision: (com.example.data.PrivacySettings.Precision) -> Unit = {},
     hasNotificationPermission: Boolean,
     onRequestNotificationPermission: () -> Unit,
     onUploadPhoto: (Uri) -> Unit,
@@ -280,6 +284,12 @@ fun ProfileSafetySheet(
                 }
             }
 
+            LocationPrivacyCard(
+                precision = locationPrecision,
+                ghostUntilMs = ghostUntilMs,
+                onSetPrecision = onSetPrecision,
+                onSetGhost = onSetGhost,
+            )
             MediaQualitySettingsCard()
             AppUpdateCard()
 
@@ -561,6 +571,93 @@ private fun AppUpdateCard() {
                     ) {
                         Text("Buscar actualizaciones")
                     }
+            }
+        }
+    }
+}
+
+
+/** Precisión de la ubicación en el radar y modo fantasma temporal. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LocationPrivacyCard(
+    precision: com.example.data.PrivacySettings.Precision,
+    ghostUntilMs: Long,
+    onSetPrecision: (com.example.data.PrivacySettings.Precision) -> Unit,
+    onSetGhost: (Long?) -> Unit,
+) {
+    val now = androidx.compose.runtime.produceState(System.currentTimeMillis(), ghostUntilMs) {
+        while (true) {
+            value = System.currentTimeMillis()
+            kotlinx.coroutines.delay(30_000L)
+        }
+    }.value
+    val ghostActive = ghostUntilMs > now
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text("Privacidad de ubicación", style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "Precisión con la que apareces en el radar. Tu ubicación exacta solo se envía cuando tú la compartes en un chat.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+            ) {
+                com.example.data.PrivacySettings.Precision.entries.forEach { p ->
+                    androidx.compose.material3.FilterChip(
+                        selected = p == precision,
+                        onClick = { onSetPrecision(p) },
+                        label = { Text(p.label) },
+                        modifier = Modifier.testTag("privacy_precision_${p.level}"),
+                    )
+                }
+            }
+            Text(
+                text = precision.hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            HorizontalDivider()
+
+            Text("Modo fantasma", style = MaterialTheme.typography.titleSmall)
+            if (ghostActive) {
+                val minsLeft = ((ghostUntilMs - now) / 60_000L).coerceAtLeast(1)
+                val label = if (minsLeft >= 60) "${minsLeft / 60} h ${minsLeft % 60} min" else "$minsLeft min"
+                Text(
+                    text = "Nadie te ve en el radar. Vuelves a aparecer en $label.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                OutlinedButton(
+                    onClick = { onSetGhost(null) },
+                    modifier = Modifier.testTag("ghost_off_button"),
+                ) { Text("Volver a ser visible") }
+            } else {
+                Text(
+                    text = "Desaparece del radar por un tiempo y reaparece solo.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                ) {
+                    listOf("1 hora" to 1L, "8 horas" to 8L, "24 horas" to 24L).forEach { (label, hours) ->
+                        OutlinedButton(
+                            onClick = { onSetGhost(hours * 3_600_000L) },
+                            modifier = Modifier.testTag("ghost_${hours}h_button"),
+                        ) { Text(label) }
+                    }
+                }
             }
         }
     }

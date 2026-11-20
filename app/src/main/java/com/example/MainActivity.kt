@@ -137,6 +137,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        com.example.data.PrivacySettings.init(this)
         SerafielNotificationHelper.ensureChannels(this)
         SerafielNotificationHelper.clearLegacyForegroundNotification(this)
         handleNotificationIntent(intent)
@@ -262,8 +263,11 @@ private fun SerafielAuthenticatedShell(
     val mediaUploadLabel by viewModel.mediaUploadLabel.collectAsStateWithLifecycle()
     val liveLocationState by viewModel.liveLocationState.collectAsStateWithLifecycle()
     val pendingNav by pendingNotificationNav.collectAsStateWithLifecycle()
+    val ghostUntilMs by viewModel.ghostUntilMs.collectAsStateWithLifecycle()
+    val locationPrecision by viewModel.locationPrecision.collectAsStateWithLifecycle()
     val appUpdate by com.example.data.AppUpdater.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { com.example.data.AppUpdater.check(silent = true) }
+    LaunchedEffect(Unit) { viewModel.resumeGhostIfNeeded() }
     LaunchedEffect(appUpdate.status, appUpdate.info?.build) {
         if (appUpdate.status == com.example.data.AppUpdater.Status.AVAILABLE) {
             viewModel.emitMessage("Hay una versión nueva de Serafiel. Instálala desde Perfil → Actualizaciones")
@@ -1054,6 +1058,10 @@ private fun SerafielAuthenticatedShell(
             currentZone = currentZone,
             showOnline = myShowOnline,
             onToggleShowOnline = { enabled -> viewModel.setShowOnlinePreference(enabled) },
+            ghostUntilMs = ghostUntilMs,
+            locationPrecision = locationPrecision,
+            onSetGhost = { ms -> viewModel.setGhostMode(context, ms) },
+            onSetPrecision = { p -> viewModel.setLocationPrecision(context, p) },
             hasNotificationPermission = hasNotificationPermission,
             onRequestNotificationPermission = ::requestOrOpenNotificationSettings,
             onUploadPhoto = { uri -> viewModel.updateProfilePhotoFromUri(context, uri) },

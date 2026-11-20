@@ -376,9 +376,17 @@ class SerafielRepository(
             val cleanStatus = statusText.trim().take(160)
             val cleanLangs = languages.map { it.trim() }.filter { it.isNotBlank() }.take(5)
             val cleanZoneKey = zone.zoneKey.take(40)
-            val cleanZoneName = zone.zoneName.trim().take(80).let { if (it.length >= 2) it else "Zona Abierta" }
+            val cleanZoneName = if (PrivacySettings.precision != PrivacySettings.Precision.EXACT) {
+                // El nombre puede ser una calle exacta: con precisión reducida se oculta.
+                "Zona aproximada"
+            } else {
+                zone.zoneName.trim().take(80).let { if (it.length >= 2) it else "Zona Abierta" }
+            }
             val clampedRadius = radiusKm.coerceIn(1, ProximityBeacon.GLOBAL_RADIUS_KM).toLong()
-            val cleanAcc = zone.accuracyMeters?.coerceIn(0, 50_000)
+            // Privacidad: la baliza publica una posición ajustada, no la real.
+            val blurred = PrivacySettings.precision != PrivacySettings.Precision.EXACT
+            val (pubLat, pubLon) = PrivacySettings.blur(zone.approxLat, zone.approxLon)
+            val cleanAcc = if (blurred) null else zone.accuracyMeters?.coerceIn(0, 50_000)
 
             val docRef = db.collection("beacons").document(uid)
             val exists = docRef.get().await().exists()
@@ -396,8 +404,8 @@ class SerafielRepository(
                     "languages" to cleanLangs,
                     "zoneKey" to cleanZoneKey,
                     "zoneName" to cleanZoneName,
-                    "approxLat" to zone.approxLat,
-                    "approxLon" to zone.approxLon,
+                    "approxLat" to pubLat,
+                    "approxLon" to pubLon,
                     "active" to active,
                     "verifiedGoogle" to true,
                     "radiusKm" to clampedRadius,
@@ -415,8 +423,8 @@ class SerafielRepository(
                     "languages" to cleanLangs,
                     "zoneKey" to cleanZoneKey,
                     "zoneName" to cleanZoneName,
-                    "approxLat" to zone.approxLat,
-                    "approxLon" to zone.approxLon,
+                    "approxLat" to pubLat,
+                    "approxLon" to pubLon,
                     "active" to active,
                     "verifiedGoogle" to true,
                     "radiusKm" to clampedRadius,

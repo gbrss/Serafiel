@@ -929,6 +929,57 @@ class SerafielViewModel(
         }
     }
 
+    // ---------- Privacidad: precisión y modo fantasma ----------
+
+    val ghostUntilMs: StateFlow<Long> = com.example.data.PrivacySettings.ghostUntilMs
+    val locationPrecision: StateFlow<com.example.data.PrivacySettings.Precision> =
+        com.example.data.PrivacySettings.precisionState
+
+    private var ghostJob: Job? = null
+
+    private fun scheduleGhostRestore() {
+        ghostJob?.cancel()
+        val until = com.example.data.PrivacySettings.ghostUntilMs.value
+        if (until <= 0L) return
+        ghostJob = viewModelScope.launch {
+            val wait = until - System.currentTimeMillis()
+            if (wait > 0) kotlinx.coroutines.delay(wait)
+            if (com.example.data.PrivacySettings.ghostUntilMs.value == until) {
+                com.example.data.PrivacySettings.clearGhost()
+                repository.setBeaconActive(currentUserId, true)
+                _snackbarEvents.tryEmit("Modo fantasma terminado: vuelves a ser visible")
+            }
+        }
+    }
+
+    /** Se invoca al iniciar: si el modo fantasma quedó pendiente, lo reanuda o lo termina. */
+    fun resumeGhostIfNeeded() = scheduleGhostRestore()
+
+    /** [durationMs] = null desactiva el modo fantasma. */
+    fun setGhostMode(context: Context, durationMs: Long?) {
+        viewModelScope.launch {
+            if (durationMs == null) {
+                ghostJob?.cancel()
+                com.example.data.PrivacySettings.clearGhost()
+                repository.setBeaconActive(currentUserId, true)
+                _snackbarEvents.tryEmit("Modo fantasma desactivado: vuelves a ser visible")
+            } else {
+                com.example.data.PrivacySettings.setGhostUntil(context, System.currentTimeMillis() + durationMs)
+                repository.setBeaconActive(currentUserId, false)
+                scheduleGhostRestore()
+                _snackbarEvents.tryEmit("Modo fantasma activado: nadie te ve en el radar")
+            }
+        }
+    }
+
+    fun setLocationPrecision(context: Context, value: com.example.data.PrivacySettings.Precision) {
+        com.example.data.PrivacySettings.setPrecision(context, value)
+        viewModelScope.launch {
+            // Republica la baliza con la nueva precisión.
+            syncBeaconZoneIfExists(_currentZone.value)
+        }
+    }
+
     fun toggleBeaconVisibility(active: Boolean) {
         viewModelScope.launch {
             val currentBeacon = (myBeaconState.value as? UiState.Success)?.data
