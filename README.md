@@ -60,7 +60,8 @@ El inicio de sesión es con cuenta de Google y toda la información vive en Clou
 |---|---|
 | Baliza de proximidad | Nombre, propósito, estado, idiomas y foto; se enciende y apaga con un toque |
 | Radio ajustable | De 1 a 1000 km, o modo global (*+1000 km · Todo el mundo*) |
-| Filtro por propósito | Amistad, Networking, Turismo, Ayuda, Charla |
+| Filtros | Por propósito (Amistad, Networking, Turismo, Ayuda, Charla), **Disponible ahora** y por **idioma** |
+| **Modo viaje ✈️** | Busca una ciudad y mira su radar sin mover tu baliza ni tu ubicación |
 | Presencia | Indicador verde "en línea" (desactivable por privacidad) |
 | Sala Local | Chat público de la zona con respuestas, edición y moderación |
 | Seguridad | Reportar perfiles o mensajes y bloquear personas |
@@ -70,14 +71,33 @@ El inicio de sesión es con cuenta de Google y toda la información vive en Clou
 |---|:---:|:---:|
 | Texto, emojis, responder deslizando, editar y eliminar | ✅ | ✅ |
 | Menciones con `@` | — | ✅ |
-| **Escribiendo…** en la cabecera | ✅ | — |
-| **✓ enviado · ✓✓ entregado · ✓✓ azul visto** | ✅ | — |
+| **Escribiendo…** en la cabecera (en grupos: "Ana escribiendo…") | ✅ | ✅ |
+| **✓ enviado · ✓✓ entregado · ✓✓ azul visto** (en grupos: gris = lo vio alguien, azul = todos) | ✅ | ✅ |
+| **Encuestas** | — | ✅ |
+| Reenviar, fijar mensajes y buscar dentro del chat | ✅ | ✅ |
+| **Cola sin conexión** (el texto se envía solo al volver internet) | ✅ | ✅ |
 | **Reacciones con emoji** (rápidas o cualquier emoji) | ✅ | ✅ |
 | **Notas de voz de hasta 5 min** | ✅ | ✅ |
 | Fotos (cámara o galería) con **versión HD opcional** | ✅ | ✅ |
 | **Videos** comprimidos en el teléfono (480p / 720p HD) | ✅ | ✅ |
 | Archivos de audio (hasta 24 MB) | ✅ | ✅ |
 | Ubicación actual y **ubicación en tiempo real** (15 min, 1 h, 8 h) | ✅ | ✅ |
+
+### 🛡 Privacidad y seguridad
+| Función | Detalle |
+|---|---|
+| Precisión de ubicación | Apareces en el radar como *exacta*, *~500 m* o *~2 km*; tu ubicación exacta solo se envía si tú la compartes en un chat |
+| Modo fantasma | Desapareces del radar 1, 8 o 24 horas y reapareces solo |
+| Bloqueo de la app | Huella o PIN al abrir |
+| Cuenta verificada | Inicio de sesión con Google |
+| Moderación | Reportar y bloquear |
+
+### 🎨 Personalización
+- **Tema** claro, oscuro o del sistema, y **5 colores de acento**.
+- **Fondo de los chats:** 5 degradados, un degradado propio con selector RGB, o tu foto.
+- **7 idiomas:** español, inglés, portugués, francés, alemán, italiano y ruso.
+- **Compartir con Serafiel** desde el menú Compartir de otras apps.
+- **Actualizaciones** desde la propia app.
 
 ### 🎤 Notas de voz estilo WhatsApp
 - **Mantener pulsado** el micrófono para grabar y **soltar** para enviar.
@@ -305,7 +325,8 @@ app/src/main/java/com/example/
 |---|---|---|
 | Notificaciones con la app cerrada | Llegan mientras el proceso de la app sigue vivo | Push con **Firebase Cloud Messaging** |
 | "Entregado" | Se marca cuando la app recibe el mensaje | Marcarlo también desde el push de FCM |
-| Estados en grupos | Solo reacciones | "Escribiendo" y "visto por" en grupos |
+| Medios sin conexión | Fotos, videos, audios y encuestas necesitan internet | Cola de subida con WorkManager |
+| Llamadas y videollamadas | No existen | WebRTC 1 a 1 (el timbre con la app cerrada necesita FCM) |
 | Almacenamiento de medios | Firestore troceado (cuenta en la cuota) | Migrar a Cloud Storage si crece el volumen |
 | Videos | Máx. 24 MB tras comprimir | Subida en segundo plano con WorkManager |
 
