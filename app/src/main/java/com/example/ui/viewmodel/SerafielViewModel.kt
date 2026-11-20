@@ -1891,6 +1891,33 @@ class SerafielViewModel(
             ?: "Usuario Serafiel"
     }
 
+    fun sendGroupPoll(group: SocialGroup, question: String, options: List<String>) {
+        val q = question.trim().take(200)
+        val opts = options.map { it.trim() }.filter { it.isNotEmpty() }.distinct().take(6)
+        if (q.isEmpty() || opts.size < 2) return
+        val myName = resolveGroupSenderName(group)
+        viewModelScope.launch {
+            val res = repository.sendGroupRichMessage(
+                userId = currentUserId,
+                groupId = group.id,
+                memberIds = group.memberIds,
+                senderName = myName,
+                messageType = DirectMessage.TYPE_POLL,
+                text = q,
+                groupPreview = "📊 $q",
+                pollOptions = opts,
+            )
+            if (res.isFailure) _snackbarEvents.tryEmit("No se pudo crear la encuesta")
+        }
+    }
+
+    fun voteGroupPoll(group: SocialGroup, messageId: String, optionIndex: Int?) {
+        viewModelScope.launch {
+            repository.setPollVote(currentUserId, group.id, messageId, optionIndex)
+                .onFailure { _snackbarEvents.tryEmit("No se pudo registrar tu voto") }
+        }
+    }
+
     fun sendGroupTextMessage(
         group: SocialGroup,
         text: String,

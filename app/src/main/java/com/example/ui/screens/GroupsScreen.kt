@@ -865,6 +865,8 @@ private fun GroupDetailScreen(
     var pendingDeleteMessage by remember(group.id) { mutableStateOf<GroupMessage?>(null) }
     var inspectedLocationMessageId by remember(group.id) { mutableStateOf<String?>(null) }
     var menuExpanded by remember { mutableStateOf(false) }
+    var showPollDialog by remember(group.id) { mutableStateOf(false) }
+    val pollActions = LocalPollActions.current
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showAttachmentsPanel by remember { mutableStateOf(false) }
     var showWhatsAppLocationPicker by remember { mutableStateOf(false) }
@@ -1326,6 +1328,7 @@ private fun GroupDetailScreen(
                                                 onReactToMessage(msg.id, if (mineNow == emoji) null else emoji)
                                             },
                                             onOpenVideo = { openVideoMessage = msgView },
+                                            onVotePoll = { idx -> pollActions.vote(group, msg.id, idx) },
                                             onOpenLocation = { inspectedLocationMessageId = msg.id },
                                             onLongPressOrSelect = { selectedMessageForActions = msg },
                                             senderLabel = msg.senderName,
@@ -1357,6 +1360,10 @@ private fun GroupDetailScreen(
                         },
                         onOpenLocationPicker = {
                             openWhatsAppLocationPicker()
+                        },
+                        onCreatePoll = {
+                            showAttachmentsPanel = false
+                            showPollDialog = true
                         },
                     )
                 }
@@ -1534,6 +1541,16 @@ private fun GroupDetailScreen(
                 onStartLiveLocation(mins, comment, point)
             },
             onLocationDetected = onLocationDetected,
+        )
+    }
+
+    if (showPollDialog) {
+        CreatePollDialog(
+            onDismiss = { showPollDialog = false },
+            onCreate = { q, opts ->
+                showPollDialog = false
+                pollActions.create(group, q, opts)
+            },
         )
     }
 

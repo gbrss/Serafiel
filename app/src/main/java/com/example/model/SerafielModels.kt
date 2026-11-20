@@ -217,6 +217,9 @@ data class DirectMessage(
     val waveform: String = "",
     /** true si el mensaje es una copia reenviada de otro chat. */
     val forwarded: Boolean = false,
+    /** Encuesta: opciones y votos (uid -> índice de la opción elegida). */
+    val pollOptions: List<String> = emptyList(),
+    val pollVotes: Map<String, Long> = emptyMap(),
     /** Colección padre ("chats" o "groups"); solo para la vista local, no se guarda. */
     val sourceCollection: String = SOURCE_CHATS,
     @ServerTimestamp val createdAt: Timestamp? = null,
@@ -234,6 +237,7 @@ data class DirectMessage(
 
     fun previewLabel(): String = when (messageType) {
         TYPE_IMAGE -> text.ifBlank { "Imagen compartida" }.let { if (text.isBlank()) "Foto" else "Foto: $text" }
+        TYPE_POLL -> "📊 Encuesta: $text"
         TYPE_VIDEO -> if (text.isBlank()) "Video (${formatDuration(durationSec)})" else "Video: $text"
         TYPE_VOICE -> "Mensaje de voz (${formatDuration(durationSec)})"
         TYPE_AUDIO -> mediaName?.takeIf { it.isNotBlank() }?.let { "Audio: $it" } ?: "Archivo de audio"
@@ -254,6 +258,7 @@ data class DirectMessage(
         const val TYPE_LOCATION = "location"
         const val TYPE_LIVE_LOCATION = "live_location"
         const val TYPE_VIDEO = "video"
+        const val TYPE_POLL = "poll"
 
         const val SOURCE_CHATS = "chats"
         const val SOURCE_GROUPS = "groups"
@@ -377,6 +382,9 @@ data class GroupMessage(
     val waveform: String = "",
     /** true si el mensaje es una copia reenviada de otro chat. */
     val forwarded: Boolean = false,
+    /** Encuesta: opciones y votos (uid -> índice de la opción elegida). */
+    val pollOptions: List<String> = emptyList(),
+    val pollVotes: Map<String, Long> = emptyMap(),
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
 ) {
@@ -407,6 +415,8 @@ data class GroupMessage(
         mediaSizeBytes = mediaSizeBytes,
         waveform = waveform,
         forwarded = forwarded,
+        pollOptions = pollOptions,
+        pollVotes = pollVotes,
         sourceCollection = DirectMessage.SOURCE_GROUPS,
         createdAt = createdAt,
         updatedAt = updatedAt,

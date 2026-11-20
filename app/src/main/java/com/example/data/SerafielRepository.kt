@@ -1290,6 +1290,7 @@ class SerafielRepository(
         chunkFile: File? = null,
         waveform: String? = null,
         forwarded: Boolean = false,
+        pollOptions: List<String>? = null,
     ): Result<String> {
         val path = "groups/$groupId/messages"
         return try {
@@ -1326,6 +1327,7 @@ class SerafielRepository(
                 "mediaSizeBytes" to chunkFile?.length(),
                 "waveform" to waveform?.take(64),
                 "forwarded" to (if (forwarded) true else null),
+                "pollOptions" to pollOptions?.map { it.trim().take(60) }?.filter { it.isNotEmpty() }?.take(6),
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp(),
             ).filterValues { it != null }
@@ -1483,6 +1485,31 @@ class SerafielRepository(
             db.collection(sourceCollection).document(parentId)
                 .collection("messages").document(messageId)
                 .update("reactions.$uid", value)
+                .await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, path)
+            Result.failure(e)
+        }
+    }
+
+    /** Vota en una encuesta de grupo ([optionIndex] = null retira el voto). */
+    suspend fun setPollVote(
+        userId: String,
+        groupId: String,
+        messageId: String,
+        optionIndex: Int?,
+    ): Result<Unit> {
+        val path = "groups/$groupId/messages/$messageId"
+        return try {
+            val uid = requireUserId()
+            check(uid == userId)
+            val value: Any = optionIndex?.toLong() ?: FieldValue.delete()
+            db.collection("groups").document(groupId)
+                .collection("messages").document(messageId)
+                .update("pollVotes.$uid", value)
                 .await()
             Result.success(Unit)
         } catch (e: CancellationException) {

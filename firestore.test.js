@@ -822,3 +822,38 @@ test("Mensaje fijado: ambos participantes pueden fijar; validación de tamaño y
   await assertFails(group(bobDb).update({ pinnedMessageId: "g1", name: "Hackeado" }));
   await assertFails(group(charlieDb).update({ pinnedMessageId: "g1", pinnedPreview: "a" }));
 });
+
+test("Encuestas en grupos: crear, votar solo el propio voto, opciones válidas", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("groups").doc("poll_group").set({
+      name: "Grupo Encuesta", category: "FRIENDS", colorKey: "amber", creatorId: ALICE_UID,
+      memberIds: [ALICE_UID, BOB_UID], memberNames: { [ALICE_UID]: "Alicia", [BOB_UID]: "Roberto" },
+      memberColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" }, lastMessage: "",
+      createdAt: pastDate(10000), updatedAt: pastDate(10000),
+    });
+  });
+  const msgs = (db) => db.collection("groups").doc("poll_group").collection("messages");
+  const poll = {
+    groupId: "poll_group", memberIds: [ALICE_UID, BOB_UID], senderId: ALICE_UID, senderName: "Alicia Luz",
+    messageType: "poll", text: "¿Dónde nos juntamos?", pollOptions: ["Plaza", "Café", "Casa"], createdAt: serverNow(),
+  };
+  await assertSucceeds(msgs(aliceDb).doc("p1").set(poll));
+  await assertFails(msgs(aliceDb).doc("p2").set({ ...poll, pollOptions: ["Solo una"] }));
+  await assertFails(msgs(aliceDb).doc("p3").set({ ...poll, pollOptions: ["a","b","c","d","e","f","g"] }));
+  await assertFails(msgs(aliceDb).doc("p4").set({ ...poll, text: "" }));
+
+  const vote = (db, uid, v) => msgs(db).doc("p1").update({ [`pollVotes.${uid}`]: v });
+  await assertSucceeds(vote(bobDb, BOB_UID, 1));
+  await assertSucceeds(vote(bobDb, BOB_UID, 2));
+  await assertSucceeds(vote(aliceDb, ALICE_UID, 0));
+  await assertFails(vote(bobDb, BOB_UID, 3));
+  await assertFails(vote(bobDb, BOB_UID, -1));
+  await assertFails(vote(bobDb, BOB_UID, "1"));
+  await assertFails(vote(bobDb, ALICE_UID, 2));
+  await assertFails(vote(charlieDb, CHARLIE_UID, 0));
+  await assertSucceeds(msgs(bobDb).doc("p1").update({ [`pollVotes.${BOB_UID}`]: firebaseCompat.firestore.FieldValue.delete() }));
+  await assertFails(msgs(bobDb).doc("p1").update({ pollOptions: ["x", "y"] }));
+});

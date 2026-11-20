@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Poll
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.LocationOn
@@ -557,6 +558,7 @@ fun ChatAttachmentOptionsBar(
     onPickAudio: () -> Unit,
     onOpenLocationPicker: () -> Unit,
     modifier: Modifier = Modifier,
+    onCreatePoll: (() -> Unit)? = null,
 ) {
     Surface(
         tonalElevation = 2.dp,
@@ -603,6 +605,16 @@ fun ChatAttachmentOptionsBar(
                 testTag = "attach_location_button",
                 onClick = onOpenLocationPicker,
             )
+            if (onCreatePoll != null) {
+                AttachmentOptionTile(
+                    icon = Icons.Outlined.Poll,
+                    label = "Encuesta",
+                    containerColor = Color(0xFFFFE08A),
+                    contentColor = Color(0xFF5F4A00),
+                    testTag = "attach_poll_button",
+                    onClick = onCreatePoll,
+                )
+            }
         }
     }
 }
@@ -1033,6 +1045,7 @@ fun DirectMessageBubble(
     myUserId: String = "",
     onToggleReaction: ((String) -> Unit)? = null,
     onOpenVideo: () -> Unit = {},
+    onVotePoll: (Int?) -> Unit = {},
 ) {
     val bubbleShape = RoundedCornerShape(
         topStart = 18.dp,
@@ -1265,6 +1278,15 @@ fun DirectMessageBubble(
                                 }
                             }
                         }
+                    }
+
+                    DirectMessage.TYPE_POLL -> {
+                        PollContent(
+                            message = message,
+                            myUserId = myUserId,
+                            contentColor = contentColor,
+                            onVote = onVotePoll,
+                        )
                     }
 
                     DirectMessage.TYPE_LOCATION, DirectMessage.TYPE_LIVE_LOCATION -> {

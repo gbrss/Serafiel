@@ -100,6 +100,8 @@ import com.example.notifications.SerafielNotificationHelper
 import com.example.ui.screens.ForwardDialog
 import com.example.ui.screens.LocalForwardHandler
 import com.example.ui.screens.LocalPinHandler
+import com.example.ui.screens.LocalPollActions
+import com.example.ui.screens.PollActions
 import com.example.ui.screens.AddToGroupDialog
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.AvatarCircle
@@ -560,6 +562,10 @@ private fun SerafielAuthenticatedShell(
 
         androidx.compose.runtime.CompositionLocalProvider(
             LocalForwardHandler provides { msg -> viewModel.requestForward(msg) },
+            LocalPollActions provides PollActions(
+                create = { group, q, opts -> viewModel.sendGroupPoll(group, q, opts) },
+                vote = { group, messageId, idx -> viewModel.voteGroupPoll(group, messageId, idx) },
+            ),
             LocalPinHandler provides { isGroup, parentId, messageId, preview ->
                 viewModel.setPinnedMessage(isGroup, parentId, messageId, preview)
             },
