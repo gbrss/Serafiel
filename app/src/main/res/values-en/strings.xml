@@ -655,4 +655,5 @@
     <string name="travel_desc">See who is in another city. Your beacon and location don’t change.</string>
     <string name="travel_search_hint">Search city…</string>
     <string name="travel_no_results">No results</string>
+    <string name="offline_banner">No connection · your messages will send when you reconnect</string>
 </resources>

@@ -655,4 +655,5 @@
     <string name="travel_desc">Veja quem está em outra cidade. Seu farol e sua localização não mudam.</string>
     <string name="travel_search_hint">Buscar cidade…</string>
     <string name="travel_no_results">Sem resultados</string>
+    <string name="offline_banner">Sem conexão · suas mensagens serão enviadas ao reconectar</string>
 </resources>

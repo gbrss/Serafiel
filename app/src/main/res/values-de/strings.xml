@@ -655,4 +655,5 @@
     <string name="travel_desc">Sieh, wer in einer anderen Stadt ist. Dein Leuchtfeuer und dein Standort bleiben gleich.</string>
     <string name="travel_search_hint">Stadt suchen…</string>
     <string name="travel_no_results">Keine Ergebnisse</string>
+    <string name="offline_banner">Keine Verbindung · deine Nachrichten werden beim Reconnect gesendet</string>
 </resources>

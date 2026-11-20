@@ -655,4 +655,5 @@
     <string name="travel_desc">Guarda chi c’è in un’altra città. Il tuo faro e la tua posizione non cambiano.</string>
     <string name="travel_search_hint">Cerca città…</string>
     <string name="travel_no_results">Nessun risultato</string>
+    <string name="offline_banner">Nessuna connessione · i messaggi verranno inviati alla riconnessione</string>
 </resources>

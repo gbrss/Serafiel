@@ -607,7 +607,7 @@ class SerafielRepository(
                 "updatedAt" to FieldValue.serverTimestamp(),
             ).filterValues { it != null }
 
-            docRef.set(payload).await()
+            commitQueued(db.batch().also { it.set(docRef, payload) }, OperationType.CREATE, path)
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
@@ -844,9 +844,11 @@ class SerafielRepository(
                 "replyToPreview" to replyToPreview?.takeIf { it.isNotBlank() }?.take(160),
                 "createdAt" to FieldValue.serverTimestamp(),
             ).filterValues { it != null }
-            msgRef.set(payload).await()
+            val batch = db.batch()
 
-            chatRef.update(
+            batch.set(msgRef, payload)
+
+            batch.update(chatRef,
                 mapOf(
                     "status" to "active",
                     "lastMessage" to cleanText.take(240),
@@ -854,7 +856,11 @@ class SerafielRepository(
                     "typingAt.$uid" to FieldValue.delete(),
                     "updatedAt" to FieldValue.serverTimestamp(),
                 ) + unreadIncrement(uid, participantIds)
-            ).await()
+
+            )
+
+            commitQueued(batch, OperationType.CREATE, path)
+
 
             Result.success(Unit)
         } catch (e: CancellationException) {
@@ -931,9 +937,9 @@ class SerafielRepository(
             ).filterValues { it != null }
                 .filterNot { (key, value) -> key == "mediaData" && value == "" }
 
-            msgRef.set(payload).await()
-            chunkFile?.delete()
-            chatRef.update(
+            val batch = db.batch()
+            batch.set(msgRef, payload)
+            batch.update(chatRef,
                 mapOf(
                     "status" to "active",
                     "lastMessage" to chatPreview.trim().take(240),
@@ -941,7 +947,10 @@ class SerafielRepository(
                     "typingAt.$uid" to FieldValue.delete(),
                     "updatedAt" to FieldValue.serverTimestamp(),
                 ) + unreadIncrement(uid, participantIds)
-            ).await()
+            )
+            commitQueued(batch, OperationType.CREATE, path)
+            chunkFile?.delete()
+
 
             Result.success(msgRef.id)
         } catch (e: CancellationException) {
@@ -1335,14 +1344,17 @@ class SerafielRepository(
             ).filterValues { it != null }
                 .filterNot { (key, value) -> key == "mediaData" && value == "" }
 
-            msgRef.set(payload).await()
-            chunkFile?.delete()
-            groupRef.update(
+            val batch = db.batch()
+            batch.set(msgRef, payload)
+            batch.update(groupRef,
                 mapOf(
                     "lastMessage" to "$cleanSenderName: $groupPreview".trim().take(240),
                     "updatedAt" to FieldValue.serverTimestamp(),
                 )
-            ).await()
+            )
+            commitQueued(batch, OperationType.CREATE, path)
+            chunkFile?.delete()
+
 
             Result.success(msgRef.id)
         } catch (e: CancellationException) {
@@ -1532,6 +1544,14 @@ class SerafielRepository(
     }
 
     /** Suma 1 a los no leídos del otro participante (chats 1:1). */
+    /**
+     * Envía sin esperar al servidor: Firestore guarda la escritura en disco y la manda sola
+     * al volver la conexión (cola de envío sin conexión). El mensaje aparece al instante.
+     */
+    private fun commitQueued(batch: com.google.firebase.firestore.WriteBatch, op: OperationType, path: String) {
+        batch.commit().addOnFailureListener { handleFirestoreError(it, op, path) }
+    }
+
     private fun unreadIncrement(uid: String, participantIds: List<String>): Map<String, Any> =
         participantIds.filter { it != uid }.associate { "unreadCount.$it" to FieldValue.increment(1L) }
 

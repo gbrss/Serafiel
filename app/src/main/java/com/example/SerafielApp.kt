@@ -12,6 +12,7 @@ class SerafielApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.example.data.NetworkMonitor.start(this)
         AppStrings.init(this)
         com.example.ui.theme.ThemeSettings.init(this)
     }

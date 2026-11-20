@@ -1059,6 +1059,23 @@ private fun SerafielAuthenticatedShell(
             )
         }
 
+        // Aviso de sin conexión: los mensajes quedan en cola y se envían al volver internet.
+        val online by com.example.data.NetworkMonitor.online.collectAsStateWithLifecycle()
+        if (!online) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.errorContainer,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 64.dp),
+            ) {
+                Text(
+                    tr(R.string.offline_banner),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                )
+            }
+        }
+
         // Avisos flotantes: centrados y compactos.
         SnackbarHost(
             hostState = snackbarHostState,

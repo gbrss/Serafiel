@@ -657,4 +657,5 @@
     <string name="travel_desc">Mira quién hay en otra ciudad. Tu baliza y tu ubicación no cambian.</string>
     <string name="travel_search_hint">Buscar ciudad…</string>
     <string name="travel_no_results">Sin resultados</string>
+    <string name="offline_banner">Sin conexión · tus mensajes se enviarán al reconectar</string>
 </resources>

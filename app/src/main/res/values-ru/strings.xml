@@ -655,4 +655,5 @@
     <string name="travel_desc">Смотрите, кто в другом городе. Ваш маяк и местоположение не меняются.</string>
     <string name="travel_search_hint">Поиск города…</string>
     <string name="travel_no_results">Нет результатов</string>
+    <string name="offline_banner">Нет связи · сообщения отправятся при подключении</string>
 </resources>
