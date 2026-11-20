@@ -1039,9 +1039,16 @@ private fun GroupDetailScreen(
         }
     }
 
+    var firstScrollDone by remember { mutableStateOf(false) }
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.lastIndex)
+            if (!firstScrollDone) {
+                listState.scrollToItem(messages.lastIndex)
+                firstScrollDone = true
+            } else {
+                val near = (messages.lastIndex - (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0)) <= 3
+                if (near) listState.animateScrollToItem(messages.lastIndex)
+            }
         }
     }
 

@@ -50,6 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -293,11 +294,16 @@ fun ProfileSafetySheet(
                 onSetPrecision = onSetPrecision,
                 onSetGhost = onSetGhost,
             )
-            AppearanceCard()
-            LanguageCard()
-            AppLockCard()
-            MediaQualitySettingsCard()
-            AppUpdateCard()
+            // Las tarjetas pesadas se componen tras el primer frame para que el panel abra al instante
+            var heavyReady by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { androidx.compose.runtime.withFrameNanos { }; heavyReady = true }
+            if (heavyReady) {
+                AppearanceCard()
+                LanguageCard()
+                AppLockCard()
+                MediaQualitySettingsCard()
+                AppUpdateCard()
+            }
 
             Surface(
                 shape = MaterialTheme.shapes.medium,
