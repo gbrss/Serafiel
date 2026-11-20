@@ -226,6 +226,60 @@ fun PurposeBadge(
     }
 }
 
+/** Hora de envío HH:mm; si el servidor aún no puso la marca de tiempo, usa la hora actual. */
+fun formatClockTime(timestamp: Timestamp?): String =
+    SimpleDateFormat("HH:mm", Locale.getDefault()).format(timestamp?.toDate() ?: java.util.Date())
+
+fun isSameDay(a: Timestamp?, b: Timestamp?): Boolean {
+    val ca = java.util.Calendar.getInstance().apply { time = a?.toDate() ?: java.util.Date() }
+    val cb = java.util.Calendar.getInstance().apply { time = b?.toDate() ?: java.util.Date() }
+    return ca.get(java.util.Calendar.YEAR) == cb.get(java.util.Calendar.YEAR) &&
+        ca.get(java.util.Calendar.DAY_OF_YEAR) == cb.get(java.util.Calendar.DAY_OF_YEAR)
+}
+
+/** Etiqueta de día estilo WhatsApp: Hoy, Ayer, día de la semana (esta semana) o fecha. */
+fun formatDayLabel(timestamp: Timestamp?): String {
+    val date = timestamp?.toDate() ?: java.util.Date()
+    val now = java.util.Calendar.getInstance()
+    val then = java.util.Calendar.getInstance().apply { time = date }
+    fun startOfDay(c: java.util.Calendar) = (c.clone() as java.util.Calendar).apply {
+        set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+        set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    val days = ((startOfDay(now) - startOfDay(then)) / 86_400_000L).toInt()
+    return when {
+        days <= 0 -> "Hoy"
+        days == 1 -> "Ayer"
+        days < 7 -> SimpleDateFormat("EEEE", Locale.getDefault()).format(date)
+            .replaceFirstChar { it.uppercase() }
+        now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) ->
+            SimpleDateFormat("d 'de' MMMM", Locale.getDefault()).format(date)
+        else -> SimpleDateFormat("d 'de' MMMM 'de' yyyy", Locale.getDefault()).format(date)
+    }
+}
+
+@androidx.compose.runtime.Composable
+fun DaySeparator(timestamp: Timestamp?) {
+    androidx.compose.foundation.layout.Box(
+        modifier = androidx.compose.ui.Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 12.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        androidx.compose.material3.Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f),
+        ) {
+            androidx.compose.material3.Text(
+                text = formatDayLabel(timestamp),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = androidx.compose.ui.Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+            )
+        }
+    }
+}
+
 fun formatRelativeTimestamp(timestamp: Timestamp?): String {
     if (timestamp == null) return "Ahora"
     val diffMs = System.currentTimeMillis() - timestamp.toDate().time

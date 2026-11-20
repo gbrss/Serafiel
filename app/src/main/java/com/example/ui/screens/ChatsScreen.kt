@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -682,6 +683,7 @@ private fun DirectChatDetailScreen(
     val audioPlaybackState by ChatAudioPlayer.playbackState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val messages = (messagesState as? UiState.Success)?.data.orEmpty()
+    LaunchedEffect(messages) { ChatAudioPlayer.updatePlaylist(messages) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -986,7 +988,12 @@ private fun DirectChatDetailScreen(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            items(messages, key = { it.id }) { msg ->
+                            itemsIndexed(messages, key = { _, m -> m.id }) { index, msg ->
+                                Column {
+                                    if (index == 0 || !isSameDay(messages[index - 1].createdAt, msg.createdAt)) {
+                                        DaySeparator(msg.createdAt)
+                                    }
+
                                 val mine = msg.senderId == currentUserId
                                 SwipeToReplyWrapper(
                                     onSwipeReply = {
@@ -1024,6 +1031,7 @@ private fun DirectChatDetailScreen(
                                         onOpenVideo = { openVideoMessage = msg },
                                     )
                                 }
+                            }
                             }
                         }
                     }

@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -880,6 +881,7 @@ private fun GroupDetailScreen(
     val audioPlaybackState by ChatAudioPlayer.playbackState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val messages = (messagesState as? UiState.Success)?.data.orEmpty()
+    LaunchedEffect(messages) { ChatAudioPlayer.updatePlaylist(messages.map { it.toDirectMessageView() }) }
 
     val mentionCandidates = remember(
         group.id,
@@ -1228,7 +1230,12 @@ private fun GroupDetailScreen(
                                 contentPadding = PaddingValues(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                items(messages, key = { it.id }) { msg ->
+                                itemsIndexed(messages, key = { _, m -> m.id }) { index, msg ->
+                                Column {
+                                    if (index == 0 || !isSameDay(messages[index - 1].createdAt, msg.createdAt)) {
+                                        DaySeparator(msg.createdAt)
+                                    }
+
                                     val mine = msg.senderId == currentUserId
                                     val senderVisual = peerVisualMap[msg.senderId]
                                     val senderColor = AvatarColor.fromKey(group.memberColors[msg.senderId])
@@ -1271,6 +1278,7 @@ private fun GroupDetailScreen(
                                         )
                                     }
                                 }
+                            }
                             }
                         }
                     }

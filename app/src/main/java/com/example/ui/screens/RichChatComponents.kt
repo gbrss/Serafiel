@@ -1259,9 +1259,9 @@ fun DirectMessageBubble(
                 }
 
                 val baseTime = if (message.messageType == DirectMessage.TYPE_LIVE_LOCATION && message.updatedAt != null) {
-                    "Actualizado: ${formatRelativeTimestamp(message.updatedAt)}"
+                    "Actualizado: ${formatClockTime(message.updatedAt)}"
                 } else {
-                    formatRelativeTimestamp(message.createdAt)
+                    formatClockTime(message.createdAt)
                 }
                 Row(
                     modifier = Modifier.align(Alignment.End),

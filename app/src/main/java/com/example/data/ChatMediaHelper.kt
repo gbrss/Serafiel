@@ -489,6 +489,25 @@ object ChatAudioPlayer {
     private val _playbackState = MutableStateFlow(AudioPlaybackUiState())
     val playbackState: StateFlow<AudioPlaybackUiState> = _playbackState.asStateFlow()
 
+    // Notas de voz del chat abierto, en orden cronológico, para encadenar la reproducción.
+    private var playlist: List<com.example.model.DirectMessage> = emptyList()
+    private var appContextRef: Context? = null
+    private var userPaused = false
+
+    /** Registra las notas de voz del chat abierto para reproducir la siguiente al terminar. */
+    fun updatePlaylist(messages: List<com.example.model.DirectMessage>) {
+        playlist = messages.filter { it.messageType == com.example.model.DirectMessage.TYPE_VOICE }
+    }
+
+    private fun onPlaybackCompleted(finishedId: String?) {
+        val ctx = appContextRef
+        stop()
+        if (finishedId == null || ctx == null) return
+        val idx = playlist.indexOfFirst { it.id == finishedId }
+        val next = if (idx >= 0) playlist.getOrNull(idx + 1) else null
+        if (next != null) playFrom(ctx, next, 0f)
+    }
+
     val speeds = listOf(1f, 1.5f, 2f)
     private val _speed = MutableStateFlow(1f)
     /** Velocidad de reproducción global de notas de voz (1x, 1.5x, 2x). */
@@ -538,6 +557,8 @@ object ChatAudioPlayer {
         stop()
         _playbackState.value = AudioPlaybackUiState(activeMessageId = message.id, isLoading = true, progress = fraction)
         val appContext = context.applicationContext
+        appContextRef = appContext
+        userPaused = false
         scope.launch {
             val file = ChunkedMediaStore.resolveFullMedia(appContext, message)
             if (_playbackState.value.activeMessageId != message.id) return@launch
@@ -553,10 +574,12 @@ object ChatAudioPlayer {
         val mp = mediaPlayer ?: return
         val current = _playbackState.value
         if (mp.isPlaying) {
+            userPaused = true
             mp.pause()
             progressJob?.cancel()
             _playbackState.value = current.copy(isPlaying = false)
         } else {
+            userPaused = false
             mp.start()
             applySpeedIfPlaying()
             _playbackState.value = current.copy(isPlaying = true)
@@ -569,7 +592,7 @@ object ChatAudioPlayer {
             tempFile = if (deleteOnStop) file else null
             val mp = MediaPlayer().apply {
                 setDataSource(file.absolutePath)
-                setOnCompletionListener { stop() }
+                setOnCompletionListener { onPlaybackCompleted(messageId) }
                 prepare()
             }
             if (startFraction > 0f) {
@@ -621,7 +644,15 @@ object ChatAudioPlayer {
         progressJob = scope.launch {
             while (true) {
                 val mp = mediaPlayer ?: break
-                if (!mp.isPlaying) break
+                if (!mp.isPlaying) {
+                    // Terminó sin pausa del usuario: algunos equipos tardan en avisar la finalización.
+                    val dur = runCatching { mp.duration }.getOrDefault(0)
+                    val pos = runCatching { mp.currentPosition }.getOrDefault(0)
+                    if (!userPaused && dur > 0 && pos >= dur - 400) {
+                        onPlaybackCompleted(_playbackState.value.activeMessageId)
+                    }
+                    break
+                }
                 val duration = mp.duration.coerceAtLeast(1)
                 val pos = mp.currentPosition.coerceAtLeast(0)
                 _playbackState.value = _playbackState.value.copy(
