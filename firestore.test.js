@@ -787,3 +787,38 @@ test("Chats: contador de no leídos (+1 al otro al enviar, 0 propio al leer) y o
   await assertSucceeds(msgs.doc("f1").set({ ...base, forwarded: true }));
   await assertFails(msgs.doc("f2").set({ ...base, forwarded: "si" }));
 });
+
+test("Mensaje fijado: ambos participantes pueden fijar; validación de tamaño y claves", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("chats").doc("pin_chat").set({
+      participantIds: [ALICE_UID, BOB_UID],
+      participantNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+      participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+      initiatorId: ALICE_UID, purpose: "FRIENDSHIP", status: "active", lastMessage: "Hola",
+      zoneName: "Zona Abierta", createdAt: pastDate(10000), updatedAt: pastDate(10000),
+    });
+    await context.firestore().collection("groups").doc("pin_group").set({
+      name: "Grupo Pin", category: "FRIENDS", colorKey: "amber", creatorId: ALICE_UID,
+      memberIds: [ALICE_UID, BOB_UID], memberNames: { [ALICE_UID]: "Alicia", [BOB_UID]: "Roberto" },
+      memberColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" }, lastMessage: "",
+      createdAt: pastDate(10000), updatedAt: pastDate(10000),
+    });
+  });
+  const chat = (db) => db.collection("chats").doc("pin_chat");
+  await assertSucceeds(chat(aliceDb).update({ pinnedMessageId: "m1", pinnedPreview: "Hola mundo" }));
+  await assertSucceeds(chat(bobDb).update({ pinnedMessageId: "", pinnedPreview: "" }));
+  await assertFails(chat(aliceDb).update({ pinnedMessageId: "x".repeat(121), pinnedPreview: "a" }));
+  await assertFails(chat(aliceDb).update({ pinnedMessageId: "m1", pinnedPreview: "y".repeat(161) }));
+  await assertFails(chat(aliceDb).update({ pinnedMessageId: 5, pinnedPreview: "a" }));
+  await assertFails(chat(charlieDb).update({ pinnedMessageId: "m1", pinnedPreview: "a" }));
+
+  const group = (db) => db.collection("groups").doc("pin_group");
+  await assertSucceeds(group(bobDb).update({ pinnedMessageId: "g1", pinnedPreview: "Reunión viernes" }));
+  await assertSucceeds(group(aliceDb).update({ pinnedMessageId: "", pinnedPreview: "" }));
+  await assertFails(group(bobDb).update({ pinnedMessageId: "g1", pinnedPreview: "z".repeat(161) }));
+  await assertFails(group(bobDb).update({ pinnedMessageId: "g1", name: "Hackeado" }));
+  await assertFails(group(charlieDb).update({ pinnedMessageId: "g1", pinnedPreview: "a" }));
+});

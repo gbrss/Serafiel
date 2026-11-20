@@ -151,6 +151,9 @@ data class DirectChat(
     val status: String = "active",
     val lastMessage: String = "",
     val lastSenderId: String = "",
+    /** Mensaje fijado en la parte superior del chat ('' = ninguno). */
+    val pinnedMessageId: String = "",
+    val pinnedPreview: String = "",
     val zoneName: String = "",
     /** uid -> último instante en que ese participante vio la conversación. */
     val lastReadAt: Map<String, Timestamp> = emptyMap(),
@@ -338,6 +341,8 @@ data class SocialGroup(
     val memberNames: Map<String, String> = emptyMap(),
     val memberColors: Map<String, String> = emptyMap(),
     val lastMessage: String = "",
+    val pinnedMessageId: String = "",
+    val pinnedPreview: String = "",
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
 )

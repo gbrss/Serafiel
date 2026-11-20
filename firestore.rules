@@ -68,6 +68,12 @@ service cloud.firestore {
                (peers.size() == 1 && inc.get(peers[0], -1) == ex.get(peers[0], 0) + 1));
     }
 
+    // Mensaje fijado del chat/grupo: id del mensaje y un resumen corto ('' = sin fijado).
+    function isValidPin(data) {
+      return (!('pinnedMessageId' in data) || (data.pinnedMessageId is string && data.pinnedMessageId.size() <= 120)) &&
+             (!('pinnedPreview' in data) || (data.pinnedPreview is string && data.pinnedPreview.size() <= 160));
+    }
+
     function isValidReactionUpdate() {
       return incoming().diff(existing()).affectedKeys().hasOnly(['reactions']) &&
              incoming().reactions is map &&
@@ -430,8 +436,10 @@ service cloud.firestore {
                        incoming().createdAt == existing().createdAt &&
                        incoming().diff(existing()).affectedKeys().hasOnly([
                          'lastMessage', 'status', 'updatedAt', 'lastSenderId',
-                         'lastReadAt', 'lastDeliveredAt', 'typingAt', 'unreadCount'
+                         'lastReadAt', 'lastDeliveredAt', 'typingAt', 'unreadCount',
+                         'pinnedMessageId', 'pinnedPreview'
                        ]) &&
+                       isValidPin(incoming()) &&
                        isValidUnreadUpdate() &&
                        (!incoming().diff(existing()).affectedKeys().hasAny(['lastSenderId']) ||
                          incoming().lastSenderId == request.auth.uid) &&
@@ -570,6 +578,10 @@ service cloud.firestore {
                        incoming().createdAt == existing().createdAt &&
                        (
                          incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'updatedAt']) ||
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['pinnedMessageId', 'pinnedPreview']) &&
+                           isValidPin(incoming())
+                         ) ||
                          (
                            (existing().creatorId == request.auth.uid || !(request.auth.uid in incoming().memberIds)) &&
                            incoming().diff(existing()).affectedKeys().hasOnly([

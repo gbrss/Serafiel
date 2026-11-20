@@ -1133,6 +1133,16 @@ class SerafielViewModel(
             ?: "Usuario Serafiel"
     }
 
+    // ---------- Mensaje fijado ----------
+
+    fun setPinnedMessage(isGroup: Boolean, parentId: String, messageId: String?, preview: String?) {
+        viewModelScope.launch {
+            repository.setPinnedMessage(currentUserId, isGroup, parentId, messageId, preview)
+                .onSuccess { _snackbarEvents.tryEmit(if (messageId == null) "Mensaje desfijado" else "Mensaje fijado") }
+                .onFailure { _snackbarEvents.tryEmit("No se pudo cambiar el mensaje fijado") }
+        }
+    }
+
     // ---------- Reenviar mensajes ----------
 
     sealed interface ForwardTarget {

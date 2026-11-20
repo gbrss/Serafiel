@@ -46,6 +46,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material.icons.outlined.MoreVert
@@ -685,6 +686,30 @@ private fun DirectChatDetailScreen(
     val messages = (messagesState as? UiState.Success)?.data.orEmpty()
     LaunchedEffect(messages) { ChatAudioPlayer.updatePlaylist(messages) }
 
+    var searchActive by remember(chat.id) { mutableStateOf(false) }
+    var searchQuery by remember(chat.id) { mutableStateOf("") }
+    var searchPos by remember(chat.id) { mutableStateOf(0) }
+    var jumpToMessageId by remember(chat.id) { mutableStateOf<String?>(null) }
+    val searchResults = remember(messages, searchQuery, searchActive) {
+        if (!searchActive || searchQuery.isBlank()) {
+            emptyList()
+        } else {
+            messages.mapIndexedNotNull { i, m -> if (m.matchesSearch(searchQuery)) i else null }
+        }
+    }
+    LaunchedEffect(searchQuery, searchResults.size) { searchPos = searchResults.lastIndex.coerceAtLeast(0) }
+    LaunchedEffect(searchPos, searchResults) {
+        searchResults.getOrNull(searchPos)?.let { listState.animateScrollToItem(it) }
+    }
+    LaunchedEffect(jumpToMessageId) {
+        val target = jumpToMessageId ?: return@LaunchedEffect
+        val idx = messages.indexOfFirst { it.id == target }
+        if (idx >= 0) listState.animateScrollToItem(idx)
+        jumpToMessageId = null
+    }
+    val searchHighlightIndex = searchResults.getOrNull(searchPos) ?: -1
+    val pinHandlerState = LocalPinHandler.current
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
@@ -894,7 +919,15 @@ private fun DirectChatDetailScreen(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false },
                         ) {
-                            if (peerId.isNotBlank()) {
+                            DropdownMenuItem(
+                                    text = { Text("Buscar en el chat") },
+                                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        searchActive = true
+                                    },
+                                )
+                                if (peerId.isNotBlank()) {
                                 DropdownMenuItem(
                                     text = { Text("Añadir a grupo") },
                                     leadingIcon = { Icon(Icons.Outlined.GroupAdd, contentDescription = null) },
@@ -926,6 +959,25 @@ private fun DirectChatDetailScreen(
                         }
                     }
                 }
+            }
+
+            if (searchActive) {
+                ChatSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    resultCount = searchResults.size,
+                    position = searchPos,
+                    onPrev = { if (searchPos > 0) searchPos-- },
+                    onNext = { if (searchPos < searchResults.size - 1) searchPos++ },
+                    onClose = { searchActive = false; searchQuery = "" },
+                )
+            }
+            if (chat.pinnedMessageId.isNotBlank() && !searchActive) {
+                PinnedMessageBanner(
+                    preview = chat.pinnedPreview,
+                    onJump = { jumpToMessageId = chat.pinnedMessageId },
+                    onUnpin = { pinHandlerState(false, chat.id, null, null) },
+                )
             }
 
             if (liveLocationState.isActive &&
@@ -989,7 +1041,13 @@ private fun DirectChatDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             itemsIndexed(messages, key = { _, m -> m.id }) { index, msg ->
-                                Column {
+                                Column(
+                                    modifier = if (index == searchHighlightIndex) {
+                                        Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), RoundedCornerShape(12.dp))
+                                    } else {
+                                        Modifier
+                                    },
+                                ) {
                                     if (index == 0 || !isSameDay(messages[index - 1].createdAt, msg.createdAt)) {
                                         DaySeparator(msg.createdAt)
                                     }
@@ -1267,6 +1325,8 @@ private fun DirectChatDetailScreen(
         val forwardHandler = LocalForwardHandler.current
         MessageActionsDialog(
             onForward = { forwardHandler(msg) },
+            onPin = { pinHandlerState(false, chat.id, if (chat.pinnedMessageId == msg.id) null else msg.id, msg.previewLabel()) },
+            isPinned = chat.pinnedMessageId == msg.id,
             senderName = if (mine) "Tú" else msg.senderName.ifBlank { peerName },
             previewText = msg.previewLabel(),
             canCopy = msg.text.isNotBlank(),

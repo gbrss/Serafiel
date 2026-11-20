@@ -469,6 +469,34 @@ class SerafielRepository(
         }
     }
 
+    /** Fija ([messageId] != null) o desfija el mensaje destacado de un chat o grupo. */
+    suspend fun setPinnedMessage(
+        userId: String,
+        isGroup: Boolean,
+        parentId: String,
+        messageId: String?,
+        preview: String?,
+    ): Result<Unit> {
+        val collection = if (isGroup) "groups" else "chats"
+        val path = "$collection/$parentId"
+        return try {
+            val uid = requireUserId()
+            check(uid == userId)
+            db.collection(collection).document(parentId).update(
+                mapOf(
+                    "pinnedMessageId" to (messageId ?: "").take(120),
+                    "pinnedPreview" to (if (messageId == null) "" else preview.orEmpty().trim().take(160)),
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, path)
+            Result.failure(e)
+        }
+    }
+
     suspend fun setBeaconActive(userId: String, active: Boolean): Result<Unit> {
         val docPath = "beacons/$userId"
         return try {

@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.PhotoCamera
@@ -859,6 +860,8 @@ fun MessageActionsDialog(
     myReaction: String? = null,
     onReact: ((String?) -> Unit)? = null,
     onForward: (() -> Unit)? = null,
+    onPin: (() -> Unit)? = null,
+    isPinned: Boolean = false,
 ) {
     var showFullEmojiPicker by remember { mutableStateOf(false) }
     AlertDialog(
@@ -920,6 +923,17 @@ fun MessageActionsDialog(
                         onClick = {
                             onDismiss()
                             onCopy()
+                        },
+                    )
+                }
+                if (onPin != null) {
+                    MessageActionRow(
+                        icon = Icons.Outlined.PushPin,
+                        label = if (isPinned) "Desfijar mensaje" else "Fijar mensaje",
+                        testTag = "action_pin_message",
+                        onClick = {
+                            onDismiss()
+                            onPin()
                         },
                     )
                 }

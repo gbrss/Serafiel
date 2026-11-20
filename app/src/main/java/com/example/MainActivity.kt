@@ -99,6 +99,7 @@ import com.example.notifications.NotificationSessionState
 import com.example.notifications.SerafielNotificationHelper
 import com.example.ui.screens.ForwardDialog
 import com.example.ui.screens.LocalForwardHandler
+import com.example.ui.screens.LocalPinHandler
 import com.example.ui.screens.AddToGroupDialog
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.AvatarCircle
@@ -559,6 +560,9 @@ private fun SerafielAuthenticatedShell(
 
         androidx.compose.runtime.CompositionLocalProvider(
             LocalForwardHandler provides { msg -> viewModel.requestForward(msg) },
+            LocalPinHandler provides { isGroup, parentId, messageId, preview ->
+                viewModel.setPinnedMessage(isGroup, parentId, messageId, preview)
+            },
         ) {
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),

@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material.icons.outlined.Groups
@@ -883,6 +884,30 @@ private fun GroupDetailScreen(
     val messages = (messagesState as? UiState.Success)?.data.orEmpty()
     LaunchedEffect(messages) { ChatAudioPlayer.updatePlaylist(messages.map { it.toDirectMessageView() }) }
 
+    var searchActive by remember(group.id) { mutableStateOf(false) }
+    var searchQuery by remember(group.id) { mutableStateOf("") }
+    var searchPos by remember(group.id) { mutableStateOf(0) }
+    var jumpToMessageId by remember(group.id) { mutableStateOf<String?>(null) }
+    val searchResults = remember(messages, searchQuery, searchActive) {
+        if (!searchActive || searchQuery.isBlank()) {
+            emptyList()
+        } else {
+            messages.mapIndexedNotNull { i, m -> if (m.toDirectMessageView().matchesSearch(searchQuery)) i else null }
+        }
+    }
+    LaunchedEffect(searchQuery, searchResults.size) { searchPos = searchResults.lastIndex.coerceAtLeast(0) }
+    LaunchedEffect(searchPos, searchResults) {
+        searchResults.getOrNull(searchPos)?.let { listState.animateScrollToItem(it) }
+    }
+    LaunchedEffect(jumpToMessageId) {
+        val target = jumpToMessageId ?: return@LaunchedEffect
+        val idx = messages.indexOfFirst { it.id == target }
+        if (idx >= 0) listState.animateScrollToItem(idx)
+        jumpToMessageId = null
+    }
+    val searchHighlightIndex = searchResults.getOrNull(searchPos) ?: -1
+    val pinHandlerState = LocalPinHandler.current
+
     val mentionCandidates = remember(
         group.id,
         group.memberIds,
@@ -1084,6 +1109,14 @@ private fun GroupDetailScreen(
                                 expanded = menuExpanded,
                                 onDismissRequest = { menuExpanded = false },
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Buscar en el chat") },
+                                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        searchActive = true
+                                    },
+                                )
                                 if (isCreator) {
                                     DropdownMenuItem(
                                         text = { Text("Editar grupo y miembros") },
@@ -1161,6 +1194,25 @@ private fun GroupDetailScreen(
                 }
             }
 
+            if (searchActive) {
+                ChatSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    resultCount = searchResults.size,
+                    position = searchPos,
+                    onPrev = { if (searchPos > 0) searchPos-- },
+                    onNext = { if (searchPos < searchResults.size - 1) searchPos++ },
+                    onClose = { searchActive = false; searchQuery = "" },
+                )
+            }
+            if (group.pinnedMessageId.isNotBlank() && !searchActive) {
+                PinnedMessageBanner(
+                    preview = group.pinnedPreview,
+                    onJump = { jumpToMessageId = group.pinnedMessageId },
+                    onUnpin = { pinHandlerState(true, group.id, null, null) },
+                )
+            }
+
             if (liveLocationState.isActive &&
                 liveLocationState.targetType == "group" &&
                 liveLocationState.chatId == group.id
@@ -1231,7 +1283,13 @@ private fun GroupDetailScreen(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 itemsIndexed(messages, key = { _, m -> m.id }) { index, msg ->
-                                Column {
+                                Column(
+                                    modifier = if (index == searchHighlightIndex) {
+                                        Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), RoundedCornerShape(12.dp))
+                                    } else {
+                                        Modifier
+                                    },
+                                ) {
                                     if (index == 0 || !isSameDay(messages[index - 1].createdAt, msg.createdAt)) {
                                         DaySeparator(msg.createdAt)
                                     }
@@ -1517,6 +1575,8 @@ private fun GroupDetailScreen(
         val forwardHandler = LocalForwardHandler.current
         MessageActionsDialog(
             onForward = { forwardHandler(msg.toDirectMessageView()) },
+            onPin = { pinHandlerState(true, group.id, if (group.pinnedMessageId == msg.id) null else msg.id, msg.previewLabel()) },
+            isPinned = group.pinnedMessageId == msg.id,
             senderName = if (mine) "Tú" else msg.senderName,
             previewText = msg.previewLabel(),
             canCopy = msg.text.isNotBlank(),
