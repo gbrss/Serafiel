@@ -653,6 +653,20 @@ private fun RadarVisualizerCard(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
+                // Onda animada en su propia capa: solo ella se redibuja cada frame
+                if (myBeaconActive) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val center = Offset(size.width / 2f, size.height / 2f)
+                        val maxRadius = minOf(size.width, size.height) * 0.42f
+                        val p = pulse
+                        drawCircle(
+                            color = primaryColor.copy(alpha = (1f - p) * 0.45f),
+                            radius = maxRadius * (0.18f + 0.82f * p),
+                            center = center,
+                            style = Stroke(width = 2.5.dp.toPx()),
+                        )
+                    }
+                }
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
@@ -703,17 +717,6 @@ private fun RadarVisualizerCard(
                             radius = maxRadius * fraction,
                             center = center,
                             style = Stroke(width = 1.5.dp.toPx()),
-                        )
-                    }
-
-                    // Animated warm pulse wave when visible
-                    if (myBeaconActive) {
-                        val waveRadius = maxRadius * (0.18f + 0.82f * pulse)
-                        drawCircle(
-                            color = primaryColor.copy(alpha = (1f - pulse) * 0.45f),
-                            radius = waveRadius,
-                            center = center,
-                            style = Stroke(width = 2.5.dp.toPx()),
                         )
                     }
 
