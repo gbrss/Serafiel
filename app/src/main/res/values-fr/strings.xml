@@ -633,4 +633,13 @@
     <string name="s_usuario_desbloqueado">Utilisateur débloqué</string>
     <string name="s_reporte_enviado_gracias_por_cuidar">Signalement envoyé. Merci de prendre soin de la communauté Serafiel.</string>
     <string name="s_no_se_pudo_enviar_el_7">Impossible d\'envoyer le signalement</string>
+    <string name="appearance_title">Apparence</string>
+    <string name="appearance_hint">Thème, couleur et fond des discussions. Ne change que sur ce téléphone.</string>
+    <string name="appearance_mode_system">Système</string>
+    <string name="appearance_mode_light">Clair</string>
+    <string name="appearance_mode_dark">Sombre</string>
+    <string name="appearance_accent">Couleur d\'accent</string>
+    <string name="appearance_background">Fond des discussions</string>
+    <string name="appearance_my_photo">Ma photo…</string>
+    <string name="appearance_photo_error">Impossible d\'utiliser cette image</string>
 </resources>

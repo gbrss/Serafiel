@@ -13,5 +13,6 @@ class SerafielApp : Application() {
     override fun onCreate() {
         super.onCreate()
         AppStrings.init(this)
+        com.example.ui.theme.ThemeSettings.init(this)
     }
 }

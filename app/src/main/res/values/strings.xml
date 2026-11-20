@@ -635,4 +635,13 @@
     <string name="s_usuario_desbloqueado">Usuario desbloqueado</string>
     <string name="s_reporte_enviado_gracias_por_cuidar">Reporte enviado. Gracias por cuidar la comunidad de Serafiel.</string>
     <string name="s_no_se_pudo_enviar_el_7">No se pudo enviar el reporte</string>
+    <string name="appearance_title">Apariencia</string>
+    <string name="appearance_hint">Tema, color y fondo de los chats. Solo cambia en este teléfono.</string>
+    <string name="appearance_mode_system">Sistema</string>
+    <string name="appearance_mode_light">Claro</string>
+    <string name="appearance_mode_dark">Oscuro</string>
+    <string name="appearance_accent">Color de acento</string>
+    <string name="appearance_background">Fondo de los chats</string>
+    <string name="appearance_my_photo">Mi foto…</string>
+    <string name="appearance_photo_error">No se pudo usar esa imagen</string>
 </resources>

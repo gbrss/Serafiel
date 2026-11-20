@@ -633,4 +633,13 @@
     <string name="s_usuario_desbloqueado">User unblocked</string>
     <string name="s_reporte_enviado_gracias_por_cuidar">Report sent. Thank you for taking care of the Serafiel community.</string>
     <string name="s_no_se_pudo_enviar_el_7">Couldn\'t send the report</string>
+    <string name="appearance_title">Appearance</string>
+    <string name="appearance_hint">Theme, color and chat background. Only changes on this phone.</string>
+    <string name="appearance_mode_system">System</string>
+    <string name="appearance_mode_light">Light</string>
+    <string name="appearance_mode_dark">Dark</string>
+    <string name="appearance_accent">Accent color</string>
+    <string name="appearance_background">Chat background</string>
+    <string name="appearance_my_photo">My photo…</string>
+    <string name="appearance_photo_error">Couldn\'t use that image</string>
 </resources>

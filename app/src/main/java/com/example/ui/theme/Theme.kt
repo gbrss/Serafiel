@@ -10,6 +10,9 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
@@ -76,17 +79,37 @@ val SerafielShapes = Shapes(
 
 @Composable
 fun SerafielTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = when (ThemeSettings.mode.collectAsState().value) {
+        ThemeSettings.Mode.LIGHT -> false
+        ThemeSettings.Mode.DARK -> true
+        ThemeSettings.Mode.SYSTEM -> isSystemInDarkTheme()
+    },
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
+    val accent by ThemeSettings.accent.collectAsState()
+    val baseScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         darkTheme -> SerafielDarkColorScheme
         else -> SerafielLightColorScheme
+    }
+    val colorScheme = if (accent == ThemeSettings.Accent.AMBER) baseScheme else if (darkTheme) {
+        baseScheme.copy(
+            primary = Color(accent.darkPrimary),
+            onPrimary = Color(0xFF1A1A1A),
+            primaryContainer = Color(accent.darkContainer),
+            onPrimaryContainer = Color(accent.darkOnContainer),
+        )
+    } else {
+        baseScheme.copy(
+            primary = Color(accent.lightPrimary),
+            onPrimary = Color.White,
+            primaryContainer = Color(accent.lightContainer),
+            onPrimaryContainer = Color(accent.lightOnContainer),
+        )
     }
 
     MaterialTheme(

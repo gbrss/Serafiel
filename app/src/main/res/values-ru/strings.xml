@@ -633,4 +633,13 @@
     <string name="s_usuario_desbloqueado">Пользователь разблокирован</string>
     <string name="s_reporte_enviado_gracias_por_cuidar">Жалоба отправлена. Спасибо, что заботитесь о сообществе Serafiel.</string>
     <string name="s_no_se_pudo_enviar_el_7">Не удалось отправить жалобу</string>
+    <string name="appearance_title">Оформление</string>
+    <string name="appearance_hint">Тема, цвет и фон чатов. Меняется только на этом телефоне.</string>
+    <string name="appearance_mode_system">Системная</string>
+    <string name="appearance_mode_light">Светлая</string>
+    <string name="appearance_mode_dark">Тёмная</string>
+    <string name="appearance_accent">Цвет акцента</string>
+    <string name="appearance_background">Фон чатов</string>
+    <string name="appearance_my_photo">Моё фото…</string>
+    <string name="appearance_photo_error">Не удалось использовать это изображение</string>
 </resources>

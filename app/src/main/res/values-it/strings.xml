@@ -633,4 +633,13 @@
     <string name="s_usuario_desbloqueado">Utente sbloccato</string>
     <string name="s_reporte_enviado_gracias_por_cuidar">Segnalazione inviata. Grazie per aver cura della community di Serafiel.</string>
     <string name="s_no_se_pudo_enviar_el_7">Impossibile inviare la segnalazione</string>
+    <string name="appearance_title">Aspetto</string>
+    <string name="appearance_hint">Tema, colore e sfondo delle chat. Cambia solo su questo telefono.</string>
+    <string name="appearance_mode_system">Sistema</string>
+    <string name="appearance_mode_light">Chiaro</string>
+    <string name="appearance_mode_dark">Scuro</string>
+    <string name="appearance_accent">Colore d\'accento</string>
+    <string name="appearance_background">Sfondo delle chat</string>
+    <string name="appearance_my_photo">La mia foto…</string>
+    <string name="appearance_photo_error">Impossibile usare questa immagine</string>
 </resources>

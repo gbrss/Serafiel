@@ -633,4 +633,13 @@
     <string name="s_usuario_desbloqueado">Nutzer entsperrt</string>
     <string name="s_reporte_enviado_gracias_por_cuidar">Meldung gesendet. Danke, dass du dich um die Serafiel-Community kümmerst.</string>
     <string name="s_no_se_pudo_enviar_el_7">Die Meldung konnte nicht gesendet werden</string>
+    <string name="appearance_title">Darstellung</string>
+    <string name="appearance_hint">Design, Farbe und Chat-Hintergrund. Gilt nur auf diesem Telefon.</string>
+    <string name="appearance_mode_system">System</string>
+    <string name="appearance_mode_light">Hell</string>
+    <string name="appearance_mode_dark">Dunkel</string>
+    <string name="appearance_accent">Akzentfarbe</string>
+    <string name="appearance_background">Chat-Hintergrund</string>
+    <string name="appearance_my_photo">Mein Foto…</string>
+    <string name="appearance_photo_error">Dieses Bild konnte nicht verwendet werden</string>
 </resources>
