@@ -262,6 +262,13 @@ private fun SerafielAuthenticatedShell(
     val mediaUploadLabel by viewModel.mediaUploadLabel.collectAsStateWithLifecycle()
     val liveLocationState by viewModel.liveLocationState.collectAsStateWithLifecycle()
     val pendingNav by pendingNotificationNav.collectAsStateWithLifecycle()
+    val appUpdate by com.example.data.AppUpdater.state.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { com.example.data.AppUpdater.check(silent = true) }
+    LaunchedEffect(appUpdate.status, appUpdate.info?.build) {
+        if (appUpdate.status == com.example.data.AppUpdater.Status.AVAILABLE) {
+            viewModel.emitMessage("Hay una versión nueva de Serafiel. Instálala desde Perfil → Actualizaciones")
+        }
+    }
 
     var hasLocationPermission by remember {
         mutableStateOf(LocationHelper.hasAnyLocationPermission(context))

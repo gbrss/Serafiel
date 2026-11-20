@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -280,6 +281,7 @@ fun ProfileSafetySheet(
             }
 
             MediaQualitySettingsCard()
+            AppUpdateCard()
 
             Surface(
                 shape = MaterialTheme.shapes.medium,
@@ -492,6 +494,73 @@ private fun MediaQualitySettingsCard() {
                     },
                     modifier = Modifier.testTag("settings_auto_hd_switch"),
                 )
+            }
+        }
+    }
+}
+
+
+/** Actualización dentro de la app (última release publicada en GitHub). */
+@Composable
+private fun AppUpdateCard() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val update by com.example.data.AppUpdater.state.collectAsStateWithLifecycle()
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text("Actualizaciones", style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "Versión instalada: ${com.example.data.AppUpdater.currentVersionName}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            when (update.status) {
+                com.example.data.AppUpdater.Status.CHECKING ->
+                    Text("Buscando actualizaciones…", style = MaterialTheme.typography.bodyMedium)
+                com.example.data.AppUpdater.Status.UP_TO_DATE ->
+                    Text("Tienes la última versión.", style = MaterialTheme.typography.bodyMedium)
+                com.example.data.AppUpdater.Status.AVAILABLE, com.example.data.AppUpdater.Status.READY -> {
+                    val info = update.info
+                    Text(
+                        text = "Hay una versión nueva (#${info?.build ?: "?"})" +
+                            (info?.sizeBytes?.takeIf { it > 0 }?.let { " · ${it / (1024 * 1024)} MB" } ?: ""),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                com.example.data.AppUpdater.Status.DOWNLOADING -> {
+                    Text("Descargando… ${(update.progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { update.progress },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                else -> {}
+            }
+            update.message?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            when (update.status) {
+                com.example.data.AppUpdater.Status.AVAILABLE, com.example.data.AppUpdater.Status.READY ->
+                    Button(
+                        onClick = { com.example.data.AppUpdater.downloadAndInstall(context) },
+                        modifier = Modifier.testTag("settings_install_update_button"),
+                    ) {
+                        Text(if (update.status == com.example.data.AppUpdater.Status.READY) "Instalar" else "Descargar e instalar")
+                    }
+                com.example.data.AppUpdater.Status.DOWNLOADING, com.example.data.AppUpdater.Status.CHECKING -> {}
+                else ->
+                    OutlinedButton(
+                        onClick = { com.example.data.AppUpdater.check() },
+                        modifier = Modifier.testTag("settings_check_update_button"),
+                    ) {
+                        Text("Buscar actualizaciones")
+                    }
             }
         }
     }

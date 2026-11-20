@@ -16,8 +16,11 @@ android {
     applicationId = "com.aistudio.serafiel.rmqvkp"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    // En CI, APP_BUILD_NUMBER = nº de corrida de GitHub Actions: cada APK nuevo sube de versión
+    // y la app puede compararse con la última release para ofrecer la actualización.
+    val buildNumber = (System.getenv("APP_BUILD_NUMBER") ?: "1").toIntOrNull() ?: 1
+    versionCode = buildNumber
+    versionName = "1.0.$buildNumber"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

@@ -64,6 +64,8 @@ jobs:
           keytool -list -v -keystore debug.keystore -storepass android -alias androiddebugkey | grep -E "SHA1|SHA256"
 
       - name: Compilar
+        env:
+          APP_BUILD_NUMBER: ${{ github.run_number }}
         run: gradle :app:assembleDebug --stacktrace
 
       - uses: actions/upload-artifact@v4
@@ -84,6 +86,6 @@ jobs:
           gh release delete latest --yes --cleanup-tag || true
           gh release create latest Serafiel-debug.apk \
             --target "$GITHUB_SHA" \
-            --title "Serafiel · última compilación ($SHORT_SHA)" \
+            --title "Serafiel · compilación #${{ github.run_number }} ($SHORT_SHA)" \
             --notes "APK de debug compilado automáticamente desde el commit $SHORT_SHA de main. Instálalo encima de la versión anterior." \
             --latest
