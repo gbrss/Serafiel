@@ -643,4 +643,8 @@
     <string name="appearance_my_photo">My photo…</string>
     <string name="appearance_photo_error">Couldn\'t use that image</string>
     <string name="radar_filter_available_now">Available now</string>
+    <string name="appearance_custom_bg">Custom gradient</string>
+    <string name="appearance_color_1">Color 1</string>
+    <string name="appearance_color_2">Color 2</string>
+    <string name="appearance_apply">Apply</string>
 </resources>

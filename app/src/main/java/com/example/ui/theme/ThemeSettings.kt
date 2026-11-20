@@ -27,15 +27,15 @@ object ThemeSettings {
         VIOLET(0xFF6B4FBB, 0xFFE5DCFA, 0xFF241454, 0xFFBBA6F2, 0xFF3F2C7A, 0xFFE5DCFA),
     }
 
-    enum class Background(val light: Pair<Long, Long>, val dark: Pair<Long, Long>) {
-        NONE(0L to 0L, 0L to 0L),
-        SAND(0xFFF6EBD9 to 0xFFEFE0C6, 0xFF2A2219 to 0xFF211B14),
-        MINT(0xFFE3F4EA to 0xFFD3EBDF, 0xFF182822 to 0xFF121F1A),
-        SKY(0xFFE2EFFA to 0xFFD0E3F5, 0xFF172330 to 0xFF111B26),
-        BLUSH(0xFFFBE7EC to 0xFFF6D6DF, 0xFF2B1A20 to 0xFF22141A),
-        LAVENDER(0xFFEEE8FA to 0xFFE1D8F5, 0xFF211C30 to 0xFF181426),
-        NIGHT(0xFF1B2433 to 0xFF0F1520, 0xFF1B2433 to 0xFF0F1520),
-        PHOTO(0L to 0L, 0L to 0L),
+    enum class Background(val colors: Pair<Long, Long>) {
+        NONE(0L to 0L),
+        SUNSET(0xFFFFB347 to 0xFFE8575C),
+        OCEAN(0xFF56CCF2 to 0xFF2F80ED),
+        FOREST(0xFF7BD389 to 0xFF1E8E6E),
+        VIOLET(0xFFB993F0 to 0xFF7A4FD1),
+        NIGHT(0xFF2C3E63 to 0xFF0F1526),
+        CUSTOM(0L to 0L),
+        PHOTO(0L to 0L),
     }
 
     private const val PREFS = "serafiel_theme"
@@ -47,6 +47,9 @@ object ThemeSettings {
     val accent: StateFlow<Accent> = _accent.asStateFlow()
     private val _background = MutableStateFlow(Background.NONE)
     val background: StateFlow<Background> = _background.asStateFlow()
+    private val _customColors = MutableStateFlow(0xFFFFB347 to 0xFF7A4FD1)
+    /** Par de colores (ARGB) del degradado personalizado. */
+    val customColors: StateFlow<Pair<Long, Long>> = _customColors.asStateFlow()
     private val _photoVersion = MutableStateFlow(0)
     val photoVersion: StateFlow<Int> = _photoVersion.asStateFlow()
 
@@ -59,6 +62,13 @@ object ThemeSettings {
         var bg = runCatching { Background.valueOf(p.getString("background", null) ?: "NONE") }.getOrDefault(Background.NONE)
         if (bg == Background.PHOTO && !File(context.filesDir, PHOTO_FILE).exists()) bg = Background.NONE
         _background.value = bg
+        _customColors.value = p.getLong("custom_a", 0xFFFFB347) to p.getLong("custom_b", 0xFF7A4FD1)
+    }
+
+    fun setCustomGradient(context: Context, a: Long, b: Long) {
+        prefs(context).edit().putLong("custom_a", a).putLong("custom_b", b).apply()
+        _customColors.value = a to b
+        setBackground(context, Background.CUSTOM)
     }
 
     fun setMode(context: Context, mode: Mode) {

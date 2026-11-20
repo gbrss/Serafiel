@@ -643,4 +643,8 @@
     <string name="appearance_my_photo">Mein Foto…</string>
     <string name="appearance_photo_error">Dieses Bild konnte nicht verwendet werden</string>
     <string name="radar_filter_available_now">Jetzt verfügbar</string>
+    <string name="appearance_custom_bg">Eigener Farbverlauf</string>
+    <string name="appearance_color_1">Farbe 1</string>
+    <string name="appearance_color_2">Farbe 2</string>
+    <string name="appearance_apply">Anwenden</string>
 </resources>

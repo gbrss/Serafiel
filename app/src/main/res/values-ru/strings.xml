@@ -643,4 +643,8 @@
     <string name="appearance_my_photo">Моё фото…</string>
     <string name="appearance_photo_error">Не удалось использовать это изображение</string>
     <string name="radar_filter_available_now">Сейчас доступны</string>
+    <string name="appearance_custom_bg">Свой градиент</string>
+    <string name="appearance_color_1">Цвет 1</string>
+    <string name="appearance_color_2">Цвет 2</string>
+    <string name="appearance_apply">Применить</string>
 </resources>
