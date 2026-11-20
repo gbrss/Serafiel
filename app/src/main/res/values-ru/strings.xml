@@ -642,4 +642,5 @@
     <string name="appearance_background">Фон чатов</string>
     <string name="appearance_my_photo">Моё фото…</string>
     <string name="appearance_photo_error">Не удалось использовать это изображение</string>
+    <string name="radar_filter_available_now">Сейчас доступны</string>
 </resources>

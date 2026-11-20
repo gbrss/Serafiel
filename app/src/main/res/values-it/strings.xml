@@ -642,4 +642,5 @@
     <string name="appearance_background">Sfondo delle chat</string>
     <string name="appearance_my_photo">La mia foto…</string>
     <string name="appearance_photo_error">Impossibile usare questa immagine</string>
+    <string name="radar_filter_available_now">Disponibile ora</string>
 </resources>

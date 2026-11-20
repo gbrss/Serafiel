@@ -142,7 +142,18 @@ fun RadarScreen(
     var reportTarget by remember { mutableStateOf<ProximityBeacon?>(null) }
     var showZonePickerDialog by remember { mutableStateOf(false) }
 
-    val beaconsList = (nearbyBeaconsState as? UiState.Success)?.data.orEmpty()
+    val allBeacons = (nearbyBeaconsState as? UiState.Success)?.data.orEmpty()
+    var onlyAvailableNow by remember { mutableStateOf(false) }
+    var languageFilter by remember { mutableStateOf<String?>(null) }
+    val availableLanguages = remember(allBeacons) {
+        allBeacons.flatMap { it.languages }.map { it.trim() }.filter { it.isNotEmpty() }
+            .groupingBy { it.lowercase() }.eachCount().entries.sortedByDescending { it.value }.take(8)
+            .map { e -> allBeacons.flatMap { it.languages }.first { l -> l.trim().lowercase() == e.key }.trim() }
+    }
+    val beaconsList = allBeacons.filter { b ->
+        (!onlyAvailableNow || b.isCurrentlyOnline()) &&
+            (languageFilter == null || b.languages.any { it.trim().equals(languageFilter, ignoreCase = true) })
+    }
     val myBeaconActive = myBeacon?.active ?: false
 
     Box(
@@ -293,6 +304,38 @@ fun RadarScreen(
                                 modifier = Modifier.testTag("filter_${purpose.name.lowercase()}"),
                             )
                         }
+                    }
+                }
+            }
+
+            // 3b. Filtros extra: disponible ahora e idioma
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    FilterChip(
+                        selected = onlyAvailableNow,
+                        onClick = { onlyAvailableNow = !onlyAvailableNow },
+                        label = { Text(tr(R.string.radar_filter_available_now)) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                        modifier = Modifier.testTag("filter_available_now"),
+                    )
+                    availableLanguages.forEach { lang ->
+                        FilterChip(
+                            selected = languageFilter.equals(lang, ignoreCase = true),
+                            onClick = { languageFilter = if (languageFilter.equals(lang, ignoreCase = true)) null else lang },
+                            label = { Text(lang) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            ),
+                            modifier = Modifier.testTag("filter_lang_${lang.lowercase()}"),
+                        )
                     }
                 }
             }

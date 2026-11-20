@@ -642,4 +642,5 @@
     <string name="appearance_background">Fond des discussions</string>
     <string name="appearance_my_photo">Ma photo…</string>
     <string name="appearance_photo_error">Impossible d\'utiliser cette image</string>
+    <string name="radar_filter_available_now">Disponible maintenant</string>
 </resources>
