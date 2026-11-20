@@ -1237,6 +1237,19 @@ private fun DirectChatDetailScreen(
                 senderColor = if (mine) myAvatarColor else peerColor,
                 onStopLiveLocation = onStopLiveLocation,
                 onDismiss = { inspectedLocationMessageId = null },
+                otherLives = activeLiveParticipants(messages) { senderId, senderName ->
+                    val isMe = senderId == currentUserId
+                    LiveMapParticipant(
+                        userId = senderId,
+                        name = if (isMe) myName else senderName.ifBlank { peerName },
+                        lat = 0.0,
+                        lon = 0.0,
+                        color = if (isMe) myAvatarColor else peerColor,
+                        photoData = if (isMe) myPhotoData else peerVisual?.photoData,
+                        photoUrl = if (isMe) myPhotoUrl else peerVisual?.photoUrl,
+                        isMine = isMe,
+                    )
+                },
             )
         }
     }

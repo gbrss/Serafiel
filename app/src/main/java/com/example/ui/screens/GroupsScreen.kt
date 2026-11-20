@@ -1486,6 +1486,20 @@ private fun GroupDetailScreen(
                 senderColor = if (mine) myAvatarColor else senderColor,
                 onStopLiveLocation = onStopLiveLocation,
                 onDismiss = { inspectedLocationMessageId = null },
+                otherLives = activeLiveParticipants(messages.map { it.toDirectMessageView() }) { senderId, senderName ->
+                    val isMe = senderId == currentUserId
+                    val visual = peerVisualMap[senderId]
+                    LiveMapParticipant(
+                        userId = senderId,
+                        name = if (isMe) myName else senderName.ifBlank { "Usuario" },
+                        lat = 0.0,
+                        lon = 0.0,
+                        color = if (isMe) myAvatarColor else AvatarColor.fromKey(group.memberColors[senderId]),
+                        photoData = if (isMe) myPhotoData else visual?.photoData,
+                        photoUrl = if (isMe) myPhotoUrl else visual?.photoUrl,
+                        isMine = isMe,
+                    )
+                },
             )
         }
     }

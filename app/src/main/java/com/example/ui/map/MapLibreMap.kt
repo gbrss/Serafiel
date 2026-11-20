@@ -42,6 +42,7 @@ import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
@@ -125,6 +126,34 @@ class MapLibreCameraState(initialLat: Double, initialLon: Double, initialZoom: D
             return
         }
         m.animateCamera(CameraUpdateFactory.newLatLngZoom(safeLatLng(lat, lon), z), durationMs)
+    }
+
+    /** Encuadra todos los puntos (lat, lon) en pantalla; con uno solo, centra en él. */
+    fun fitTo(points: List<Pair<Double, Double>>, paddingPx: Int = 140, maxZoom: Double = 17.0, durationMs: Int = 500) {
+        val valid = points.filter { it.first != 0.0 || it.second != 0.0 }
+        if (valid.isEmpty()) return
+        val m = map
+        if (valid.size == 1 || m == null) {
+            animateTo(valid[0].first, valid[0].second, zoom.coerceIn(13.0, maxZoom), durationMs)
+            return
+        }
+        val builder = LatLngBounds.Builder()
+        valid.forEach { builder.include(safeLatLng(it.first, it.second)) }
+        // Si están muy juntos, amplía el encuadre para no acercarse en exceso (~400 m mínimo).
+        val minLat = valid.minOf { it.first }
+        val maxLat = valid.maxOf { it.first }
+        val minLon = valid.minOf { it.second }
+        val maxLon = valid.maxOf { it.second }
+        val minSpan = 0.004
+        if (maxLat - minLat < minSpan || maxLon - minLon < minSpan) {
+            val cLat = (minLat + maxLat) / 2
+            val cLon = (minLon + maxLon) / 2
+            builder.include(safeLatLng(cLat - minSpan / 2, cLon - minSpan / 2))
+            builder.include(safeLatLng(cLat + minSpan / 2, cLon + minSpan / 2))
+        }
+        runCatching {
+            m.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), paddingPx), durationMs)
+        }
     }
 
     fun zoomIn() {

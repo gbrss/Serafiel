@@ -79,6 +79,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -239,6 +240,42 @@ private fun MapAvatarPinContent(
     }
 }
 
+/** Otra persona que está compartiendo su ubicación en vivo en el mismo chat/grupo. */
+data class LiveMapParticipant(
+    val userId: String,
+    val name: String,
+    val lat: Double,
+    val lon: Double,
+    val color: AvatarColor,
+    val photoData: String?,
+    val photoUrl: String?,
+    val isMine: Boolean = false,
+)
+
+private fun DirectMessage.isLiveNow(): Boolean =
+    messageType == DirectMessage.TYPE_LIVE_LOCATION && liveActive &&
+        (liveExpiresAtMs == 0L || System.currentTimeMillis() < liveExpiresAtMs) &&
+        ((latitude ?: 0.0) != 0.0 || (longitude ?: 0.0) != 0.0)
+
+/**
+ * Último mensaje de ubicación en vivo activo por cada persona, listo para dibujarse
+ * todos juntos en un mismo mapa.
+ */
+fun activeLiveParticipants(
+    messages: List<DirectMessage>,
+    resolve: (senderId: String, senderName: String) -> LiveMapParticipant,
+): List<LiveMapParticipant> =
+    messages
+        .filter { it.isLiveNow() }
+        .groupBy { it.senderId }
+        .map { (senderId, list) ->
+            val latest = list.maxByOrNull { it.updatedAt?.toDate()?.time ?: it.createdAt?.toDate()?.time ?: 0L }!!
+            resolve(senderId, latest.senderName).copy(
+                lat = latest.latitude ?: 0.0,
+                lon = latest.longitude ?: 0.0,
+            )
+        }
+
 @Composable
 private fun InteractiveMapBox(
     cameraState: MapLibreCameraState,
@@ -254,6 +291,7 @@ private fun InteractiveMapBox(
     avatarPhotoUrl: String?,
     onGestureMove: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
+    extraMarkers: List<LiveMapParticipant> = emptyList(),
 ) {
     val hasValidMarker = markerLat != 0.0 || markerLon != 0.0
     val avatarBitmap = if (avatarName != null) {
@@ -300,6 +338,27 @@ private fun InteractiveMapBox(
                                     .background(Color(0xFF1E88E5)),
                             )
                         }
+                    }
+                }
+            }
+
+            extraMarkers.forEach { other ->
+                key(other.userId) {
+                    val otherBitmap = rememberPreloadedAvatarImageBitmap(
+                        photoData = other.photoData,
+                        photoUrl = other.photoUrl,
+                    )
+                    MapMarker(
+                        state = cameraState,
+                        lat = other.lat,
+                        lon = other.lon,
+                        anchor = Offset(0.5f, 0.85f),
+                    ) {
+                        MapAvatarPinContent(
+                            name = other.name,
+                            avatarColor = other.color,
+                            bitmap = otherBitmap,
+                        )
                     }
                 }
             }
@@ -1495,6 +1554,7 @@ fun InAppDynamicLocationDialog(
     senderColor: AvatarColor,
     onStopLiveLocation: () -> Unit,
     onDismiss: () -> Unit,
+    otherLives: List<LiveMapParticipant> = emptyList(),
 ) {
     val isLiveType = message.messageType == DirectMessage.TYPE_LIVE_LOCATION
     val stillWithinWindow = !isLiveType ||
@@ -1522,8 +1582,27 @@ fun InAppDynamicLocationDialog(
         initialZoom = 16.0,
     )
 
-    LaunchedEffect(targetLat, targetLon, followMarker) {
-        if (followMarker && (targetLat != 0.0 || targetLon != 0.0)) {
+    // Las demás personas que comparten en vivo se dibujan en este mismo mapa.
+    val others = if (isLiveType && stillWithinWindow) {
+        otherLives.filter { it.userId != message.senderId }
+    } else {
+        emptyList()
+    }
+    val sharingCount = 1 + others.size
+    val allPointsKey = buildList {
+        add((targetLat * 1e4).toLong() to (targetLon * 1e4).toLong())
+        others.forEach { add((it.lat * 1e4).toLong() to (it.lon * 1e4).toLong()) }
+    }
+
+    LaunchedEffect(allPointsKey, followMarker) {
+        if (followMarker && others.isNotEmpty()) {
+            cameraState.fitTo(
+                buildList {
+                    add(targetLat to targetLon)
+                    others.forEach { add(it.lat to it.lon) }
+                },
+            )
+        } else if (followMarker && (targetLat != 0.0 || targetLon != 0.0)) {
             cameraState.animateTo(
                 lat = targetLat,
                 lon = targetLon,
@@ -1595,6 +1674,8 @@ fun InAppDynamicLocationDialog(
                         )
                         Text(
                             text = when {
+                                others.isNotEmpty() ->
+                                    "$sharingCount personas compartiendo en vivo"
                                 isLiveType && stillWithinWindow && expiresFormatted.isNotBlank() ->
                                     "${message.senderName.ifBlank { "Usuario" }} · Hasta las $expiresFormatted"
                                 isLiveType && !stillWithinWindow -> "Finalizada"
@@ -1641,6 +1722,7 @@ fun InAppDynamicLocationDialog(
                             followMarker = false
                         },
                         modifier = Modifier.fillMaxSize(),
+                        extraMarkers = others,
                     )
 
                     if (isLiveType && stillWithinWindow) {
@@ -1723,6 +1805,16 @@ fun InAppDynamicLocationDialog(
                         Text(
                             text = message.text,
                             style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    if (others.isNotEmpty()) {
+                        Text(
+                            text = "Compartiendo ahora: " + buildList {
+                                add(message.senderName.ifBlank { "Usuario" })
+                                others.forEach { add(if (it.isMine) "Tú" else it.name) }
+                            }.joinToString(", "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Row(
