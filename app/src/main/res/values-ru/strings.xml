@@ -647,4 +647,6 @@
     <string name="appearance_color_1">Цвет 1</string>
     <string name="appearance_color_2">Цвет 2</string>
     <string name="appearance_apply">Применить</string>
+    <string name="typing_word">печатает</string>
+    <string name="group_typing_many">%1$d человек</string>
 </resources>

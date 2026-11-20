@@ -647,4 +647,6 @@
     <string name="appearance_color_1">Cor 1</string>
     <string name="appearance_color_2">Cor 2</string>
     <string name="appearance_apply">Aplicar</string>
+    <string name="typing_word">a escrever</string>
+    <string name="group_typing_many">%1$d pessoas</string>
 </resources>

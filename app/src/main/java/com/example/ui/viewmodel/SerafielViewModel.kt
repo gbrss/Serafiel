@@ -1604,6 +1604,44 @@ class SerafielViewModel(
         }
     }
 
+    private var groupTypingJob: Job? = null
+    private var lastGroupTypingId: String? = null
+    private var lastGroupTypingPulseMs = 0L
+    private var lastGroupReadKey: String? = null
+
+    fun onGroupComposerTyping(group: SocialGroup, hasText: Boolean) {
+        if (!hasText) { stopGroupTyping(group); return }
+        val now = System.currentTimeMillis()
+        if (lastGroupTypingId != group.id || now - lastGroupTypingPulseMs > 4_000L) {
+            lastGroupTypingPulseMs = now
+            lastGroupTypingId = group.id
+            viewModelScope.launch { repository.setGroupTyping(currentUserId, group.id, true) }
+        }
+        groupTypingJob?.cancel()
+        groupTypingJob = viewModelScope.launch {
+            delay(5_000L)
+            stopGroupTyping(group)
+        }
+    }
+
+    fun stopGroupTyping(group: SocialGroup) {
+        groupTypingJob?.cancel()
+        if (lastGroupTypingId == group.id && lastGroupTypingPulseMs != 0L) {
+            lastGroupTypingPulseMs = 0L
+            viewModelScope.launch { repository.setGroupTyping(currentUserId, group.id, false) }
+        }
+    }
+
+    /** Marca el grupo como leído hasta el último mensaje ajeno [latestPeerMessageId]. */
+    fun markGroupRead(group: SocialGroup, latestPeerMessageId: String) {
+        val key = "${group.id}:$latestPeerMessageId"
+        if (lastGroupReadKey == key) return
+        lastGroupReadKey = key
+        viewModelScope.launch {
+            repository.markGroupRead(currentUserId, group.id).onFailure { lastGroupReadKey = null }
+        }
+    }
+
     private var lastReadMarkKey: String? = null
 
     /** Marca como vistos los mensajes del otro participante hasta [latestPeerMessageId]. */

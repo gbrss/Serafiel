@@ -1544,6 +1544,33 @@ class SerafielRepository(
         mapOf("typingAt.$uid" to if (typing) FieldValue.serverTimestamp() else FieldValue.delete())
     }
 
+    private suspend fun runCatchingGroupUpdate(
+        userId: String,
+        groupId: String,
+        build: (String) -> Map<String, Any>,
+    ): Result<Unit> {
+        return try {
+            val uid = requireUserId()
+            check(uid == userId)
+            db.collection("groups").document(groupId).update(build(uid)).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun setGroupTyping(userId: String, groupId: String, typing: Boolean): Result<Unit> =
+        runCatchingGroupUpdate(userId, groupId) { uid ->
+            mapOf("typingAt.$uid" to if (typing) FieldValue.serverTimestamp() else FieldValue.delete())
+        }
+
+    suspend fun markGroupRead(userId: String, groupId: String): Result<Unit> =
+        runCatchingGroupUpdate(userId, groupId) { uid ->
+            mapOf("lastReadAt.$uid" to FieldValue.serverTimestamp())
+        }
+
     private suspend fun runCatchingChatUpdate(
         userId: String,
         chatId: String,

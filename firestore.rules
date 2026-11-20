@@ -599,6 +599,11 @@ service cloud.firestore {
                            isValidPin(incoming())
                          ) ||
                          (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['typingAt', 'lastReadAt']) &&
+                           onlyOwnEntryChanged('typingAt') && ownEntryIsNowOrRemoved('typingAt') &&
+                           onlyOwnEntryChanged('lastReadAt') && ownEntryIsNowOrRemoved('lastReadAt')
+                         ) ||
+                         (
                            (existing().creatorId == request.auth.uid || !(request.auth.uid in incoming().memberIds)) &&
                            incoming().diff(existing()).affectedKeys().hasOnly([
                              'name', 'category', 'colorKey', 'memberIds',

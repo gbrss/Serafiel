@@ -351,9 +351,19 @@ data class SocialGroup(
     val lastMessage: String = "",
     val pinnedMessageId: String = "",
     val pinnedPreview: String = "",
+    /** uid -> última vez que escribió (para "escribiendo..."). */
+    val typingAt: Map<String, Timestamp> = emptyMap(),
+    /** uid -> última vez que abrió/leyó el grupo (para "visto"). */
+    val lastReadAt: Map<String, Timestamp> = emptyMap(),
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
-)
+) {
+    /** Nombres de quienes están escribiendo ahora (sin contar al usuario). */
+    fun typingNames(myUserId: String, nowMs: Long = System.currentTimeMillis()): List<String> =
+        typingAt.filter { (uid, ts) ->
+            uid != myUserId && uid in memberIds && (nowMs - ts.toDate().time) in -30_000L..7_000L
+        }.keys.map { (memberNames[it] ?: "").substringBefore(' ').ifBlank { "…" } }
+}
 
 @Keep
 @IgnoreExtraProperties
@@ -391,6 +401,19 @@ data class GroupMessage(
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
 ) {
+    /** SEEN = todos los demás miembros lo leyeron; DELIVERED = al menos uno; SENT = nadie aún. */
+    fun deliveryStatus(group: SocialGroup?): MessageDeliveryStatus {
+        val sentMs = createdAt?.toDate()?.time ?: return MessageDeliveryStatus.SENT
+        val others = group?.memberIds?.filter { it != senderId }.orEmpty()
+        if (others.isEmpty()) return MessageDeliveryStatus.SENT
+        val seen = others.count { (group!!.lastReadAt[it]?.toDate()?.time ?: 0L) >= sentMs }
+        return when {
+            seen == others.size -> MessageDeliveryStatus.SEEN
+            seen > 0 -> MessageDeliveryStatus.DELIVERED
+            else -> MessageDeliveryStatus.SENT
+        }
+    }
+
     fun toDirectMessageView(): DirectMessage = DirectMessage(
         id = id,
         chatId = groupId,

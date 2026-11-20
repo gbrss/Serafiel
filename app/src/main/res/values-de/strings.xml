@@ -647,4 +647,6 @@
     <string name="appearance_color_1">Farbe 1</string>
     <string name="appearance_color_2">Farbe 2</string>
     <string name="appearance_apply">Anwenden</string>
+    <string name="typing_word">schreibt</string>
+    <string name="group_typing_many">%1$d Personen</string>
 </resources>

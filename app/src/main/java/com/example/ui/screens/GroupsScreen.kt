@@ -869,6 +869,7 @@ private fun GroupDetailScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     var showPollDialog by remember(group.id) { mutableStateOf(false) }
     val pollActions = LocalPollActions.current
+    val receipts = LocalGroupReceipts.current
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showAttachmentsPanel by remember { mutableStateOf(false) }
     var showWhatsAppLocationPicker by remember { mutableStateOf(false) }
@@ -1036,6 +1037,16 @@ private fun GroupDetailScreen(
     DisposableEffect(group.id) {
         onDispose {
             ChatAudioPlayer.stop()
+            receipts.typing(group, false)
+        }
+    }
+
+    // Marca el grupo como leído cuando está en pantalla y llega un mensaje ajeno.
+    val groupLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    val latestPeerId = messages.lastOrNull { it.senderId != currentUserId }?.id
+    LaunchedEffect(latestPeerId, group.id) {
+        if (latestPeerId != null && groupLifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+            receipts.markRead(group, latestPeerId)
         }
     }
 
@@ -1098,11 +1109,21 @@ private fun GroupDetailScreen(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            Text(
-                                text = tr(R.string.s_miembro_2, category.labelEs, group.memberIds.size, if (group.memberIds.size == 1) "" else "s"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            val hasTypingEntry = group.typingAt.keys.any { it != currentUserId }
+                            val nowTick = if (hasTypingEntry) rememberTicker() else System.currentTimeMillis()
+                            val typers = if (hasTypingEntry) group.typingNames(currentUserId, nowTick) else emptyList()
+                            if (typers.isNotEmpty()) {
+                                TypingIndicatorText(
+                                    color = Color(0xFF16A34A),
+                                    prefix = if (typers.size == 1) typers[0] + " " else tr(R.string.group_typing_many, typers.size) + " ",
+                                )
+                            } else {
+                                Text(
+                                    text = tr(R.string.s_miembro_2, category.labelEs, group.memberIds.size, if (group.memberIds.size == 1) "" else "s"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                         Box {
                             IconButton(
@@ -1338,6 +1359,7 @@ private fun GroupDetailScreen(
                                             },
                                             onOpenVideo = { openVideoMessage = msgView },
                                             onVotePoll = { idx -> pollActions.vote(group, msg.id, idx) },
+                                            deliveryStatus = if (mine) msg.deliveryStatus(group) else null,
                                             onOpenLocation = { inspectedLocationMessageId = msg.id },
                                             onLongPressOrSelect = { selectedMessageForActions = msg },
                                             senderLabel = msg.senderName,
@@ -1476,6 +1498,7 @@ private fun GroupDetailScreen(
                                 value = draft,
                                 onValueChange = { incoming ->
                                     draft = if (incoming.text.length <= 1000) incoming else incoming.copy(text = incoming.text.take(1000))
+                                    if (editingMessage == null) receipts.typing(group, draft.text.isNotBlank())
                                 },
                                 placeholder = { Text(if (editingMessage != null) tr(R.string.s_editar_mensaje) else tr(R.string.s_mensaje_al_grupo_para_etiquetar)) },
                                 maxLines = 4,

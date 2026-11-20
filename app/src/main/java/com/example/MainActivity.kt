@@ -103,6 +103,8 @@ import com.example.notifications.SerafielNotificationHelper
 import com.example.ui.screens.ForwardDialog
 import com.example.ui.screens.LocalForwardHandler
 import com.example.ui.screens.LocalPinHandler
+import com.example.ui.screens.LocalGroupReceipts
+import com.example.ui.screens.GroupReceiptActions
 import com.example.ui.screens.LocalPollActions
 import com.example.ui.screens.PollActions
 import com.example.ui.screens.AddToGroupDialog
@@ -593,6 +595,10 @@ private fun SerafielAuthenticatedShell(
             LocalPollActions provides PollActions(
                 create = { group, q, opts -> viewModel.sendGroupPoll(group, q, opts) },
                 vote = { group, messageId, idx -> viewModel.voteGroupPoll(group, messageId, idx) },
+            ),
+            LocalGroupReceipts provides GroupReceiptActions(
+                typing = { group, has -> viewModel.onGroupComposerTyping(group, has) },
+                markRead = { group, id -> viewModel.markGroupRead(group, id) },
             ),
             LocalPinHandler provides { isGroup, parentId, messageId, preview ->
                 viewModel.setPinnedMessage(isGroup, parentId, messageId, preview)

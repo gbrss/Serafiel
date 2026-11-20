@@ -50,6 +50,14 @@ class PollActions(
     val vote: (SocialGroup, String, Int?) -> Unit = { _, _, _ -> },
 )
 
+/** "Escribiendo..." y "visto" para grupos. */
+class GroupReceiptActions(
+    val typing: (SocialGroup, Boolean) -> Unit = { _, _ -> },
+    val markRead: (SocialGroup, String) -> Unit = { _, _ -> },
+)
+
+val LocalGroupReceipts = compositionLocalOf { GroupReceiptActions() }
+
 val LocalPollActions = compositionLocalOf { PollActions() }
 
 private const val MAX_OPTIONS = 6

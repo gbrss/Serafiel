@@ -193,7 +193,7 @@ fun DeliveryTicks(status: MessageDeliveryStatus, modifier: Modifier = Modifier) 
 
 /** "escribiendo..." con puntos animados. */
 @Composable
-fun TypingIndicatorText(color: Color, modifier: Modifier = Modifier) {
+fun TypingIndicatorText(color: Color, modifier: Modifier = Modifier, prefix: String = "") {
     val transition = rememberInfiniteTransition(label = "typing")
     val phase by transition.animateFloat(
         initialValue = 0f,
@@ -203,7 +203,7 @@ fun TypingIndicatorText(color: Color, modifier: Modifier = Modifier) {
     )
     val dots = ".".repeat(phase.toInt().coerceIn(0, 2) + 1)
     Text(
-        text = "escribiendo$dots",
+        text = prefix + tr(R.string.typing_word) + dots,
         style = MaterialTheme.typography.bodySmall,
         color = color,
         fontWeight = FontWeight.Medium,
