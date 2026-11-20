@@ -28,14 +28,14 @@ object ThemeSettings {
     }
 
     enum class Background(val light: Pair<Long, Long>, val dark: Pair<Long, Long>) {
-        NONE(0 to 0, 0 to 0),
+        NONE(0L to 0L, 0L to 0L),
         SAND(0xFFF6EBD9 to 0xFFEFE0C6, 0xFF2A2219 to 0xFF211B14),
         MINT(0xFFE3F4EA to 0xFFD3EBDF, 0xFF182822 to 0xFF121F1A),
         SKY(0xFFE2EFFA to 0xFFD0E3F5, 0xFF172330 to 0xFF111B26),
         BLUSH(0xFFFBE7EC to 0xFFF6D6DF, 0xFF2B1A20 to 0xFF22141A),
         LAVENDER(0xFFEEE8FA to 0xFFE1D8F5, 0xFF211C30 to 0xFF181426),
         NIGHT(0xFF1B2433 to 0xFF0F1520, 0xFF1B2433 to 0xFF0F1520),
-        PHOTO(0 to 0, 0 to 0),
+        PHOTO(0L to 0L, 0L to 0L),
     }
 
     private const val PREFS = "serafiel_theme"
