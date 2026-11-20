@@ -26,7 +26,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
+import com.example.i18n.AppStrings
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -35,6 +37,12 @@ import java.util.Date
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class ExampleRobolectricTest {
+
+  @Before
+  fun initStrings() {
+    AppStrings.init(ApplicationProvider.getApplicationContext())
+  }
+
 
   @Test
   fun `read string from context`() {

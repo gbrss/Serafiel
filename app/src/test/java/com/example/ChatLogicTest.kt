@@ -9,11 +9,24 @@ import com.example.model.SocialGroup
 import com.google.firebase.Timestamp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import androidx.test.core.app.ApplicationProvider
+import com.example.i18n.AppStrings
 import java.util.Date
 
 /** Lógica pura de chats: recibos de lectura, "escribiendo..." y zonas. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class ChatLogicTest {
+    @Before
+    fun setUp() {
+        AppStrings.init(ApplicationProvider.getApplicationContext())
+    }
+
     private fun ts(ms: Long) = Timestamp(Date(ms))
 
     private val group = SocialGroup(
