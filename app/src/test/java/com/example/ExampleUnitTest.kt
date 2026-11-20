@@ -12,7 +12,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.example.i18n.AppStrings
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [36], qualifiers = "es")
 class ExampleUnitTest {
   @Before
   fun setUp() {

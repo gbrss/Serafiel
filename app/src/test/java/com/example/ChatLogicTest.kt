@@ -20,7 +20,7 @@ import java.util.Date
 
 /** Lógica pura de chats: recibos de lectura, "escribiendo..." y zonas. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [36], qualifiers = "es")
 class ChatLogicTest {
     @Before
     fun setUp() {
