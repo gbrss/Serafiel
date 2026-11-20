@@ -783,4 +783,7 @@ test("Chats: contador de no leídos (+1 al otro al enviar, 0 propio al leer) y o
   };
   await assertSucceeds(msgs.doc("w1").set({ ...base, waveform: "0123456789abcdefghijklmnopqrstuv0123456789abcdef" }));
   await assertFails(msgs.doc("w2").set({ ...base, waveform: "x".repeat(65) }));
+  // Reenviado: solo booleano.
+  await assertSucceeds(msgs.doc("f1").set({ ...base, forwarded: true }));
+  await assertFails(msgs.doc("f2").set({ ...base, forwarded: "si" }));
 });

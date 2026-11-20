@@ -1264,7 +1264,9 @@ private fun DirectChatDetailScreen(
 
     selectedMessageForActions?.let { msg ->
         val mine = msg.senderId == currentUserId
+        val forwardHandler = LocalForwardHandler.current
         MessageActionsDialog(
+            onForward = { forwardHandler(msg) },
             senderName = if (mine) "Tú" else msg.senderName.ifBlank { peerName },
             previewText = msg.previewLabel(),
             canCopy = msg.text.isNotBlank(),

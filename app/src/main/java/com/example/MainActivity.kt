@@ -97,6 +97,8 @@ import com.example.model.UiState
 import com.example.notifications.MessageListenerService
 import com.example.notifications.NotificationSessionState
 import com.example.notifications.SerafielNotificationHelper
+import com.example.ui.screens.ForwardDialog
+import com.example.ui.screens.LocalForwardHandler
 import com.example.ui.screens.AddToGroupDialog
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.AvatarCircle
@@ -544,6 +546,9 @@ private fun SerafielAuthenticatedShell(
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val useNavRail = maxWidth >= 600.dp
 
+        androidx.compose.runtime.CompositionLocalProvider(
+            LocalForwardHandler provides { msg -> viewModel.requestForward(msg) },
+        ) {
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = {},
@@ -971,6 +976,18 @@ private fun SerafielAuthenticatedShell(
                     }
                 }
             }
+        }
+        }
+
+        val forwardRequest by viewModel.forwardRequest.collectAsStateWithLifecycle()
+        val forwardTargets by viewModel.forwardTargets.collectAsStateWithLifecycle()
+        forwardRequest?.let { req ->
+            ForwardDialog(
+                message = req,
+                targets = forwardTargets,
+                onDismiss = { viewModel.cancelForward() },
+                onForward = { chosen -> viewModel.forwardMessage(context, req, chosen) },
+            )
         }
 
         // Avisos flotantes: centrados y compactos.

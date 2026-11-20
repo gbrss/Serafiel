@@ -849,6 +849,7 @@ class SerafielRepository(
         chatPreview: String,
         chunkFile: File? = null,
         waveform: String? = null,
+        forwarded: Boolean = false,
     ): Result<String> {
         val path = "chats/$chatId/messages"
         return try {
@@ -886,6 +887,7 @@ class SerafielRepository(
                 "chunkCount" to chunkCount,
                 "mediaSizeBytes" to chunkFile?.length(),
                 "waveform" to waveform?.take(64),
+                "forwarded" to (if (forwarded) true else null),
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp(),
             ).filterValues { it != null }
@@ -1251,6 +1253,7 @@ class SerafielRepository(
         groupPreview: String,
         chunkFile: File? = null,
         waveform: String? = null,
+        forwarded: Boolean = false,
     ): Result<String> {
         val path = "groups/$groupId/messages"
         return try {
@@ -1286,6 +1289,7 @@ class SerafielRepository(
                 "chunkCount" to chunkCount,
                 "mediaSizeBytes" to chunkFile?.length(),
                 "waveform" to waveform?.take(64),
+                "forwarded" to (if (forwarded) true else null),
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp(),
             ).filterValues { it != null }

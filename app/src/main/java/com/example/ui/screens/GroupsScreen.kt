@@ -1514,7 +1514,9 @@ private fun GroupDetailScreen(
 
     selectedMessageForActions?.let { msg ->
         val mine = msg.senderId == currentUserId
+        val forwardHandler = LocalForwardHandler.current
         MessageActionsDialog(
+            onForward = { forwardHandler(msg.toDirectMessageView()) },
             senderName = if (mine) "Tú" else msg.senderName,
             previewText = msg.previewLabel(),
             canCopy = msg.text.isNotBlank(),

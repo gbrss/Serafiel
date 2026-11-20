@@ -177,6 +177,7 @@ service cloud.firestore {
              (!('mediaSizeBytes' in data) || (data.mediaSizeBytes is int && data.mediaSizeBytes >= 0 && data.mediaSizeBytes <= 33554432)) &&
              (!('reactions' in data) || (data.reactions is map && data.reactions.size() <= 60)) &&
              (!('waveform' in data) || (data.waveform is string && data.waveform.size() <= 64)) &&
+             (!('forwarded' in data) || data.forwarded is bool) &&
              (!(('messageType' in data) && data.messageType in ['location', 'live_location']) ||
                ('latitude' in data && data.latitude is number && data.latitude >= -90.0 && data.latitude <= 90.0 &&
                 'longitude' in data && data.longitude is number && data.longitude >= -180.0 && data.longitude <= 180.0)) &&
@@ -227,6 +228,7 @@ service cloud.firestore {
              (!('mediaSizeBytes' in data) || (data.mediaSizeBytes is int && data.mediaSizeBytes >= 0 && data.mediaSizeBytes <= 33554432)) &&
              (!('reactions' in data) || (data.reactions is map && data.reactions.size() <= 60)) &&
              (!('waveform' in data) || (data.waveform is string && data.waveform.size() <= 64)) &&
+             (!('forwarded' in data) || data.forwarded is bool) &&
              (!(('messageType' in data) && data.messageType in ['location', 'live_location']) ||
                ('latitude' in data && data.latitude is number && data.latitude >= -90.0 && data.latitude <= 90.0 &&
                 'longitude' in data && data.longitude is number && data.longitude >= -180.0 && data.longitude <= 180.0)) &&
@@ -469,7 +471,7 @@ service cloud.firestore {
                            'durationSec', 'latitude', 'longitude', 'locationLabel',
                            'liveActive', 'liveExpiresAtMs', 'updatedAt',
                            'replyToMessageId', 'replyToSenderName', 'replyToPreview',
-                           'edited', 'editedAt', 'chunkCount', 'mediaSizeBytes', 'waveform'
+                           'edited', 'editedAt', 'chunkCount', 'mediaSizeBytes', 'waveform', 'forwarded'
                          ]) &&
                          isValidDirectMessage(incoming()) &&
                          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
@@ -609,7 +611,7 @@ service cloud.firestore {
                            'durationSec', 'latitude', 'longitude', 'locationLabel',
                            'liveActive', 'liveExpiresAtMs', 'updatedAt',
                            'replyToMessageId', 'replyToSenderName', 'replyToPreview',
-                           'edited', 'editedAt', 'chunkCount', 'mediaSizeBytes', 'waveform'
+                           'edited', 'editedAt', 'chunkCount', 'mediaSizeBytes', 'waveform', 'forwarded'
                          ]) &&
                          isValidGroupMessage(incoming()) &&
                          request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;

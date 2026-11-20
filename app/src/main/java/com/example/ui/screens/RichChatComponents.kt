@@ -858,6 +858,7 @@ fun MessageActionsDialog(
     onDelete: () -> Unit,
     myReaction: String? = null,
     onReact: ((String?) -> Unit)? = null,
+    onForward: (() -> Unit)? = null,
 ) {
     var showFullEmojiPicker by remember { mutableStateOf(false) }
     AlertDialog(
@@ -919,6 +920,17 @@ fun MessageActionsDialog(
                         onClick = {
                             onDismiss()
                             onCopy()
+                        },
+                    )
+                }
+                if (onForward != null) {
+                    MessageActionRow(
+                        icon = Icons.AutoMirrored.Rounded.Reply,
+                        label = "Reenviar",
+                        testTag = "action_forward_message",
+                        onClick = {
+                            onDismiss()
+                            onForward()
                         },
                     )
                 }
@@ -1052,6 +1064,15 @@ fun DirectMessageBubble(
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                if (message.forwarded) {
+                    Text(
+                        text = "↪ Reenviado",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 

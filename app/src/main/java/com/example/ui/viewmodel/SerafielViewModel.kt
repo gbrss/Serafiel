@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.ChatAudioPlayer
+import com.example.data.ChunkedMediaStore
 import com.example.data.ChatLocationPoint
 import com.example.data.ChatMediaHelper
 import com.example.data.ChatMediaSettings
@@ -1079,6 +1080,127 @@ class SerafielViewModel(
             ?: chat.participantNames[currentUserId]?.trim()?.takeIf { it.length >= 2 }
             ?: initialDisplayName.trim().takeIf { it.length >= 2 }
             ?: "Usuario Serafiel"
+    }
+
+    // ---------- Reenviar mensajes ----------
+
+    sealed interface ForwardTarget {
+        val id: String
+        val title: String
+        val colorKey: String
+
+        data class Chat(val chat: DirectChat, val peerId: String) : ForwardTarget {
+            override val id get() = "chat:${chat.id}"
+            override val title get() = chat.participantNames[peerId]?.takeIf { it.isNotBlank() } ?: "Persona cercana"
+            override val colorKey get() = chat.participantColors[peerId] ?: AvatarColor.AMBER.key
+        }
+
+        data class Group(val group: SocialGroup) : ForwardTarget {
+            override val id get() = "group:${group.id}"
+            override val title get() = group.name
+            override val colorKey get() = group.colorKey
+        }
+    }
+
+    private val _forwardRequest = MutableStateFlow<DirectMessage?>(null)
+    val forwardRequest: StateFlow<DirectMessage?> = _forwardRequest.asStateFlow()
+
+    fun requestForward(message: DirectMessage) { _forwardRequest.value = message }
+    fun cancelForward() { _forwardRequest.value = null }
+
+    /** Chats activos y grupos a los que se puede reenviar. */
+    val forwardTargets: StateFlow<List<ForwardTarget>> = combine(myChatsState, myGroupsState) { chats, groups ->
+        val chatTargets = ((chats as? UiState.Success)?.data.orEmpty())
+            .filter { it.status == "active" }
+            .mapNotNull { chat ->
+                val peer = chat.participantIds.firstOrNull { it != currentUserId } ?: return@mapNotNull null
+                ForwardTarget.Chat(chat, peer)
+            }
+        val groupTargets = ((groups as? UiState.Success)?.data.orEmpty()).map { ForwardTarget.Group(it) }
+        (chatTargets + groupTargets)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun forwardMessage(context: Context, message: DirectMessage, targets: List<ForwardTarget>) {
+        val appContext = context.applicationContext
+        _forwardRequest.value = null
+        if (targets.isEmpty()) return
+        viewModelScope.launch {
+            _isBusy.value = true
+            val isMedia = message.messageType in listOf(
+                DirectMessage.TYPE_IMAGE, DirectMessage.TYPE_VOICE, DirectMessage.TYPE_AUDIO, DirectMessage.TYPE_VIDEO,
+            )
+            val type = if (message.messageType == DirectMessage.TYPE_LIVE_LOCATION) DirectMessage.TYPE_LOCATION else message.messageType
+            var source: java.io.File? = null
+            if (isMedia && message.chunkCount > 0L) {
+                source = ChunkedMediaStore.resolveFullMedia(appContext, message)
+                if (source == null) {
+                    _isBusy.value = false
+                    _snackbarEvents.tryEmit("No se pudo preparar el archivo para reenviar")
+                    return@launch
+                }
+            }
+            val preview = DirectMessage(
+                messageType = type, text = message.text, durationSec = message.durationSec, mediaName = message.mediaName,
+            ).previewLabel()
+            var failures = 0
+            for (target in targets.take(5)) {
+                // Cada envío consume (borra) su archivo, así que se le entrega una copia propia.
+                val copy = source?.let { src ->
+                    runCatching {
+                        java.io.File(appContext.cacheDir, "fwd_${System.nanoTime()}.tmp").also { src.copyTo(it, overwrite = true) }
+                    }.getOrNull()
+                }
+                val res = when (target) {
+                    is ForwardTarget.Chat -> repository.sendRichDirectMessage(
+                        userId = currentUserId,
+                        chatId = target.chat.id,
+                        participantIds = target.chat.participantIds,
+                        senderName = resolveDirectSenderName(target.chat),
+                        messageType = type,
+                        text = message.text,
+                        mediaData = message.mediaData?.ifBlank { null },
+                        mediaMimeType = message.mediaMimeType,
+                        mediaName = message.mediaName,
+                        durationSec = message.durationSec.takeIf { it > 0 },
+                        latitude = message.latitude,
+                        longitude = message.longitude,
+                        locationLabel = message.locationLabel,
+                        chatPreview = preview,
+                        chunkFile = copy,
+                        waveform = message.waveform.ifBlank { null },
+                        forwarded = true,
+                    )
+                    is ForwardTarget.Group -> repository.sendGroupRichMessage(
+                        userId = currentUserId,
+                        groupId = target.group.id,
+                        memberIds = target.group.memberIds,
+                        senderName = resolveGroupSenderName(target.group),
+                        messageType = type,
+                        text = message.text,
+                        mediaData = message.mediaData?.ifBlank { null },
+                        mediaMimeType = message.mediaMimeType,
+                        mediaName = message.mediaName,
+                        durationSec = message.durationSec.takeIf { it > 0 },
+                        latitude = message.latitude,
+                        longitude = message.longitude,
+                        locationLabel = message.locationLabel,
+                        groupPreview = preview,
+                        chunkFile = copy,
+                        waveform = message.waveform.ifBlank { null },
+                        forwarded = true,
+                    )
+                }
+                if (res.isFailure) failures++
+            }
+            _isBusy.value = false
+            _snackbarEvents.tryEmit(
+                if (failures == 0) {
+                    if (targets.size == 1) "Mensaje reenviado" else "Mensaje reenviado a ${targets.size} chats"
+                } else {
+                    "No se pudo reenviar a $failures de ${targets.size} destinos"
+                }
+            )
+        }
     }
 
     fun emitMessage(message: String) {

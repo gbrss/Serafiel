@@ -212,6 +212,8 @@ data class DirectMessage(
     val mediaSizeBytes: Long = 0L,
     /** Onda de la nota de voz (48 niveles codificados). */
     val waveform: String = "",
+    /** true si el mensaje es una copia reenviada de otro chat. */
+    val forwarded: Boolean = false,
     /** Colección padre ("chats" o "groups"); solo para la vista local, no se guarda. */
     val sourceCollection: String = SOURCE_CHATS,
     @ServerTimestamp val createdAt: Timestamp? = null,
@@ -368,6 +370,8 @@ data class GroupMessage(
     val chunkCount: Long = 0L,
     val mediaSizeBytes: Long = 0L,
     val waveform: String = "",
+    /** true si el mensaje es una copia reenviada de otro chat. */
+    val forwarded: Boolean = false,
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
 ) {
@@ -397,6 +401,7 @@ data class GroupMessage(
         chunkCount = chunkCount,
         mediaSizeBytes = mediaSizeBytes,
         waveform = waveform,
+        forwarded = forwarded,
         sourceCollection = DirectMessage.SOURCE_GROUPS,
         createdAt = createdAt,
         updatedAt = updatedAt,
