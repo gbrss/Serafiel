@@ -544,7 +544,7 @@ private fun AppUpdateCard() {
                 com.example.data.AppUpdater.Status.AVAILABLE, com.example.data.AppUpdater.Status.READY -> {
                     val info = update.info
                     Text(
-                        text = tr(R.string.s_hay_una_version_nueva, info?.build ?: "?") +
+                        text = tr(R.string.s_hay_una_version_nueva, info?.build?.let { "1.0.$it" } ?: "?") +
                             (info?.sizeBytes?.takeIf { it > 0 }?.let { tr(R.string.s_mb, it / (1024 * 1024)) } ?: ""),
                         style = MaterialTheme.typography.bodyMedium,
                     )

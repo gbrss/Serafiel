@@ -364,7 +364,7 @@
     <string name="s_version_instalada">Установленная версия: %1$s</string>
     <string name="s_buscando_actualizaciones">Поиск обновлений…</string>
     <string name="s_tienes_la_ultima_version">У вас последняя версия.</string>
-    <string name="s_hay_una_version_nueva">Доступна новая версия (#%1$s)</string>
+    <string name="s_hay_una_version_nueva">Доступна новая версия (%1$s)</string>
     <string name="s_mb">" · %1$s МБ"</string>
     <string name="s_descargando_2">Загрузка… %1$s%%</string>
     <string name="s_instalar">Установить</string>

@@ -364,7 +364,7 @@
     <string name="s_version_instalada">Version installée : %1$s</string>
     <string name="s_buscando_actualizaciones">Recherche de mises à jour…</string>
     <string name="s_tienes_la_ultima_version">Vous avez la dernière version.</string>
-    <string name="s_hay_una_version_nueva">Une nouvelle version est disponible (#%1$s)</string>
+    <string name="s_hay_una_version_nueva">Une nouvelle version est disponible (%1$s)</string>
     <string name="s_mb">" · %1$s Mo"</string>
     <string name="s_descargando_2">Téléchargement… %1$s%%</string>
     <string name="s_instalar">Installer</string>
