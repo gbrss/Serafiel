@@ -144,6 +144,7 @@ class MainActivity : ComponentActivity() {
         SerafielNotificationHelper.ensureChannels(this)
         SerafielNotificationHelper.clearLegacyForegroundNotification(this)
         handleNotificationIntent(intent)
+        if (savedInstanceState == null) handleShareIntent(intent)
         setContent {
             SerafielTheme {
                 AppNavigation(
@@ -158,6 +159,11 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleNotificationIntent(intent)
+        handleShareIntent(intent)
+    }
+
+    private fun handleShareIntent(intent: Intent?) {
+        com.example.data.SharedContent.fromIntent(intent)?.let { com.example.data.IncomingShare.pending.value = it }
     }
 
     private fun handleNotificationIntent(intent: Intent?) {
@@ -1008,6 +1014,17 @@ private fun SerafielAuthenticatedShell(
                 targets = forwardTargets,
                 onDismiss = { viewModel.cancelForward() },
                 onForward = { chosen -> viewModel.forwardMessage(context, req, chosen) },
+            )
+        }
+
+        val incomingShare by com.example.data.IncomingShare.pending.collectAsStateWithLifecycle()
+        incomingShare?.let { shared ->
+            com.example.ui.screens.ShareTargetDialog(
+                title = "Compartir con…",
+                preview = shared.describe(context),
+                targets = forwardTargets,
+                onDismiss = { com.example.data.IncomingShare.pending.value = null },
+                onConfirm = { chosen -> viewModel.sendSharedContent(context, shared, chosen) },
             )
         }
 

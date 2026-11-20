@@ -41,6 +41,21 @@ fun ForwardDialog(
     targets: List<ForwardTarget>,
     onDismiss: () -> Unit,
     onForward: (List<ForwardTarget>) -> Unit,
+) = ShareTargetDialog(
+    title = "Reenviar a…",
+    preview = message.previewLabel(),
+    targets = targets,
+    onDismiss = onDismiss,
+    onConfirm = onForward,
+)
+
+@Composable
+fun ShareTargetDialog(
+    title: String,
+    preview: String,
+    targets: List<ForwardTarget>,
+    onDismiss: () -> Unit,
+    onConfirm: (List<ForwardTarget>) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     val selected = remember { mutableStateListOf<String>() }
@@ -51,11 +66,11 @@ fun ForwardDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Reenviar a…") },
+        title = { Text(title) },
         text = {
             androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = message.previewLabel(),
+                    text = preview,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -70,7 +85,7 @@ fun ForwardDialog(
                 )
                 if (filtered.isEmpty()) {
                     Text(
-                        text = "No hay chats ni grupos para reenviar.",
+                        text = "No hay chats ni grupos disponibles.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -123,7 +138,7 @@ fun ForwardDialog(
         confirmButton = {
             TextButton(
                 enabled = selected.isNotEmpty(),
-                onClick = { onForward(targets.filter { it.id in selected }) },
+                onClick = { onConfirm(targets.filter { it.id in selected }) },
             ) {
                 Text(if (selected.isEmpty()) "Enviar" else "Enviar (${selected.size})")
             }

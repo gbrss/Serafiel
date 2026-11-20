@@ -1145,6 +1145,8 @@ class SerafielViewModel(
 
     // ---------- Reenviar mensajes ----------
 
+    private val MAX_SHARE_TARGETS = 5
+
     sealed interface ForwardTarget {
         val id: String
         val title: String
@@ -1180,6 +1182,37 @@ class SerafielViewModel(
         val groupTargets = ((groups as? UiState.Success)?.data.orEmpty()).map { ForwardTarget.Group(it) }
         (chatTargets + groupTargets)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Envía contenido recibido desde otra app ("Compartir con Serafiel") a los destinos elegidos. */
+    fun sendSharedContent(context: Context, content: com.example.data.SharedContent, targets: List<ForwardTarget>) {
+        val appContext = context.applicationContext
+        com.example.data.IncomingShare.pending.value = null
+        if (targets.isEmpty() || content.isEmpty) return
+        for (target in targets.take(MAX_SHARE_TARGETS)) {
+            content.text?.takeIf { it.isNotBlank() }?.let { t ->
+                when (target) {
+                    is ForwardTarget.Chat -> sendDirectMessage(target.chat, t)
+                    is ForwardTarget.Group -> sendGroupTextMessage(target.group, t)
+                }
+            }
+            for (uri in content.uris) {
+                val mime = com.example.data.SharedContent.mimeOf(appContext, uri)
+                when {
+                    mime.startsWith("image/") || mime.startsWith("video/") -> when (target) {
+                        is ForwardTarget.Chat -> sendDirectImage(appContext, target.chat, uri)
+                        is ForwardTarget.Group -> sendGroupImage(appContext, target.group, uri)
+                    }
+                    mime.startsWith("audio/") -> when (target) {
+                        is ForwardTarget.Chat -> sendDirectAudioUri(appContext, target.chat, uri)
+                        is ForwardTarget.Group -> sendGroupAudioUri(appContext, target.group, uri)
+                    }
+                }
+            }
+        }
+        _snackbarEvents.tryEmit(
+            if (targets.size == 1) "Enviando a ${targets.first().title}…" else "Enviando a ${targets.size} chats…",
+        )
+    }
 
     fun forwardMessage(context: Context, message: DirectMessage, targets: List<ForwardTarget>) {
         val appContext = context.applicationContext
