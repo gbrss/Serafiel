@@ -1,5 +1,7 @@
 package com.example.notifications
 
+import com.example.i18n.tr
+
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
@@ -38,7 +40,7 @@ object NotificationSessionState {
     private val _currentZoneKey = MutableStateFlow("plaza_central")
     val currentZoneKey: StateFlow<String> = _currentZoneKey.asStateFlow()
 
-    private val _currentZoneName = MutableStateFlow("Zona Abierta")
+    private val _currentZoneName = MutableStateFlow(tr(R.string.s_zona_abierta))
     val currentZoneName: StateFlow<String> = _currentZoneName.asStateFlow()
 
     fun updateZone(zoneKey: String, zoneName: String) {
@@ -83,9 +85,9 @@ object SerafielNotificationHelper {
             (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
         val pending = PendingIntent.getBroadcast(context, notificationId, intent, flags)
         val remoteInput = RemoteInput.Builder(KEY_REPLY_TEXT)
-            .setLabel("Escribe una respuesta")
+            .setLabel(tr(R.string.s_escribe_una_respuesta))
             .build()
-        return NotificationCompat.Action.Builder(R.drawable.ic_stat_serafiel, "Responder", pending)
+        return NotificationCompat.Action.Builder(R.drawable.ic_stat_serafiel, tr(R.string.s_responder), pending)
             .addRemoteInput(remoteInput)
             .setAllowGeneratedReplies(true)
             .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
@@ -105,14 +107,14 @@ object SerafielNotificationHelper {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        return NotificationCompat.Action.Builder(R.drawable.ic_stat_serafiel, "Marcar como leído", pending)
+        return NotificationCompat.Action.Builder(R.drawable.ic_stat_serafiel, tr(R.string.s_marcar_como_leido), pending)
             .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)
             .setShowsUserInterface(false)
             .build()
     }
 
     private fun messagingStyle(title: String?, senderName: String, text: String): NotificationCompat.MessagingStyle {
-        val me = Person.Builder().setName("Tú").build()
+        val me = Person.Builder().setName(tr(R.string.s_tu)).build()
         val sender = Person.Builder().setName(senderName).build()
         return NotificationCompat.MessagingStyle(me)
             .setConversationTitle(title)
@@ -132,8 +134,8 @@ object SerafielNotificationHelper {
         ensureChannels(context)
         val notification = NotificationCompat.Builder(context, CHANNEL_DIRECT_MESSAGES)
             .setSmallIcon(R.drawable.ic_stat_serafiel)
-            .setContentTitle("No se pudo enviar tu respuesta")
-            .setContentText("Revisa tu conexión y vuelve a intentarlo.")
+            .setContentTitle(tr(R.string.s_no_se_pudo_enviar_tu))
+            .setContentText(tr(R.string.s_revisa_tu_conexion_y_vuelve))
             .setAutoCancel(true)
             .addAction(replyAction(context, notificationId, chatId, groupId))
             .build()

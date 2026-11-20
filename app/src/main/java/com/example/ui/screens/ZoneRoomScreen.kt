@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.i18n.tr
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -119,7 +121,7 @@ fun ZoneRoomScreen(
                     photoData = visual?.photoData,
                     photoUrl = visual?.photoUrl,
                     subtitle = visual?.distanceKm?.let { "A ${LocationHelper.formatCompactDistance(it)}" }
-                        ?: "En la sala local",
+                        ?: tr(R.string.s_en_la_sala_local),
                 )
             }
         }
@@ -166,20 +168,20 @@ fun ZoneRoomScreen(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         val safeZoneTitle = currentZone.zoneName
-                            .replace("Plaza Central · ", "", ignoreCase = true)
-                            .replace("Plaza Central", "", ignoreCase = true)
+                            .replace(tr(R.string.s_plaza_central), "", ignoreCase = true)
+                            .replace(tr(R.string.s_plaza_central_2), "", ignoreCase = true)
                             .trim()
                         Text(
                             text = if (safeZoneTitle.isBlank() || safeZoneTitle.equals("Zona Abierta", ignoreCase = true)) {
-                                "Sala Local · Zona Abierta"
+                                tr(R.string.s_sala_local_zona_abierta)
                             } else {
-                                "Sala Local · $safeZoneTitle"
+                                tr(R.string.s_sala_local, safeZoneTitle)
                             },
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Text(
-                            text = "Chat abierto de proximidad: amistad, ayuda, turismo, networking o charla.",
+                            text = tr(R.string.s_chat_abierto_de_proximidad_amistad),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
                         )
@@ -224,14 +226,14 @@ fun ZoneRoomScreen(
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
                                         val safeZoneName = currentZone.zoneName
-                                            .replace("Plaza Central · ", "", ignoreCase = true)
-                                            .replace("Plaza Central", "Zona Abierta", ignoreCase = true)
+                                            .replace(tr(R.string.s_plaza_central), "", ignoreCase = true)
+                                            .replace(tr(R.string.s_plaza_central_2), tr(R.string.s_zona_abierta), ignoreCase = true)
                                         Text(
-                                            text = "Inicia la conversación en $safeZoneName",
+                                            text = tr(R.string.s_inicia_la_conversacion_en, safeZoneName),
                                             style = MaterialTheme.typography.titleMedium,
                                         )
                                         Text(
-                                            text = "Pide recomendaciones locales, ofrece ayuda, busca compañía para un café o simplemente di hola.",
+                                            text = tr(R.string.s_pide_recomendaciones_locales_ofrece_ayuda),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
@@ -253,7 +255,7 @@ fun ZoneRoomScreen(
                                             editingMessage = null
                                             replyDraft = ReplyDraft(
                                                 messageId = msg.id,
-                                                senderName = if (mine) "Tú" else msg.senderName,
+                                                senderName = if (mine) tr(R.string.s_tu) else msg.senderName,
                                                 previewText = msg.text,
                                             )
                                         },
@@ -268,7 +270,7 @@ fun ZoneRoomScreen(
                                                 editingMessage = null
                                                 replyDraft = ReplyDraft(
                                                     messageId = msg.id,
-                                                    senderName = if (mine) "Tú" else msg.senderName,
+                                                    senderName = if (mine) tr(R.string.s_tu) else msg.senderName,
                                                     previewText = msg.text,
                                                 )
                                             },
@@ -363,8 +365,8 @@ fun ZoneRoomScreen(
                             },
                             placeholder = {
                                 Text(
-                                    if (editingMessage != null) "Editar mensaje..."
-                                    else "Escribe a tu zona (@ para etiquetar)..."
+                                    if (editingMessage != null) tr(R.string.s_editar_mensaje)
+                                    else tr(R.string.s_escribe_a_tu_zona_para)
                                 )
                             },
                             maxLines = 3,
@@ -419,7 +421,7 @@ fun ZoneRoomScreen(
     selectedMessageForActions?.let { msg ->
         val mine = msg.senderId == currentUserId
         MessageActionsDialog(
-            senderName = if (mine) "Tú" else msg.senderName,
+            senderName = if (mine) tr(R.string.s_tu) else msg.senderName,
             previewText = msg.text,
             canCopy = msg.text.isNotBlank(),
             canEdit = mine,
@@ -429,7 +431,7 @@ fun ZoneRoomScreen(
                 editingMessage = null
                 replyDraft = ReplyDraft(
                     messageId = msg.id,
-                    senderName = if (mine) "Tú" else msg.senderName,
+                    senderName = if (mine) tr(R.string.s_tu) else msg.senderName,
                     previewText = msg.text,
                 )
             },
@@ -450,8 +452,8 @@ fun ZoneRoomScreen(
     pendingDeleteMessage?.let { msg ->
         AlertDialog(
             onDismissRequest = { pendingDeleteMessage = null },
-            title = { Text("¿Eliminar mensaje?") },
-            text = { Text("Se retirará tu mensaje de esta Sala Local.") },
+            title = { Text(tr(R.string.s_eliminar_mensaje)) },
+            text = { Text(tr(R.string.s_se_retirara_tu_mensaje_de)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -467,12 +469,12 @@ fun ZoneRoomScreen(
                         contentColor = MaterialTheme.colorScheme.onError,
                     ),
                 ) {
-                    Text("Eliminar")
+                    Text(tr(R.string.s_eliminar))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteMessage = null }) {
-                    Text("Cancelar")
+                    Text(tr(R.string.s_cancelar))
                 }
             },
         )
@@ -553,15 +555,15 @@ private fun ZoneMessageItem(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (isMine) "${message.senderName} (Tú)" else message.senderName,
+                        text = if (isMine) tr(R.string.s_tu_2, message.senderName) else message.senderName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
                         text = buildString {
-                            if (isOnline) append("En línea · ")
+                            if (isOnline) append(tr(R.string.s_en_linea_3))
                             append(formatRelativeTimestamp(message.createdAt))
-                            if (message.edited) append(" · Editado")
+                            if (message.edited) append(tr(R.string.s_editado_2))
                             append(distLabel)
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -584,7 +586,7 @@ private fun ZoneMessageItem(
                         onDismissRequest = { menuExpanded = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Responder") },
+                            text = { Text(tr(R.string.s_responder)) },
                             leadingIcon = { Icon(Icons.AutoMirrored.Rounded.Reply, contentDescription = null) },
                             onClick = {
                                 menuExpanded = false
@@ -593,7 +595,7 @@ private fun ZoneMessageItem(
                         )
                         if (isMine) {
                             DropdownMenuItem(
-                                text = { Text("Editar mensaje") },
+                                text = { Text(tr(R.string.s_editar_mensaje_2)) },
                                 leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
                                 onClick = {
                                     menuExpanded = false
@@ -601,7 +603,7 @@ private fun ZoneMessageItem(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Eliminar mensaje") },
+                                text = { Text(tr(R.string.s_eliminar_mensaje_2)) },
                                 leadingIcon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null) },
                                 onClick = {
                                     menuExpanded = false
@@ -610,7 +612,7 @@ private fun ZoneMessageItem(
                             )
                         } else {
                             DropdownMenuItem(
-                                text = { Text("Abrir chat privado") },
+                                text = { Text(tr(R.string.s_abrir_chat_privado)) },
                                 leadingIcon = { Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null) },
                                 onClick = {
                                     menuExpanded = false
@@ -618,7 +620,7 @@ private fun ZoneMessageItem(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Reportar mensaje") },
+                                text = { Text(tr(R.string.s_reportar_mensaje)) },
                                 leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
                                 onClick = {
                                     menuExpanded = false
@@ -626,7 +628,7 @@ private fun ZoneMessageItem(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Bloquear usuario") },
+                                text = { Text(tr(R.string.s_bloquear_usuario)) },
                                 leadingIcon = { Icon(Icons.Outlined.Block, contentDescription = null) },
                                 onClick = {
                                     menuExpanded = false

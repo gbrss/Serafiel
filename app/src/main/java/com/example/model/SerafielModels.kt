@@ -1,5 +1,8 @@
 package com.example.model
 
+import com.example.R
+import com.example.i18n.tr
+
 import androidx.annotation.Keep
 import androidx.compose.ui.graphics.Color
 import com.google.firebase.Timestamp
@@ -17,11 +20,11 @@ enum class SocialPurpose(
     val labelEs: String,
     val shortDescriptionEs: String,
 ) {
-    FRIENDSHIP("Amistad", "Conocer gente maja y compartir planes"),
-    NETWORKING("Networking", "Charlar sobre proyectos, ideas o trabajo"),
-    TOURISM("Turismo", "Recomendaciones locales y exploración"),
-    HELP("Ayuda", "Orientación rápida o apoyo vecinal"),
-    CASUAL("Charla", "Conversación espontánea sin presiones");
+    FRIENDSHIP(tr(R.string.s_amistad), tr(R.string.s_conocer_gente_maja_y_compartir)),
+    NETWORKING(tr(R.string.s_networking), tr(R.string.s_charlar_sobre_proyectos_ideas_o)),
+    TOURISM(tr(R.string.s_turismo), tr(R.string.s_recomendaciones_locales_y_exploracion)),
+    HELP(tr(R.string.s_ayuda), tr(R.string.s_orientacion_rapida_o_apoyo_vecinal)),
+    CASUAL(tr(R.string.s_charla), tr(R.string.s_conversacion_espontanea_sin_presiones));
 
     companion object {
         fun fromRaw(raw: String?): SocialPurpose =
@@ -35,12 +38,12 @@ enum class AvatarColor(
     val bgColor: Color,
     val contentColor: Color,
 ) {
-    AMBER("amber", "Ámbar", Color(0xFFE77E3A), Color(0xFFFFFFFF)),
-    SAGE("sage", "Salvia", Color(0xFF398E8A), Color(0xFFFFFFFF)),
-    CORAL("coral", "Coral", Color(0xFFE06358), Color(0xFFFFFFFF)),
-    SUN("sun", "Sol", Color(0xFFE5A429), Color(0xFF2B1B00)),
-    TEAL("teal", "Brisa", Color(0xFF2E6F8E), Color(0xFFFFFFFF)),
-    INDIGO("indigo", "Noche", Color(0xFF5D679B), Color(0xFFFFFFFF));
+    AMBER("amber", tr(R.string.s_ambar), Color(0xFFE77E3A), Color(0xFFFFFFFF)),
+    SAGE("sage", tr(R.string.s_salvia), Color(0xFF398E8A), Color(0xFFFFFFFF)),
+    CORAL("coral", tr(R.string.s_coral), Color(0xFFE06358), Color(0xFFFFFFFF)),
+    SUN("sun", tr(R.string.s_sol), Color(0xFFE5A429), Color(0xFF2B1B00)),
+    TEAL("teal", tr(R.string.s_brisa), Color(0xFF2E6F8E), Color(0xFFFFFFFF)),
+    INDIGO("indigo", tr(R.string.s_noche), Color(0xFF5D679B), Color(0xFFFFFFFF));
 
     companion object {
         fun fromKey(key: String?): AvatarColor =
@@ -52,11 +55,11 @@ enum class ReportReason(
     val key: String,
     val labelEs: String,
 ) {
-    HARASSMENT("harassment", "Acoso o trato irrespetuoso"),
-    SPAM("spam", "Spam o publicidad no solicitada"),
-    INAPPROPRIATE("inappropriate", "Contenido inapropiado"),
-    IMPERSONATION("impersonation", "Suplantación de identidad"),
-    OTHER("other", "Otro motivo de seguridad");
+    HARASSMENT("harassment", tr(R.string.s_acoso_o_trato_irrespetuoso)),
+    SPAM("spam", tr(R.string.s_spam_o_publicidad_no_solicitada)),
+    INAPPROPRIATE("inappropriate", tr(R.string.s_contenido_inapropiado)),
+    IMPERSONATION("impersonation", tr(R.string.s_suplantacion_de_identidad)),
+    OTHER("other", tr(R.string.s_otro_motivo_de_seguridad));
 }
 
 @Keep
@@ -93,9 +96,9 @@ data class ProximityBeacon(
     val online: Boolean = false,
     val lastSeenAt: Timestamp? = null,
     val accuracyMeters: Int? = null,
-    val languages: List<String> = listOf("Español"),
+    val languages: List<String> = listOf(tr(R.string.s_espanol)),
     val zoneKey: String = "plaza_central",
-    val zoneName: String = "Zona Abierta",
+    val zoneName: String = tr(R.string.s_zona_abierta),
     val approxLat: Double = 0.0,
     val approxLon: Double = 0.0,
     val active: Boolean = true,
@@ -236,16 +239,16 @@ data class DirectMessage(
     }
 
     fun previewLabel(): String = when (messageType) {
-        TYPE_IMAGE -> text.ifBlank { "Imagen compartida" }.let { if (text.isBlank()) "Foto" else "Foto: $text" }
-        TYPE_POLL -> "📊 Encuesta: $text"
-        TYPE_VIDEO -> if (text.isBlank()) "Video (${formatDuration(durationSec)})" else "Video: $text"
-        TYPE_VOICE -> "Mensaje de voz (${formatDuration(durationSec)})"
-        TYPE_AUDIO -> mediaName?.takeIf { it.isNotBlank() }?.let { "Audio: $it" } ?: "Archivo de audio"
-        TYPE_LOCATION -> locationLabel?.takeIf { it.isNotBlank() }?.let { "Ubicación: $it" } ?: "Ubicación actual"
+        TYPE_IMAGE -> text.ifBlank { tr(R.string.s_imagen_compartida) }.let { if (text.isBlank()) tr(R.string.s_foto) else tr(R.string.s_foto_2, text) }
+        TYPE_POLL -> tr(R.string.s_encuesta, text)
+        TYPE_VIDEO -> if (text.isBlank()) tr(R.string.s_video, formatDuration(durationSec)) else tr(R.string.s_video_2, text)
+        TYPE_VOICE -> tr(R.string.s_mensaje_de_voz, formatDuration(durationSec))
+        TYPE_AUDIO -> mediaName?.takeIf { it.isNotBlank() }?.let { tr(R.string.s_audio, it) } ?: tr(R.string.s_archivo_de_audio)
+        TYPE_LOCATION -> locationLabel?.takeIf { it.isNotBlank() }?.let { tr(R.string.s_ubicacion, it) } ?: tr(R.string.s_ubicacion_actual)
         TYPE_LIVE_LOCATION -> when {
-            liveActive && text.isNotBlank() -> "Ubicación en tiempo real: $text"
-            liveActive -> "Ubicación en tiempo real"
-            else -> "Ubicación compartida"
+            liveActive && text.isNotBlank() -> tr(R.string.s_ubicacion_en_tiempo_real, text)
+            liveActive -> tr(R.string.s_ubicacion_en_tiempo_real_2)
+            else -> tr(R.string.s_ubicacion_compartida)
         }
         else -> text
     }
@@ -321,12 +324,12 @@ enum class GroupCategory(
     val key: String,
     val labelEs: String,
 ) {
-    FAMILY("FAMILY", "Familia"),
-    FRIENDS("FRIENDS", "Amigos"),
-    WORK("WORK", "Trabajo"),
-    NEIGHBORS("NEIGHBORS", "Vecinos"),
-    COMMUNITY("COMMUNITY", "Comunidad"),
-    CUSTOM("CUSTOM", "Personalizado");
+    FAMILY("FAMILY", tr(R.string.s_familia)),
+    FRIENDS("FRIENDS", tr(R.string.s_amigos)),
+    WORK("WORK", tr(R.string.s_trabajo)),
+    NEIGHBORS("NEIGHBORS", tr(R.string.s_vecinos)),
+    COMMUNITY("COMMUNITY", tr(R.string.s_comunidad)),
+    CUSTOM("CUSTOM", tr(R.string.s_personalizado));
 
     companion object {
         fun fromKey(raw: String?): GroupCategory =

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.i18n.tr
+
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -186,12 +188,12 @@ fun RadarScreen(
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Activa las notificaciones",
+                                    text = tr(R.string.s_activa_las_notificaciones),
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 )
                                 Text(
-                                    text = "Recibe avisos de mensajes nuevos aunque cierres o minimices la app.",
+                                    text = tr(R.string.s_recibe_avisos_de_mensajes_nuevos),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
                                 )
@@ -200,7 +202,7 @@ fun RadarScreen(
                                 onClick = onRequestNotificationPermission,
                                 modifier = Modifier.testTag("enable_notifications_banner_button"),
                             ) {
-                                Text("Activar")
+                                Text(tr(R.string.s_activar))
                             }
                         }
                     }
@@ -235,15 +237,15 @@ fun RadarScreen(
                         val isGlobal = radiusKm > ProximityBeacon.MAX_LOCAL_RADIUS_KM
                         Text(
                             text = if (isGlobal) {
-                                "Personas en todo el mundo (${beaconsList.size})"
+                                tr(R.string.s_personas_en_todo_el_mundo, beaconsList.size)
                             } else {
-                                "Personas activas en $radiusKm km (${beaconsList.size})"
+                                tr(R.string.s_personas_activas_en_km, radiusKm, beaconsList.size)
                             },
                             style = MaterialTheme.typography.titleMedium,
                         )
                         if (outsideRadiusCount > 0) {
                             Text(
-                                text = "+$outsideRadiusCount más lejos",
+                                text = tr(R.string.s_mas_lejos, outsideRadiusCount),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
@@ -261,7 +263,7 @@ fun RadarScreen(
                         FilterChip(
                             selected = selectedPurposeFilter == null,
                             onClick = { onSelectPurposeFilter(null) },
-                            label = { Text("Todos") },
+                            label = { Text(tr(R.string.s_todos)) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                 selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -354,9 +356,9 @@ fun RadarScreen(
                                     sameZone = beacon.zoneKey == currentZone.zoneKey,
                                 )
                             } else if (!currentZone.hasValidCoords) {
-                                "Calculando distancia..."
+                                tr(R.string.s_calculando_distancia)
                             } else {
-                                "Ubicación pendiente"
+                                tr(R.string.s_ubicacion_pendiente)
                             }
                             val isPeerOnline = peerVisualMap[beacon.userId]?.isOnline ?: beacon.isCurrentlyOnline()
                             BeaconCard(
@@ -392,9 +394,9 @@ fun RadarScreen(
                 sameZone = peer.zoneKey == currentZone.zoneKey,
             )
         } else if (!currentZone.hasValidCoords) {
-            "Calculando distancia..."
+            tr(R.string.s_calculando_distancia)
         } else {
-            "Ubicación pendiente"
+            tr(R.string.s_ubicacion_pendiente)
         }
         val isPeerOnline = peerVisualMap[peer.userId]?.isOnline ?: peer.isCurrentlyOnline()
         ActivePersonDetailDialog(
@@ -502,20 +504,20 @@ private fun ZoneHeaderCard(
                 Text(
                     text = if (!currentZone.hasValidCoords) {
                         if (isRefreshingLocation) {
-                            "Localizando GPS de alta precisión..."
+                            tr(R.string.s_localizando_gps_de_alta_precision)
                         } else if (!hasLocationPermission) {
-                            "Activa el GPS para medir distancia exacta con cada persona"
+                            tr(R.string.s_activa_el_gps_para_medir)
                         } else {
-                            "Toca el icono GPS para calibrar tu ubicación real"
+                            tr(R.string.s_toca_el_icono_gps_para)
                         }
                     } else if (currentZone.isFromGps) {
                         val accText = currentZone.accuracyMeters?.let { acc ->
-                            if (acc >= 300) "Precisión aprox. ±$acc m · Toca GPS para precisar"
-                            else "GPS preciso (±$acc m) · Distancia en m/km"
-                        } ?: "GPS activo · Distancia en m/km"
-                        "$accText · Toca para cambiar"
+                            if (acc >= 300) tr(R.string.s_precision_aprox_m_toca_gps, acc)
+                            else tr(R.string.s_gps_preciso_m_distancia_en, acc)
+                        } ?: tr(R.string.s_gps_activo_distancia_en_m)
+                        tr(R.string.s_toca_para_cambiar, accText)
                     } else {
-                        "Zona seleccionada · Distancia abierta · Toca para cambiar"
+                        tr(R.string.s_zona_seleccionada_distancia_abierta_toca)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -724,7 +726,7 @@ private fun RadarVisualizerCard(
                         )
 
                         val shortName = beacon.displayName.trim().substringBefore(" ").take(10)
-                        val shortDist = km?.let { LocationHelper.formatCompactDistance(it) } ?: "GPS..."
+                        val shortDist = km?.let { LocationHelper.formatCompactDistance(it) } ?: tr(R.string.s_gps)
                         val badgeText = "$shortName · $shortDist"
                         val measured = textMeasurer.measure(
                             text = badgeText,
@@ -780,7 +782,7 @@ private fun RadarVisualizerCard(
                             modifier = Modifier.size(14.dp),
                         )
                         Text(
-                            text = if (isGlobalRadius) "Radio: +1000 km · Mundo" else "Radio: $sliderRadiusKm km",
+                            text = if (isGlobalRadius) tr(R.string.s_radio_1000_km_mundo) else tr(R.string.s_radio_km, sliderRadiusKm),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -799,7 +801,7 @@ private fun RadarVisualizerCard(
                             .clickable { onInspectBeacon(nearbyBeacons.first()) },
                     ) {
                         Text(
-                            text = "Toca una persona para ver ubicación",
+                            text = tr(R.string.s_toca_una_persona_para_ver),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -811,7 +813,7 @@ private fun RadarVisualizerCard(
             if (nearbyBeacons.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "Ubicación en el radar (${nearbyBeacons.size})",
+                        text = tr(R.string.s_ubicacion_en_el_radar, nearbyBeacons.size),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -832,7 +834,7 @@ private fun RadarVisualizerCard(
                                 )
                                 LocationHelper.formatCompactDistance(km)
                             } else {
-                                "GPS..."
+                                tr(R.string.s_gps)
                             }
                             val dotColor = AvatarColor.fromKey(beacon.avatarColor).bgColor
                             Surface(
@@ -893,8 +895,8 @@ private fun RadarVisualizerCard(
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
-                            text = myBeacon?.statusText?.ifBlank { "Sin estado actual" }
-                                ?: "Personaliza tu propósito y estado",
+                            text = myBeacon?.statusText?.ifBlank { tr(R.string.s_sin_estado_actual) }
+                                ?: tr(R.string.s_personaliza_tu_proposito_y_estado),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -925,7 +927,7 @@ private fun RadarVisualizerCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Alcance de la baliza",
+                            text = tr(R.string.s_alcance_de_la_baliza),
                             style = MaterialTheme.typography.labelLarge,
                         )
                         Surface(
@@ -933,7 +935,7 @@ private fun RadarVisualizerCard(
                             color = MaterialTheme.colorScheme.primaryContainer,
                         ) {
                             Text(
-                                text = if (isGlobalRadius) "+1000 km · Mundo" else "$sliderRadiusKm km",
+                                text = if (isGlobalRadius) tr(R.string.s_1000_km_mundo) else "$sliderRadiusKm km",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 fontWeight = FontWeight.SemiBold,
@@ -987,7 +989,7 @@ private fun RadarVisualizerCard(
                                 sliderRadiusKm = 1000
                                 onRadiusChange(ProximityBeacon.GLOBAL_RADIUS_KM, true)
                             },
-                            label = { Text("+1000 km · Todo el mundo") },
+                            label = { Text(tr(R.string.s_1000_km_todo_el_mundo)) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
                                 selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -1012,7 +1014,7 @@ private fun RadarVisualizerCard(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(if (myBeacon == null) "Configurar mi baliza" else "Editar mi baliza y propósito")
+                Text(if (myBeacon == null) tr(R.string.s_configurar_mi_baliza) else tr(R.string.s_editar_mi_baliza_y_proposito))
             }
         }
     }
@@ -1070,9 +1072,9 @@ private fun BeaconCard(
                     )
                     Text(
                         text = if (isOnline) {
-                            "En línea · ${beacon.zoneName.ifBlank { "Zona abierta" }}"
+                            tr(R.string.s_en_linea_2, beacon.zoneName.ifBlank { tr(R.string.s_zona_abierta_2) })
                         } else {
-                            beacon.zoneName.ifBlank { "Zona abierta" }
+                            beacon.zoneName.ifBlank { tr(R.string.s_zona_abierta_2) }
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = if (isOnline) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1098,7 +1100,7 @@ private fun BeaconCard(
                         onDismissRequest = { menuExpanded = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Añadir a grupo") },
+                            text = { Text(tr(R.string.s_anadir_a_grupo)) },
                             leadingIcon = { Icon(Icons.Outlined.GroupAdd, contentDescription = null) },
                             onClick = {
                                 menuExpanded = false
@@ -1106,7 +1108,7 @@ private fun BeaconCard(
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Reportar perfil") },
+                            text = { Text(tr(R.string.s_reportar_perfil)) },
                             leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
                             onClick = {
                                 menuExpanded = false
@@ -1114,7 +1116,7 @@ private fun BeaconCard(
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Bloquear persona") },
+                            text = { Text(tr(R.string.s_bloquear_persona)) },
                             leadingIcon = { Icon(Icons.Outlined.Block, contentDescription = null) },
                             onClick = {
                                 menuExpanded = false
@@ -1141,7 +1143,7 @@ private fun BeaconCard(
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = "$distanceLabel · ${beacon.zoneName.ifBlank { "Zona Abierta" }}",
+                        text = "$distanceLabel · ${beacon.zoneName.ifBlank { tr(R.string.s_zona_abierta) }}",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -1165,7 +1167,7 @@ private fun BeaconCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = beacon.languages.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: "Español",
+                    text = beacon.languages.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: tr(R.string.s_espanol),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1182,7 +1184,7 @@ private fun BeaconCard(
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Saludar")
+                    Text(tr(R.string.s_saludar))
                 }
             }
         }
@@ -1219,7 +1221,7 @@ private fun EmptyRadarCard(
             )
             Text(
                 text = if (outsideRadiusCount > 0) {
-                    "No hay balizas dentro de $radiusKm km"
+                    tr(R.string.s_no_hay_balizas_dentro_de, radiusKm)
                 } else {
                     stringResource(R.string.empty_radar_title)
                 },
@@ -1228,7 +1230,7 @@ private fun EmptyRadarCard(
             )
             Text(
                 text = if (outsideRadiusCount > 0) {
-                    "Hay $outsideRadiusCount persona(s) activa(s) más lejos. Amplía el alcance a +1000 km para descubrir usuarios de todo el mundo."
+                    tr(R.string.s_hay_persona_s_activa_s, outsideRadiusCount)
                 } else {
                     stringResource(R.string.empty_radar_subtitle)
                 },
@@ -1250,7 +1252,7 @@ private fun EmptyRadarCard(
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Ampliar a +1000 km · Todo el mundo")
+                    Text(tr(R.string.s_ampliar_a_1000_km_todo))
                 }
             }
             Row(
@@ -1264,7 +1266,7 @@ private fun EmptyRadarCard(
                             .weight(1f)
                             .height(48.dp),
                     ) {
-                        Text("Encender baliza")
+                        Text(tr(R.string.s_encender_baliza))
                     }
                 }
                 Button(
@@ -1280,7 +1282,7 @@ private fun EmptyRadarCard(
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Ir a Sala Local")
+                    Text(tr(R.string.s_ir_a_sala_local))
                 }
             }
         }
@@ -1326,7 +1328,7 @@ private fun ActivePersonDetailDialog(
                     )
                     if (isOnline) {
                         Text(
-                            text = "● En línea ahora",
+                            text = tr(R.string.s_en_linea_ahora),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF16A34A),
                             fontWeight = FontWeight.SemiBold,
@@ -1355,7 +1357,7 @@ private fun ActivePersonDetailDialog(
                         )
                         Column {
                             Text(
-                                text = beacon.zoneName.ifBlank { "Zona Abierta" },
+                                text = beacon.zoneName.ifBlank { tr(R.string.s_zona_abierta) },
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
@@ -1380,7 +1382,7 @@ private fun ActivePersonDetailDialog(
                     )
                 }
                 Text(
-                    text = "Idiomas: ${beacon.languages.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: "Español"}",
+                    text = tr(R.string.s_idiomas, beacon.languages.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: tr(R.string.s_espanol)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1390,7 +1392,7 @@ private fun ActivePersonDetailDialog(
                 ) {
                     Icon(Icons.Outlined.GroupAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Añadir a un grupo")
+                    Text(tr(R.string.s_anadir_a_un_grupo))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1399,12 +1401,12 @@ private fun ActivePersonDetailDialog(
                     TextButton(onClick = onReport) {
                         Icon(Icons.Outlined.Flag, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Reportar")
+                        Text(tr(R.string.s_reportar))
                     }
                     TextButton(onClick = onBlock) {
                         Icon(Icons.Outlined.Block, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Bloquear")
+                        Text(tr(R.string.s_bloquear))
                     }
                 }
             }
@@ -1416,12 +1418,12 @@ private fun ActivePersonDetailDialog(
             ) {
                 Icon(Icons.Rounded.WavingHand, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Saludar")
+                Text(tr(R.string.s_saludar))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar")
+                Text(tr(R.string.s_cerrar))
             }
         },
     )
@@ -1435,24 +1437,24 @@ private fun GreetingDialog(
 ) {
     val purpose = SocialPurpose.fromRaw(beacon.purpose)
     var message by remember {
-        mutableStateOf("¡Hola ${beacon.displayName}! Vi tu baliza (${purpose.labelEs}) cerca y me gustaría saludarte.")
+        mutableStateOf(tr(R.string.s_hola_vi_tu_baliza_cerca, beacon.displayName, purpose.labelEs))
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Saludar a ${beacon.displayName}") },
+        title = { Text(tr(R.string.s_saludar_a, beacon.displayName)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 PurposeBadge(purpose = purpose)
                 Text(
-                    text = "Envía un primer mensaje amable y respetuoso para abrir un chat 1:1.",
+                    text = tr(R.string.s_envia_un_primer_mensaje_amable),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedTextField(
                     value = message,
                     onValueChange = { message = it.take(500) },
-                    label = { Text("Tu saludo") },
+                    label = { Text(tr(R.string.s_tu_saludo)) },
                     minLines = 2,
                     maxLines = 4,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
@@ -1474,12 +1476,12 @@ private fun GreetingDialog(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Abrir chat")
+                Text(tr(R.string.s_abrir_chat))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(tr(R.string.s_cancelar))
             }
         },
     )
@@ -1493,11 +1495,11 @@ fun ZonePickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Elegir zona de exploración") },
+        title = { Text(tr(R.string.s_elegir_zona_de_exploracion)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Puedes usar tu ubicación aproximada o explorar una sala abierta:",
+                    text = tr(R.string.s_puedes_usar_tu_ubicacion_aproximada),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1540,7 +1542,7 @@ fun ZonePickerDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar")
+                Text(tr(R.string.s_cerrar))
             }
         },
     )

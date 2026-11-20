@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.i18n.tr
+
 import androidx.compose.foundation.layout.defaultMinSize
 
 import android.Manifest
@@ -287,12 +289,12 @@ private fun ChatsListScreen(
                                     modifier = Modifier.size(44.dp),
                                 )
                                 Text(
-                                    text = "Tus conversaciones aparecerán aquí",
+                                    text = tr(R.string.s_tus_conversaciones_apareceran_aqui),
                                     style = MaterialTheme.typography.titleLarge,
                                     textAlign = TextAlign.Center,
                                 )
                                 Text(
-                                    text = "Saluda a alguien desde el Radar o escribe en la Sala Local para iniciar un chat 1:1.",
+                                    text = tr(R.string.s_saluda_a_alguien_desde_el),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
@@ -328,14 +330,14 @@ private fun ChatsListScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Outlined.Close,
-                                            contentDescription = "Cancelar selección",
+                                            contentDescription = tr(R.string.s_cancelar_seleccion),
                                         )
                                     }
                                     Text(
                                         text = if (selectedChatIds.isEmpty()) {
-                                            "Selecciona conversaciones"
+                                            tr(R.string.s_selecciona_conversaciones)
                                         } else {
-                                            "${selectedChatIds.size} seleccionada(s)"
+                                            tr(R.string.s_seleccionada_s, selectedChatIds.size)
                                         },
                                         style = MaterialTheme.typography.titleSmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -360,7 +362,7 @@ private fun ChatsListScreen(
                                             modifier = Modifier.size(18.dp),
                                         )
                                         Spacer(Modifier.width(4.dp))
-                                        Text(if (allSelected) "Ninguna" else "Todas")
+                                        Text(if (allSelected) tr(R.string.s_ninguna) else tr(R.string.s_todas))
                                     }
                                     IconButton(
                                         onClick = { showDeleteConfirmDialog = true },
@@ -371,7 +373,7 @@ private fun ChatsListScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Outlined.DeleteOutline,
-                                            contentDescription = "Eliminar conversaciones seleccionadas",
+                                            contentDescription = tr(R.string.s_eliminar_conversaciones_seleccionadas),
                                             tint = if (selectedChatIds.isNotEmpty()) {
                                                 MaterialTheme.colorScheme.error
                                             } else {
@@ -391,7 +393,7 @@ private fun ChatsListScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(
-                                    text = "Conversaciones (${chats.size})",
+                                    text = tr(R.string.s_conversaciones, chats.size),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -410,7 +412,7 @@ private fun ChatsListScreen(
                                         modifier = Modifier.size(18.dp),
                                     )
                                     Spacer(Modifier.width(6.dp))
-                                    Text("Seleccionar")
+                                    Text(tr(R.string.s_seleccionar))
                                 }
                             }
                         }
@@ -424,7 +426,7 @@ private fun ChatsListScreen(
                         ) {
                             items(chats, key = { it.id }) { chat ->
                                 val peerId = chat.participantIds.firstOrNull { it != currentUserId } ?: ""
-                                val peerName = chat.participantNames[peerId] ?: "Persona cercana"
+                                val peerName = chat.participantNames[peerId] ?: tr(R.string.s_persona_cercana)
                                 val peerColor = AvatarColor.fromKey(chat.participantColors[peerId])
                                 val purpose = SocialPurpose.fromRaw(chat.purpose)
                                 val visual = peerVisualMap[peerId]
@@ -503,7 +505,7 @@ private fun ChatsListScreen(
                                                 overflow = TextOverflow.Ellipsis,
                                             )
                                             Text(
-                                                text = chat.lastMessage.ifBlank { "Conversación abierta" },
+                                                text = chat.lastMessage.ifBlank { tr(R.string.s_conversacion_abierta) },
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
@@ -517,7 +519,7 @@ private fun ChatsListScreen(
                                                 PurposeBadge(purpose = purpose)
                                                 if (isOnline) {
                                                     Text(
-                                                        text = "En línea",
+                                                        text = tr(R.string.s_en_linea),
                                                         style = MaterialTheme.typography.labelSmall,
                                                         color = Color(0xFF16A34A),
                                                         fontWeight = FontWeight.SemiBold,
@@ -579,12 +581,12 @@ private fun ChatsListScreen(
             onDismissRequest = { showDeleteConfirmDialog = false },
             title = {
                 Text(
-                    if (count == 1) "¿Eliminar conversación?"
-                    else "¿Eliminar $count conversaciones?"
+                    if (count == 1) tr(R.string.s_eliminar_conversacion)
+                    else tr(R.string.s_eliminar_conversaciones, count)
                 )
             },
             text = {
-                Text("Se eliminarán las conversaciones seleccionadas y todo su historial de mensajes.")
+                Text(tr(R.string.s_se_eliminaran_las_conversaciones_seleccionadas))
             },
             confirmButton = {
                 Button(
@@ -601,12 +603,12 @@ private fun ChatsListScreen(
                     ),
                     modifier = Modifier.testTag("confirm_delete_chats_button"),
                 ) {
-                    Text("Eliminar")
+                    Text(tr(R.string.s_eliminar))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirmDialog = false }) {
-                    Text("Cancelar")
+                    Text(tr(R.string.s_cancelar))
                 }
             },
         )
@@ -650,7 +652,7 @@ private fun DirectChatDetailScreen(
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     val peerId = chat.participantIds.firstOrNull { it != currentUserId } ?: ""
-    val peerName = chat.participantNames[peerId] ?: "Persona cercana"
+    val peerName = chat.participantNames[peerId] ?: tr(R.string.s_persona_cercana)
     val peerColor = AvatarColor.fromKey(chat.participantColors[peerId])
     val peerVisual = peerVisualMap[peerId]
 
@@ -743,7 +745,7 @@ private fun DirectChatDetailScreen(
         if (granted) {
             startCameraCapture()
         } else {
-            onShowMessage("Activa el permiso de cámara para tomar y enviar fotos.")
+            onShowMessage(tr(R.string.s_activa_el_permiso_de_camara))
         }
     }
 
@@ -779,7 +781,7 @@ private fun DirectChatDetailScreen(
         if (anyGranted) {
             showWhatsAppLocationPicker = true
         } else {
-            onShowMessage("Activa el permiso de ubicación para enviar tu ubicación.")
+            onShowMessage(tr(R.string.s_activa_el_permiso_de_ubicacion))
         }
     }
 
@@ -862,9 +864,9 @@ private fun DirectChatDetailScreen(
                     } ?: ""
                     val headerSubtitle = buildString {
                         if (isPeerOnline) {
-                            append("En línea")
+                            append(tr(R.string.s_en_linea))
                         } else if (peerVisual?.lastSeenAt != null) {
-                            append("Últ. vez ${formatLastSeen(peerVisual.lastSeenAt)}")
+                            append(tr(R.string.s_ult_vez, formatLastSeen(peerVisual.lastSeenAt)))
                         } else {
                             append(SocialPurpose.fromRaw(chat.purpose).labelEs)
                         }
@@ -920,7 +922,7 @@ private fun DirectChatDetailScreen(
                             onDismissRequest = { menuExpanded = false },
                         ) {
                             DropdownMenuItem(
-                                    text = { Text("Buscar en el chat") },
+                                    text = { Text(tr(R.string.s_buscar_en_el_chat)) },
                                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                                     onClick = {
                                         menuExpanded = false
@@ -929,7 +931,7 @@ private fun DirectChatDetailScreen(
                                 )
                                 if (peerId.isNotBlank()) {
                                 DropdownMenuItem(
-                                    text = { Text("Añadir a grupo") },
+                                    text = { Text(tr(R.string.s_anadir_a_grupo)) },
                                     leadingIcon = { Icon(Icons.Outlined.GroupAdd, contentDescription = null) },
                                     onClick = {
                                         menuExpanded = false
@@ -939,7 +941,7 @@ private fun DirectChatDetailScreen(
                             }
                             if (peerId.isNotBlank()) {
                                 DropdownMenuItem(
-                                    text = { Text("Reportar") },
+                                    text = { Text(tr(R.string.s_reportar)) },
                                     leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
                                     onClick = {
                                         menuExpanded = false
@@ -947,7 +949,7 @@ private fun DirectChatDetailScreen(
                                     },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Bloquear persona") },
+                                    text = { Text(tr(R.string.s_bloquear_persona)) },
                                     leadingIcon = { Icon(Icons.Outlined.Block, contentDescription = null) },
                                     onClick = {
                                         menuExpanded = false
@@ -1000,7 +1002,7 @@ private fun DirectChatDetailScreen(
                             modifier = Modifier.size(18.dp),
                         )
                         Text(
-                            text = "Compartiendo ubicación en tiempo real · ${DirectMessage.formatDuration(liveLocationState.remainingSec)}",
+                            text = tr(R.string.s_compartiendo_ubicacion_en_tiempo_real, DirectMessage.formatDuration(liveLocationState.remainingSec)),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.weight(1f),
@@ -1009,7 +1011,7 @@ private fun DirectChatDetailScreen(
                             onClick = onStopLiveLocation,
                             modifier = Modifier.testTag("stop_live_location_banner_button"),
                         ) {
-                            Text("Detener", color = MaterialTheme.colorScheme.error)
+                            Text(tr(R.string.s_detener), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -1058,7 +1060,7 @@ private fun DirectChatDetailScreen(
                                         editingMessage = null
                                         replyDraft = ReplyDraft(
                                             messageId = msg.id,
-                                            senderName = if (mine) "Tú" else msg.senderName.ifBlank { peerName },
+                                            senderName = if (mine) tr(R.string.s_tu) else msg.senderName.ifBlank { peerName },
                                             previewText = msg.previewLabel(),
                                         )
                                     },
@@ -1168,7 +1170,7 @@ private fun DirectChatDetailScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.EmojiEmotions,
-                                        contentDescription = "Emojis",
+                                        contentDescription = tr(R.string.s_emojis),
                                         tint = if (showEmojiPicker) {
                                             MaterialTheme.colorScheme.primary
                                         } else {
@@ -1187,7 +1189,7 @@ private fun DirectChatDetailScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.AddCircleOutline,
-                                        contentDescription = "Adjuntar imagen, audio o ubicación",
+                                        contentDescription = tr(R.string.s_adjuntar_imagen_audio_o_ubicacion),
                                         tint = if (showAttachmentsPanel) {
                                             MaterialTheme.colorScheme.primary
                                         } else {
@@ -1203,7 +1205,7 @@ private fun DirectChatDetailScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.PhotoCamera,
-                                        contentDescription = "Tomar foto con cámara",
+                                        contentDescription = tr(R.string.s_tomar_foto_con_camara),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
@@ -1213,7 +1215,7 @@ private fun DirectChatDetailScreen(
                                         draft = it.take(1000)
                                         if (editingMessage == null) onComposerTyping(draft.isNotBlank())
                                     },
-                                    placeholder = { Text(if (editingMessage != null) "Editar mensaje..." else "Mensaje...") },
+                                    placeholder = { Text(if (editingMessage != null) tr(R.string.s_editar_mensaje) else tr(R.string.s_mensaje)) },
                                     maxLines = 4,
                                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                                     shape = RoundedCornerShape(22.dp),
@@ -1327,7 +1329,7 @@ private fun DirectChatDetailScreen(
             onForward = { forwardHandler(msg) },
             onPin = { pinHandlerState(false, chat.id, if (chat.pinnedMessageId == msg.id) null else msg.id, msg.previewLabel()) },
             isPinned = chat.pinnedMessageId == msg.id,
-            senderName = if (mine) "Tú" else msg.senderName.ifBlank { peerName },
+            senderName = if (mine) tr(R.string.s_tu) else msg.senderName.ifBlank { peerName },
             previewText = msg.previewLabel(),
             canCopy = msg.text.isNotBlank(),
             canEdit = mine && msg.messageType == DirectMessage.TYPE_TEXT,
@@ -1337,14 +1339,14 @@ private fun DirectChatDetailScreen(
                 editingMessage = null
                 replyDraft = ReplyDraft(
                     messageId = msg.id,
-                    senderName = if (mine) "Tú" else msg.senderName.ifBlank { peerName },
+                    senderName = if (mine) tr(R.string.s_tu) else msg.senderName.ifBlank { peerName },
                     previewText = msg.previewLabel(),
                 )
             },
             onCopy = {
                 if (msg.text.isNotBlank()) {
                     clipboardManager.setText(AnnotatedString(msg.text))
-                    onShowMessage("Texto copiado")
+                    onShowMessage(tr(R.string.s_texto_copiado))
                 }
             },
             onEdit = {
@@ -1361,8 +1363,8 @@ private fun DirectChatDetailScreen(
     pendingDeleteMessage?.let { msg ->
         AlertDialog(
             onDismissRequest = { pendingDeleteMessage = null },
-            title = { Text("¿Eliminar mensaje?") },
-            text = { Text("Se borrará este mensaje para todos en la conversación.") },
+            title = { Text(tr(R.string.s_eliminar_mensaje)) },
+            text = { Text(tr(R.string.s_se_borrara_este_mensaje_para)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -1373,7 +1375,7 @@ private fun DirectChatDetailScreen(
                         }
                         val isLatest = messages.lastOrNull()?.id == msg.id
                         val fallbackLast = if (isLatest) {
-                            messages.filter { it.id != msg.id }.lastOrNull()?.previewLabel() ?: "Conversación abierta"
+                            messages.filter { it.id != msg.id }.lastOrNull()?.previewLabel() ?: tr(R.string.s_conversacion_abierta)
                         } else {
                             null
                         }
@@ -1385,12 +1387,12 @@ private fun DirectChatDetailScreen(
                     ),
                     modifier = Modifier.testTag("confirm_delete_message_button"),
                 ) {
-                    Text("Eliminar")
+                    Text(tr(R.string.s_eliminar))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteMessage = null }) {
-                    Text("Cancelar")
+                    Text(tr(R.string.s_cancelar))
                 }
             },
         )

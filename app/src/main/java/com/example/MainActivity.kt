@@ -1,5 +1,8 @@
 package com.example
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
@@ -137,6 +140,10 @@ data class PendingNotificationNav(
 class MainActivity : androidx.fragment.app.FragmentActivity() {
     private val pendingNotificationNav = MutableStateFlow<PendingNotificationNav?>(null)
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.example.i18n.Lang.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -209,7 +216,7 @@ fun AppNavigation(
         key(user.uid) {
             SerafielAuthenticatedShell(
                 currentUserId = user.uid,
-                initialDisplayName = user.displayName.orEmpty().ifBlank { "Viajero Serafiel" },
+                initialDisplayName = user.displayName.orEmpty().ifBlank { tr(R.string.s_viajero_serafiel) },
                 initialPhotoUrl = user.photoUrl?.toString().orEmpty(),
                 pendingNotificationNav = pendingNotificationNav,
                 onConsumedNotificationNav = onConsumedNotificationNav,
@@ -294,7 +301,7 @@ private fun SerafielAuthenticatedShell(
     LaunchedEffect(Unit) { viewModel.resumeGhostIfNeeded() }
     LaunchedEffect(appUpdate.status, appUpdate.info?.build) {
         if (appUpdate.status == com.example.data.AppUpdater.Status.AVAILABLE) {
-            viewModel.emitMessage("Hay una versión nueva de Serafiel. Instálala desde Perfil → Actualizaciones")
+            viewModel.emitMessage(tr(R.string.s_hay_una_version_nueva_de))
         }
     }
 
@@ -335,7 +342,7 @@ private fun SerafielAuthenticatedShell(
             MessageListenerService.start(context)
         } else {
             scope.launch {
-                snackbarHostState.showSnackbar("Permiso de notificaciones denegado. Actívalo desde Ajustes para recibir avisos.")
+                snackbarHostState.showSnackbar(tr(R.string.s_permiso_de_notificaciones_denegado_activalo))
             }
         }
         if (!hasLocationPermission && !hasPromptedLocationPermission) {
@@ -868,7 +875,7 @@ private fun SerafielAuthenticatedShell(
                                     peerName = msg.senderName,
                                     peerColor = AvatarColor.fromKey(msg.senderColor),
                                     purpose = SocialPurpose.fromRaw(msg.purpose),
-                                    initialGreeting = "¡Hola ${msg.senderName}! Vi tu mensaje en la sala de ${currentZone.zoneName}.",
+                                    initialGreeting = tr(R.string.s_hola_vi_tu_mensaje_en, msg.senderName, currentZone.zoneName),
                                     onChatReady = { navigateToTab(ROUTE_CHATS) },
                                 )
                             },
@@ -937,7 +944,7 @@ private fun SerafielAuthenticatedShell(
                                     avatarColor = peerColorKey,
                                     photoData = photos?.first,
                                     photoUrl = photos?.second,
-                                    subtitle = "Chat 1:1",
+                                    subtitle = tr(R.string.s_chat_1_1),
                                 )
                             },
                             onDeleteChats = { chatIds -> viewModel.deleteDirectChats(chatIds) },
@@ -1035,7 +1042,7 @@ private fun SerafielAuthenticatedShell(
         val incomingShare by com.example.data.IncomingShare.pending.collectAsStateWithLifecycle()
         incomingShare?.let { shared ->
             com.example.ui.screens.ShareTargetDialog(
-                title = "Compartir con…",
+                title = tr(R.string.s_compartir_con),
                 preview = shared.describe(context),
                 targets = forwardTargets,
                 onDismiss = { com.example.data.IncomingShare.pending.value = null },

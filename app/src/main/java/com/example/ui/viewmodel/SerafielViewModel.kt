@@ -1,5 +1,8 @@
 package com.example.ui.viewmodel
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -140,7 +143,7 @@ class SerafielViewModel(
             .catch { error ->
                 val root = unwrapFirestoreError(error)
                 Log.w(TAG, "Error observing profile", root)
-                emit(UiState.Error(root.message ?: "No se pudo cargar tu perfil"))
+                emit(UiState.Error(root.message ?: tr(R.string.s_no_se_pudo_cargar_tu)))
             }
             .stateIn(
                 scope = viewModelScope,
@@ -161,7 +164,7 @@ class SerafielViewModel(
                 if (!current.isFromGps && !current.isManualChoice && !current.hasValidCoords && beaconHasGpsOrigin) {
                     _currentZone.value = ZoneLocation(
                         zoneKey = beacon!!.zoneKey.ifBlank { LocationHelper.formatZoneKey(beacon.approxLat, beacon.approxLon) },
-                        zoneName = beacon.zoneName.ifBlank { "Zona Abierta" },
+                        zoneName = beacon.zoneName.ifBlank { tr(R.string.s_zona_abierta) },
                         approxLat = beacon.approxLat,
                         approxLon = beacon.approxLon,
                         isFromGps = false,
@@ -174,7 +177,7 @@ class SerafielViewModel(
             .catch { error ->
                 val root = unwrapFirestoreError(error)
                 Log.w(TAG, "Error observing own beacon", root)
-                emit(UiState.Error(root.message ?: "No se pudo cargar tu baliza"))
+                emit(UiState.Error(root.message ?: tr(R.string.s_no_se_pudo_cargar_tu_2)))
             }
             .stateIn(
                 scope = viewModelScope,
@@ -188,7 +191,7 @@ class SerafielViewModel(
             .catch { error ->
                 val root = unwrapFirestoreError(error)
                 Log.w(TAG, "Error observing beacons", root)
-                emit(UiState.Error(root.message ?: "No se pudieron cargar las balizas cercanas"))
+                emit(UiState.Error(root.message ?: tr(R.string.s_no_se_pudieron_cargar_las)))
             }
             .stateIn(
                 scope = viewModelScope,
@@ -285,7 +288,7 @@ class SerafielViewModel(
                     .catch { error ->
                         val root = unwrapFirestoreError(error)
                         Log.w(TAG, "Error observing zone messages", root)
-                        emit(UiState.Error(root.message ?: "No se pudo cargar la sala local"))
+                        emit(UiState.Error(root.message ?: tr(R.string.s_no_se_pudo_cargar_la)))
                     }
             }
             .stateIn(
@@ -316,7 +319,7 @@ class SerafielViewModel(
             .catch { error ->
                 val root = unwrapFirestoreError(error)
                 Log.w(TAG, "Error observing chats", root)
-                emit(UiState.Error(root.message ?: "No se pudieron cargar tus chats"))
+                emit(UiState.Error(root.message ?: tr(R.string.s_no_se_pudieron_cargar_tus)))
             }
             .stateIn(
                 scope = viewModelScope,
@@ -356,7 +359,7 @@ class SerafielViewModel(
                         .catch { error ->
                             val root = unwrapFirestoreError(error)
                             Log.w(TAG, "Error observing direct messages", root)
-                            emit(UiState.Error(root.message ?: "No se pudieron cargar los mensajes"))
+                            emit(UiState.Error(root.message ?: tr(R.string.s_no_se_pudieron_cargar_los)))
                         }
                 }
             }
@@ -379,7 +382,7 @@ class SerafielViewModel(
             .catch { error ->
                 val root = unwrapFirestoreError(error)
                 Log.w(TAG, "Error observing groups", root)
-                emit(UiState.Error(root.message ?: "No se pudieron cargar tus grupos"))
+                emit(UiState.Error(root.message ?: tr(R.string.s_no_se_pudieron_cargar_tus_2)))
             }
             .stateIn(
                 scope = viewModelScope,
@@ -398,7 +401,7 @@ class SerafielViewModel(
                         .catch { error ->
                             val root = unwrapFirestoreError(error)
                             Log.w(TAG, "Error observing group messages", root)
-                            emit(UiState.Error(root.message ?: "No se pudieron cargar los mensajes del grupo"))
+                            emit(UiState.Error(root.message ?: tr(R.string.s_no_se_pudieron_cargar_los_2)))
                         }
                 }
             }
@@ -471,9 +474,9 @@ class SerafielViewModel(
                 if (msg.senderId.isNotBlank() && msg.senderId != currentUserId) {
                     map[msg.senderId] = KnownContact(
                         userId = msg.senderId,
-                        displayName = msg.senderName.ifBlank { "Usuario Serafiel" },
+                        displayName = msg.senderName.ifBlank { tr(R.string.s_usuario_serafiel) },
                         avatarColor = msg.senderColor,
-                        subtitle = _currentZone.value.zoneName.ifBlank { "Sala local" },
+                        subtitle = _currentZone.value.zoneName.ifBlank { tr(R.string.s_sala_local_2) },
                     )
                 }
             }
@@ -482,13 +485,13 @@ class SerafielViewModel(
                     if (memberId.isNotBlank() && memberId != currentUserId) {
                         val existing = map[memberId]
                         val name = group.memberNames[memberId]?.takeIf { it.isNotBlank() }
-                            ?: existing?.displayName ?: "Miembro de grupo"
+                            ?: existing?.displayName ?: tr(R.string.s_miembro_de_grupo)
                         val color = group.memberColors[memberId]
                             ?: existing?.avatarColor ?: AvatarColor.AMBER.key
                         map[memberId] = (existing ?: KnownContact(memberId, name, color)).copy(
                             displayName = name,
                             avatarColor = color,
-                            subtitle = group.name.ifBlank { "Grupo" },
+                            subtitle = group.name.ifBlank { tr(R.string.s_grupo) },
                         )
                     }
                 }
@@ -498,13 +501,13 @@ class SerafielViewModel(
                 if (!peerId.isNullOrBlank()) {
                     val existing = map[peerId]
                     val name = chat.participantNames[peerId]?.takeIf { it.isNotBlank() }
-                        ?: existing?.displayName ?: "Contacto de chat"
+                        ?: existing?.displayName ?: tr(R.string.s_contacto_de_chat)
                     val color = chat.participantColors[peerId]
                         ?: existing?.avatarColor ?: AvatarColor.AMBER.key
                     map[peerId] = (existing ?: KnownContact(peerId, name, color)).copy(
                         displayName = name,
                         avatarColor = color,
-                        subtitle = chat.zoneName.ifBlank { "Chat 1:1" },
+                        subtitle = chat.zoneName.ifBlank { tr(R.string.s_chat_1_1) },
                     )
                 }
             }
@@ -513,11 +516,11 @@ class SerafielViewModel(
                     val existing = map[beacon.userId]
                     map[beacon.userId] = KnownContact(
                         userId = beacon.userId,
-                        displayName = beacon.displayName.ifBlank { existing?.displayName ?: "Viajero Serafiel" },
+                        displayName = beacon.displayName.ifBlank { existing?.displayName ?: tr(R.string.s_viajero_serafiel) },
                         avatarColor = beacon.avatarColor,
                         photoData = beacon.photoData?.takeIf { it.isNotBlank() } ?: existing?.photoData,
                         photoUrl = beacon.photoUrl?.takeIf { it.isNotBlank() } ?: existing?.photoUrl,
-                        subtitle = beacon.zoneName.ifBlank { "Radar cercano" },
+                        subtitle = beacon.zoneName.ifBlank { tr(R.string.s_radar_cercano) },
                     )
                 }
             }
@@ -542,7 +545,7 @@ class SerafielViewModel(
                     userId = uid,
                     displayName = live?.displayName?.takeIf { it.isNotBlank() }
                         ?: cached?.displayName?.takeIf { it.isNotBlank() }
-                        ?: "Usuario ${uid.take(8)}...",
+                        ?: tr(R.string.s_usuario_2, uid.take(8)),
                     avatarColor = live?.avatarColor?.takeIf { it.isNotBlank() }
                         ?: cached?.avatarColor?.takeIf { it.isNotBlank() }
                         ?: AvatarColor.AMBER.key,
@@ -552,7 +555,7 @@ class SerafielViewModel(
                         ?: cached?.photoUrl?.takeIf { it.isNotBlank() },
                     subtitle = live?.subtitle?.takeIf { it.isNotBlank() }
                         ?: cached?.subtitle?.takeIf { it.isNotBlank() }
-                        ?: "Persona bloqueada",
+                        ?: tr(R.string.s_persona_bloqueada),
                 )
             }
         }
@@ -577,11 +580,11 @@ class SerafielViewModel(
                 ) {
                     contacts[beacon.userId] = KnownContact(
                         userId = beacon.userId,
-                        displayName = beacon.displayName.ifBlank { "Viajero Serafiel" },
+                        displayName = beacon.displayName.ifBlank { tr(R.string.s_viajero_serafiel) },
                         avatarColor = beacon.avatarColor,
                         photoData = beacon.photoData,
                         photoUrl = beacon.photoUrl,
-                        subtitle = beacon.zoneName.ifBlank { "Radar cercano" },
+                        subtitle = beacon.zoneName.ifBlank { tr(R.string.s_radar_cercano) },
                     )
                 }
             }
@@ -590,9 +593,9 @@ class SerafielViewModel(
                 if (!peerId.isNullOrBlank() && peerId !in blockedIds && peerId !in contacts) {
                     contacts[peerId] = KnownContact(
                         userId = peerId,
-                        displayName = chat.participantNames[peerId] ?: "Contacto de chat",
+                        displayName = chat.participantNames[peerId] ?: tr(R.string.s_contacto_de_chat),
                         avatarColor = chat.participantColors[peerId] ?: AvatarColor.AMBER.key,
-                        subtitle = chat.zoneName.ifBlank { "Chat 1:1" },
+                        subtitle = chat.zoneName.ifBlank { tr(R.string.s_chat_1_1) },
                     )
                 }
             }
@@ -630,13 +633,13 @@ class SerafielViewModel(
             try {
                 if (!LocationHelper.hasAnyLocationPermission(appContext)) {
                     if (!silent) {
-                        _snackbarEvents.tryEmit("Activa el permiso de ubicación para obtener tu GPS real.")
+                        _snackbarEvents.tryEmit(tr(R.string.s_activa_el_permiso_de_ubicacion_3))
                     }
                     return@launch
                 }
                 if (!LocationHelper.isSystemLocationEnabled(appContext)) {
                     if (!silent) {
-                        _snackbarEvents.tryEmit("El GPS del teléfono está desactivado. Actívalo en los ajustes rápidos.")
+                        _snackbarEvents.tryEmit(tr(R.string.s_el_gps_del_telefono_esta))
                     }
                     return@launch
                 }
@@ -646,7 +649,7 @@ class SerafielViewModel(
                     _currentZone.value = detected
                     syncBeaconZoneIfExists(detected)
                 } else if (!silent) {
-                    _snackbarEvents.tryEmit("No se pudo fijar señal GPS ahora mismo. Intenta acercarte a una ventana.")
+                    _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_fijar_senal))
                 }
             } finally {
                 _isRefreshingLocation.value = false
@@ -676,7 +679,7 @@ class SerafielViewModel(
         val appContext = context.applicationContext
         val resolvedName = point.label.substringBefore('\n').takeIf { it.isNotBlank() }
             ?: current.zoneName.takeIf { current.hasValidCoords && it.isNotBlank() }
-            ?: "Zona GPS"
+            ?: tr(R.string.s_zona_gps)
         val zone = ZoneLocation(
             zoneKey = LocationHelper.formatZoneKey(point.latitude, point.longitude),
             zoneName = resolvedName,
@@ -698,7 +701,7 @@ class SerafielViewModel(
         val appContext = context.applicationContext
         val zone = ZoneLocation(
             zoneKey = LocationHelper.formatZoneKey(point.latitude, point.longitude),
-            zoneName = point.label.substringBefore('\n').ifBlank { "Zona GPS" },
+            zoneName = point.label.substringBefore('\n').ifBlank { tr(R.string.s_zona_gps) },
             approxLat = point.latitude,
             approxLon = point.longitude,
             isFromGps = true,
@@ -717,7 +720,7 @@ class SerafielViewModel(
         _currentZone.value = manualZone
         viewModelScope.launch {
             syncBeaconZoneIfExists(manualZone)
-            _snackbarEvents.tryEmit("Explorando ${manualZone.zoneName}")
+            _snackbarEvents.tryEmit(tr(R.string.s_explorando, manualZone.zoneName))
         }
     }
 
@@ -729,7 +732,7 @@ class SerafielViewModel(
             viewModelScope.launch {
                 val result = repository.updateBeaconRadius(currentUserId, clamped)
                 if (result.isFailure) {
-                    _snackbarEvents.tryEmit("No se pudo guardar el radio de la baliza")
+                    _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_guardar_el_2))
                 }
             }
         }
@@ -775,11 +778,11 @@ class SerafielViewModel(
             )
             if (res.isSuccess) {
                 _snackbarEvents.tryEmit(
-                    if (enabled) "Estado en línea activado (círculo verde visible)"
-                    else "Estado en línea ocultado"
+                    if (enabled) tr(R.string.s_estado_en_linea_activado_circulo)
+                    else tr(R.string.s_estado_en_linea_ocultado)
                 )
             } else {
-                _snackbarEvents.tryEmit("No se pudo actualizar tu estado en línea")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_actualizar_tu))
             }
         }
     }
@@ -823,7 +826,7 @@ class SerafielViewModel(
             if (profileResult.isFailure) {
                 _isBusy.value = false
                 _snackbarEvents.tryEmit(
-                    profileResult.exceptionOrNull()?.localizedMessage ?: "Error al guardar tu perfil"
+                    profileResult.exceptionOrNull()?.localizedMessage ?: tr(R.string.s_error_al_guardar_tu_perfil)
                 )
                 return@launch
             }
@@ -847,7 +850,7 @@ class SerafielViewModel(
                 purpose = beaconPurpose,
                 statusText = beaconStatus,
                 avatarColor = avatarColor,
-                languages = languages.ifEmpty { listOf("Español") },
+                languages = languages.ifEmpty { listOf(tr(R.string.s_espanol)) },
                 zone = effectiveZone,
                 active = beaconActive,
                 radiusKm = clampedRadius,
@@ -857,10 +860,10 @@ class SerafielViewModel(
             )
             _isBusy.value = false
             if (beaconResult.isSuccess) {
-                _snackbarEvents.tryEmit("Tu perfil y baliza se han actualizado")
+                _snackbarEvents.tryEmit(tr(R.string.s_tu_perfil_y_baliza_se))
             } else {
                 _snackbarEvents.tryEmit(
-                    beaconResult.exceptionOrNull()?.localizedMessage ?: "Error al actualizar tu baliza"
+                    beaconResult.exceptionOrNull()?.localizedMessage ?: tr(R.string.s_error_al_actualizar_tu_baliza)
                 )
             }
         }
@@ -874,7 +877,7 @@ class SerafielViewModel(
             if (encodedRes.isFailure) {
                 _isBusy.value = false
                 _snackbarEvents.tryEmit(
-                    encodedRes.exceptionOrNull()?.localizedMessage ?: "No se pudo procesar la foto de perfil"
+                    encodedRes.exceptionOrNull()?.localizedMessage ?: tr(R.string.s_no_se_pudo_procesar_la_2)
                 )
                 return@launch
             }
@@ -886,16 +889,16 @@ class SerafielViewModel(
             )
             _isBusy.value = false
             if (updateRes.isSuccess) {
-                _snackbarEvents.tryEmit("Foto de perfil actualizada")
+                _snackbarEvents.tryEmit(tr(R.string.s_foto_de_perfil_actualizada))
             } else {
-                _snackbarEvents.tryEmit("No se pudo guardar la foto de perfil")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_guardar_la_2))
             }
         }
     }
 
     fun useGoogleProfilePhoto() {
         if (initialPhotoUrl.isBlank()) {
-            _snackbarEvents.tryEmit("Tu cuenta Google no tiene imagen pública disponible")
+            _snackbarEvents.tryEmit(tr(R.string.s_tu_cuenta_google_no_tiene))
             return
         }
         viewModelScope.launch {
@@ -907,9 +910,9 @@ class SerafielViewModel(
             )
             _isBusy.value = false
             if (res.isSuccess) {
-                _snackbarEvents.tryEmit("Usando imagen predeterminada de tu cuenta Google")
+                _snackbarEvents.tryEmit(tr(R.string.s_usando_imagen_predeterminada_de_tu))
             } else {
-                _snackbarEvents.tryEmit("No se pudo restaurar la foto de Google")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_restaurar_la))
             }
         }
     }
@@ -924,7 +927,7 @@ class SerafielViewModel(
             )
             _isBusy.value = false
             if (res.isSuccess) {
-                _snackbarEvents.tryEmit("Foto retirada: ahora usas tu halo de iniciales")
+                _snackbarEvents.tryEmit(tr(R.string.s_foto_retirada_ahora_usas_tu))
             }
         }
     }
@@ -947,7 +950,7 @@ class SerafielViewModel(
             if (com.example.data.PrivacySettings.ghostUntilMs.value == until) {
                 com.example.data.PrivacySettings.clearGhost()
                 repository.setBeaconActive(currentUserId, true)
-                _snackbarEvents.tryEmit("Modo fantasma terminado: vuelves a ser visible")
+                _snackbarEvents.tryEmit(tr(R.string.s_modo_fantasma_terminado_vuelves_a))
             }
         }
     }
@@ -962,12 +965,12 @@ class SerafielViewModel(
                 ghostJob?.cancel()
                 com.example.data.PrivacySettings.clearGhost()
                 repository.setBeaconActive(currentUserId, true)
-                _snackbarEvents.tryEmit("Modo fantasma desactivado: vuelves a ser visible")
+                _snackbarEvents.tryEmit(tr(R.string.s_modo_fantasma_desactivado_vuelves_a))
             } else {
                 com.example.data.PrivacySettings.setGhostUntil(context, System.currentTimeMillis() + durationMs)
                 repository.setBeaconActive(currentUserId, false)
                 scheduleGhostRestore()
-                _snackbarEvents.tryEmit("Modo fantasma activado: nadie te ve en el radar")
+                _snackbarEvents.tryEmit(tr(R.string.s_modo_fantasma_activado_nadie_te))
             }
         }
     }
@@ -986,7 +989,7 @@ class SerafielViewModel(
             val profile = (userProfileState.value as? UiState.Success)?.data
             val result = if (currentBeacon == null) {
                 val name = profile?.displayName?.takeIf { it.length >= 2 }
-                    ?: initialDisplayName.ifBlank { "Viajero Serafiel" }
+                    ?: initialDisplayName.ifBlank { tr(R.string.s_viajero_serafiel) }
                 val color = AvatarColor.fromKey(profile?.avatarColor)
                 val purpose = SocialPurpose.fromRaw(profile?.preferredPurposes?.firstOrNull())
                 val photoData = profile?.photoData ?: ""
@@ -1000,9 +1003,9 @@ class SerafielViewModel(
                     userId = currentUserId,
                     displayName = name,
                     purpose = purpose,
-                    statusText = "Abierto a conectar cerca",
+                    statusText = tr(R.string.s_abierto_a_conectar_cerca),
                     avatarColor = color,
-                    languages = listOf("Español"),
+                    languages = listOf(tr(R.string.s_espanol)),
                     zone = effectiveZone,
                     active = active,
                     radiusKm = _radiusKm.value,
@@ -1015,11 +1018,11 @@ class SerafielViewModel(
 
             if (result.isSuccess) {
                 _snackbarEvents.tryEmit(
-                    if (active) "Tu baliza ahora es visible en tu zona"
-                    else "Modo pausa activado: eres invisible en el radar"
+                    if (active) tr(R.string.s_tu_baliza_ahora_es_visible)
+                    else tr(R.string.s_modo_pausa_activado_eres_invisible)
                 )
             } else {
-                _snackbarEvents.tryEmit("No se pudo cambiar la visibilidad")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_cambiar_la))
             }
         }
     }
@@ -1036,7 +1039,7 @@ class SerafielViewModel(
         val senderName = profile?.displayName?.trim()?.takeIf { it.length >= 2 }
             ?: beacon?.displayName?.trim()?.takeIf { it.length >= 2 }
             ?: initialDisplayName.trim().takeIf { it.length >= 2 }
-            ?: "Usuario Serafiel"
+            ?: tr(R.string.s_usuario_serafiel)
         val senderColor = AvatarColor.fromKey(profile?.avatarColor ?: beacon?.avatarColor)
 
         viewModelScope.launch {
@@ -1053,7 +1056,7 @@ class SerafielViewModel(
             )
             if (result.isFailure) {
                 _snackbarEvents.tryEmit(
-                    result.exceptionOrNull()?.localizedMessage ?: "No se pudo enviar el mensaje"
+                    result.exceptionOrNull()?.localizedMessage ?: tr(R.string.s_no_se_pudo_enviar_el)
                 )
             }
         }
@@ -1068,7 +1071,7 @@ class SerafielViewModel(
                 newText = newText,
             )
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo editar el mensaje")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_editar_el))
             }
         }
     }
@@ -1077,9 +1080,9 @@ class SerafielViewModel(
         viewModelScope.launch {
             val result = repository.archiveZoneMessage(currentUserId, _currentZone.value.zoneKey, messageId)
             if (result.isSuccess) {
-                _snackbarEvents.tryEmit("Mensaje eliminado de la sala local")
+                _snackbarEvents.tryEmit(tr(R.string.s_mensaje_eliminado_de_la_sala))
             } else {
-                _snackbarEvents.tryEmit("No se pudo eliminar el mensaje")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_eliminar_el))
             }
         }
     }
@@ -1098,7 +1101,7 @@ class SerafielViewModel(
         val myName = profile?.displayName?.trim()?.takeIf { it.length >= 2 }
             ?: beacon?.displayName?.trim()?.takeIf { it.length >= 2 }
             ?: initialDisplayName.trim().takeIf { it.length >= 2 }
-            ?: "Usuario Serafiel"
+            ?: tr(R.string.s_usuario_serafiel)
         val myColor = AvatarColor.fromKey(profile?.avatarColor ?: beacon?.avatarColor)
 
         viewModelScope.launch {
@@ -1120,7 +1123,7 @@ class SerafielViewModel(
                 _selectedChatId.value = chatId
                 onChatReady(chatId)
             }.onFailure { err ->
-                _snackbarEvents.tryEmit(err.localizedMessage ?: "No se pudo abrir la conversación")
+                _snackbarEvents.tryEmit(err.localizedMessage ?: tr(R.string.s_no_se_pudo_abrir_la_3))
             }
         }
     }
@@ -1130,7 +1133,7 @@ class SerafielViewModel(
         return profile?.displayName?.trim()?.takeIf { it.length >= 2 }
             ?: chat.participantNames[currentUserId]?.trim()?.takeIf { it.length >= 2 }
             ?: initialDisplayName.trim().takeIf { it.length >= 2 }
-            ?: "Usuario Serafiel"
+            ?: tr(R.string.s_usuario_serafiel)
     }
 
     // ---------- Mensaje fijado ----------
@@ -1138,8 +1141,8 @@ class SerafielViewModel(
     fun setPinnedMessage(isGroup: Boolean, parentId: String, messageId: String?, preview: String?) {
         viewModelScope.launch {
             repository.setPinnedMessage(currentUserId, isGroup, parentId, messageId, preview)
-                .onSuccess { _snackbarEvents.tryEmit(if (messageId == null) "Mensaje desfijado" else "Mensaje fijado") }
-                .onFailure { _snackbarEvents.tryEmit("No se pudo cambiar el mensaje fijado") }
+                .onSuccess { _snackbarEvents.tryEmit(if (messageId == null) tr(R.string.s_mensaje_desfijado) else tr(R.string.s_mensaje_fijado)) }
+                .onFailure { _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_cambiar_el)) }
         }
     }
 
@@ -1154,7 +1157,7 @@ class SerafielViewModel(
 
         data class Chat(val chat: DirectChat, val peerId: String) : ForwardTarget {
             override val id get() = "chat:${chat.id}"
-            override val title get() = chat.participantNames[peerId]?.takeIf { it.isNotBlank() } ?: "Persona cercana"
+            override val title get() = chat.participantNames[peerId]?.takeIf { it.isNotBlank() } ?: tr(R.string.s_persona_cercana)
             override val colorKey get() = chat.participantColors[peerId] ?: AvatarColor.AMBER.key
         }
 
@@ -1210,7 +1213,7 @@ class SerafielViewModel(
             }
         }
         _snackbarEvents.tryEmit(
-            if (targets.size == 1) "Enviando a ${targets.first().title}…" else "Enviando a ${targets.size} chats…",
+            if (targets.size == 1) tr(R.string.s_enviando_a, targets.first().title) else tr(R.string.s_enviando_a_chats, targets.size),
         )
     }
 
@@ -1229,7 +1232,7 @@ class SerafielViewModel(
                 source = ChunkedMediaStore.resolveFullMedia(appContext, message)
                 if (source == null) {
                     _isBusy.value = false
-                    _snackbarEvents.tryEmit("No se pudo preparar el archivo para reenviar")
+                    _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_preparar_el))
                     return@launch
                 }
             }
@@ -1289,9 +1292,9 @@ class SerafielViewModel(
             _isBusy.value = false
             _snackbarEvents.tryEmit(
                 if (failures == 0) {
-                    if (targets.size == 1) "Mensaje reenviado" else "Mensaje reenviado a ${targets.size} chats"
+                    if (targets.size == 1) tr(R.string.s_mensaje_reenviado) else tr(R.string.s_mensaje_reenviado_a_chats, targets.size)
                 } else {
-                    "No se pudo reenviar a $failures de ${targets.size} destinos"
+                    tr(R.string.s_no_se_pudo_reenviar_a, failures, targets.size)
                 }
             )
         }
@@ -1321,7 +1324,7 @@ class SerafielViewModel(
                 replyToPreview = replyToPreview,
             )
             if (result.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo enviar el mensaje privado")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_el_2))
             }
         }
     }
@@ -1336,7 +1339,7 @@ class SerafielViewModel(
                 isLatestMessage = isLatest,
             )
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo editar el mensaje")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_editar_el))
             }
         }
     }
@@ -1358,8 +1361,8 @@ class SerafielViewModel(
         var settled = false
         val emitted = _undoEvents.tryEmit(
             UndoEvent(
-                message = "Mensaje eliminado",
-                actionLabel = "Deshacer",
+                message = tr(R.string.s_mensaje_eliminado),
+                actionLabel = tr(R.string.s_deshacer),
                 onUndo = {
                     if (!settled) {
                         settled = true
@@ -1390,7 +1393,7 @@ class SerafielViewModel(
             )
             _hiddenMessageIds.value = _hiddenMessageIds.value - messageId
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo eliminar el mensaje")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_eliminar_el))
             }
         }
     }
@@ -1427,12 +1430,12 @@ class SerafielViewModel(
             if (encodedResult.isFailure) {
                 _isBusy.value = false
                 _snackbarEvents.tryEmit(
-                    encodedResult.exceptionOrNull()?.localizedMessage ?: "No se pudo procesar la imagen"
+                    encodedResult.exceptionOrNull()?.localizedMessage ?: tr(R.string.s_no_se_pudo_procesar_la_3)
                 )
                 return@launch
             }
             val media = encodedResult.getOrThrow()
-            val preview = if (caption.isNotBlank()) "📷 ${caption.trim()}" else "📷 Imagen"
+            val preview = if (caption.isNotBlank()) "📷 ${caption.trim()}" else tr(R.string.s_imagen)
             val sendRes = repository.sendRichDirectMessage(
                 userId = currentUserId,
                 chatId = chat.id,
@@ -1448,7 +1451,7 @@ class SerafielViewModel(
             )
             _isBusy.value = false
             if (sendRes.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo enviar la imagen")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_la))
             }
         }
     }
@@ -1469,13 +1472,13 @@ class SerafielViewModel(
                 mediaMimeType = payload.mimeType,
                 mediaName = payload.displayName,
                 durationSec = payload.durationSec,
-                chatPreview = "🎤 Mensaje de voz ($durText)",
+                chatPreview = tr(R.string.s_mensaje_de_voz_3, durText),
                 chunkFile = payload.fullFile,
                 waveform = payload.waveform,
             )
             _isBusy.value = false
             if (sendRes.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo enviar el mensaje de voz")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_el_3))
             }
         }
     }
@@ -1489,7 +1492,7 @@ class SerafielViewModel(
             if (encodedResult.isFailure) {
                 _isBusy.value = false
                 _snackbarEvents.tryEmit(
-                    encodedResult.exceptionOrNull()?.localizedMessage ?: "No se pudo adjuntar el audio"
+                    encodedResult.exceptionOrNull()?.localizedMessage ?: tr(R.string.s_no_se_pudo_adjuntar_el)
                 )
                 return@launch
             }
@@ -1510,7 +1513,7 @@ class SerafielViewModel(
             )
             _isBusy.value = false
             if (sendRes.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo enviar el archivo de audio")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_el_4))
             }
         }
     }
@@ -1528,27 +1531,27 @@ class SerafielViewModel(
         viewModelScope.launch {
             _isBusy.value = true
             val hd = ChatMediaSettings.isSendHd(appContext)
-            _mediaUploadLabel.value = if (hd) "Comprimiendo video en HD..." else "Comprimiendo video..."
+            _mediaUploadLabel.value = if (hd) tr(R.string.s_comprimiendo_video_en_hd) else tr(R.string.s_comprimiendo_video)
             val prepared = ChatVideoHelper.prepare(appContext, uri, hd)
             if (prepared.isFailure) {
                 _isBusy.value = false
                 _mediaUploadLabel.value = null
-                _snackbarEvents.tryEmit(prepared.exceptionOrNull()?.localizedMessage ?: "No se pudo procesar el video")
+                _snackbarEvents.tryEmit(prepared.exceptionOrNull()?.localizedMessage ?: tr(R.string.s_no_se_pudo_procesar_el))
                 return@launch
             }
             val video = prepared.getOrThrow()
             if (video.wasTrimmed) {
                 val maxSec = if (hd) ChatVideoHelper.HD_MAX_SEC else ChatVideoHelper.SD_MAX_SEC
-                _snackbarEvents.tryEmit("El video se recortó a ${DirectMessage.formatDuration(maxSec)}")
+                _snackbarEvents.tryEmit(tr(R.string.s_el_video_se_recorto_a, DirectMessage.formatDuration(maxSec)))
             }
-            _mediaUploadLabel.value = "Enviando video..."
-            val preview = if (caption.isNotBlank()) "🎬 ${caption.trim()}" else "🎬 Video"
+            _mediaUploadLabel.value = tr(R.string.s_enviando_video)
+            val preview = if (caption.isNotBlank()) "🎬 ${caption.trim()}" else tr(R.string.s_video_4)
             val res = send(video.payload, preview)
             video.payload.fullFile?.delete()
             _isBusy.value = false
             _mediaUploadLabel.value = null
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo enviar el video")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_el_5))
             }
         }
     }
@@ -1556,14 +1559,14 @@ class SerafielViewModel(
     fun reactToDirectMessage(chat: DirectChat, messageId: String, emoji: String?) {
         viewModelScope.launch {
             repository.setMessageReaction(currentUserId, DirectMessage.SOURCE_CHATS, chat.id, messageId, emoji)
-                .onFailure { _snackbarEvents.tryEmit("No se pudo reaccionar al mensaje") }
+                .onFailure { _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_reaccionar_al)) }
         }
     }
 
     fun reactToGroupMessage(group: SocialGroup, messageId: String, emoji: String?) {
         viewModelScope.launch {
             repository.setMessageReaction(currentUserId, DirectMessage.SOURCE_GROUPS, group.id, messageId, emoji)
-                .onFailure { _snackbarEvents.tryEmit("No se pudo reaccionar al mensaje") }
+                .onFailure { _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_reaccionar_al)) }
         }
     }
 
@@ -1635,11 +1638,11 @@ class SerafielViewModel(
                 longitude = point.longitude,
                 locationLabel = point.label,
                 liveActive = false,
-                chatPreview = "📍 Ubicación: ${point.label.substringBefore('\n')}",
+                chatPreview = tr(R.string.s_ubicacion_3, point.label.substringBefore('\n')),
             )
             _isBusy.value = false
             if (sendRes.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo enviar la ubicación actual")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_la_2))
             }
         }
     }
@@ -1678,13 +1681,13 @@ class SerafielViewModel(
                 locationLabel = resolvedPoint.label,
                 liveActive = true,
                 liveExpiresAtMs = expiresAtMs,
-                chatPreview = if (cleanComment.isNotBlank()) "📍 En tiempo real: $cleanComment" else "📍 Ubicación en tiempo real ($durLabel)",
+                chatPreview = if (cleanComment.isNotBlank()) tr(R.string.s_en_tiempo_real, cleanComment) else tr(R.string.s_ubicacion_en_tiempo_real_3, durLabel),
             )
             _isBusy.value = false
 
             val messageId = createRes.getOrNull()
             if (messageId == null) {
-                _snackbarEvents.tryEmit("No se pudo iniciar la ubicación en tiempo real")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_iniciar_la_2))
                 return@launch
             }
 
@@ -1696,7 +1699,7 @@ class SerafielViewModel(
                 remainingSec = ((expiresAtMs - System.currentTimeMillis()) / 1000L).coerceAtLeast(0L),
                 isActive = true,
             )
-            _snackbarEvents.tryEmit("Compartiendo ubicación en tiempo real ($durLabel)")
+            _snackbarEvents.tryEmit(tr(R.string.s_compartiendo_ubicacion_en_tiempo_real_3, durLabel))
 
             var lastKnownPoint = resolvedPoint
             var lastPushMs = System.currentTimeMillis()
@@ -1756,7 +1759,7 @@ class SerafielViewModel(
                         messageId = current.messageId,
                         latitude = zone.approxLat,
                         longitude = zone.approxLon,
-                        locationLabel = "Ubicación finalizada",
+                        locationLabel = tr(R.string.s_ubicacion_finalizada),
                         liveActive = false,
                     )
                 } else {
@@ -1766,12 +1769,12 @@ class SerafielViewModel(
                         messageId = current.messageId,
                         latitude = zone.approxLat,
                         longitude = zone.approxLon,
-                        locationLabel = "Ubicación finalizada",
+                        locationLabel = tr(R.string.s_ubicacion_finalizada),
                         liveActive = false,
                     )
                 }
                 if (notifyUser) {
-                    _snackbarEvents.tryEmit("Has detenido la ubicación en tiempo real")
+                    _snackbarEvents.tryEmit(tr(R.string.s_has_detenido_la_ubicacion_en))
                 }
             }
         }
@@ -1785,7 +1788,7 @@ class SerafielViewModel(
         val myName = profile?.displayName?.trim()?.takeIf { it.length >= 2 }
             ?: beacon?.displayName?.trim()?.takeIf { it.length >= 2 }
             ?: initialDisplayName.trim().takeIf { it.length >= 2 }
-            ?: "Usuario Serafiel"
+            ?: tr(R.string.s_usuario_serafiel)
         val myColor = AvatarColor.fromKey(profile?.avatarColor ?: beacon?.avatarColor)
         return myName to myColor
     }
@@ -1812,10 +1815,10 @@ class SerafielViewModel(
             _isBusy.value = false
             res.onSuccess { groupId ->
                 _selectedGroupId.value = groupId
-                _snackbarEvents.tryEmit("Grupo \"$name\" creado")
+                _snackbarEvents.tryEmit(tr(R.string.s_grupo_creado, name))
                 onCreated(groupId)
             }.onFailure { err ->
-                _snackbarEvents.tryEmit(err.localizedMessage ?: "No se pudo crear el grupo")
+                _snackbarEvents.tryEmit(err.localizedMessage ?: tr(R.string.s_no_se_pudo_crear_el))
             }
         }
     }
@@ -1833,7 +1836,7 @@ class SerafielViewModel(
         val memberColors = linkedMapOf<String, String>()
 
         memberNames[group.creatorId] = if (group.creatorId == currentUserId) myName
-        else group.memberNames[group.creatorId] ?: "Creador"
+        else group.memberNames[group.creatorId] ?: tr(R.string.s_creador)
         memberColors[group.creatorId] = if (group.creatorId == currentUserId) myColor.key
         else group.memberColors[group.creatorId] ?: AvatarColor.AMBER.key
 
@@ -1859,9 +1862,9 @@ class SerafielViewModel(
             )
             _isBusy.value = false
             if (res.isSuccess) {
-                _snackbarEvents.tryEmit("Grupo actualizado")
+                _snackbarEvents.tryEmit(tr(R.string.s_grupo_actualizado))
             } else {
-                _snackbarEvents.tryEmit("No se pudo actualizar el grupo")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_actualizar_el))
             }
         }
     }
@@ -1869,7 +1872,7 @@ class SerafielViewModel(
     fun addContactToExistingGroup(group: SocialGroup, contact: KnownContact) {
         if (contact.userId in group.memberIds) {
             _selectedGroupId.value = group.id
-            _snackbarEvents.tryEmit("${contact.displayName} ya está en ${group.name}")
+            _snackbarEvents.tryEmit(tr(R.string.s_ya_esta_en, contact.displayName, group.name))
             return
         }
         val newIds = (group.memberIds + contact.userId).distinct().take(50)
@@ -1892,9 +1895,9 @@ class SerafielViewModel(
             )
             if (res.isSuccess) {
                 _selectedGroupId.value = group.id
-                _snackbarEvents.tryEmit("${contact.displayName} añadido a ${group.name}")
+                _snackbarEvents.tryEmit(tr(R.string.s_anadido_a, contact.displayName, group.name))
             } else {
-                _snackbarEvents.tryEmit("Solo el creador del grupo puede añadir miembros")
+                _snackbarEvents.tryEmit(tr(R.string.s_solo_el_creador_del_grupo))
             }
         }
     }
@@ -1909,9 +1912,9 @@ class SerafielViewModel(
             }
             if (res.isSuccess) {
                 if (_selectedGroupId.value == group.id) _selectedGroupId.value = null
-                _snackbarEvents.tryEmit(if (isCreator) "Grupo eliminado" else "Saliste del grupo")
+                _snackbarEvents.tryEmit(if (isCreator) tr(R.string.s_grupo_eliminado) else tr(R.string.s_saliste_del_grupo))
             } else {
-                _snackbarEvents.tryEmit("No se pudo completar la acción")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_completar_la))
             }
         }
     }
@@ -1921,7 +1924,7 @@ class SerafielViewModel(
         return profile?.displayName?.trim()?.takeIf { it.length >= 2 }
             ?: group.memberNames[currentUserId]?.trim()?.takeIf { it.length >= 2 }
             ?: initialDisplayName.trim().takeIf { it.length >= 2 }
-            ?: "Usuario Serafiel"
+            ?: tr(R.string.s_usuario_serafiel)
     }
 
     fun sendGroupPoll(group: SocialGroup, question: String, options: List<String>) {
@@ -1940,14 +1943,14 @@ class SerafielViewModel(
                 groupPreview = "📊 $q",
                 pollOptions = opts,
             )
-            if (res.isFailure) _snackbarEvents.tryEmit("No se pudo crear la encuesta")
+            if (res.isFailure) _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_crear_la))
         }
     }
 
     fun voteGroupPoll(group: SocialGroup, messageId: String, optionIndex: Int?) {
         viewModelScope.launch {
             repository.setPollVote(currentUserId, group.id, messageId, optionIndex)
-                .onFailure { _snackbarEvents.tryEmit("No se pudo registrar tu voto") }
+                .onFailure { _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_registrar_tu)) }
         }
     }
 
@@ -1975,7 +1978,7 @@ class SerafielViewModel(
                 groupPreview = clean,
             )
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo enviar el mensaje al grupo")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_el_6))
             }
         }
     }
@@ -1992,7 +1995,7 @@ class SerafielViewModel(
                 isLatestMessage = isLatest,
             )
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo editar el mensaje del grupo")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_editar_el_2))
             }
         }
     }
@@ -2007,7 +2010,7 @@ class SerafielViewModel(
             )
             _hiddenMessageIds.value = _hiddenMessageIds.value - messageId
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo eliminar el mensaje")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_eliminar_el))
             }
         }
     }
@@ -2044,12 +2047,12 @@ class SerafielViewModel(
             if (encodedRes.isFailure) {
                 _isBusy.value = false
                 _snackbarEvents.tryEmit(
-                    encodedRes.exceptionOrNull()?.localizedMessage ?: "No se pudo procesar la imagen"
+                    encodedRes.exceptionOrNull()?.localizedMessage ?: tr(R.string.s_no_se_pudo_procesar_la_3)
                 )
                 return@launch
             }
             val media = encodedRes.getOrThrow()
-            val preview = if (caption.isNotBlank()) "📷 ${caption.trim()}" else "📷 Imagen"
+            val preview = if (caption.isNotBlank()) "📷 ${caption.trim()}" else tr(R.string.s_imagen)
             val res = repository.sendGroupRichMessage(
                 userId = currentUserId,
                 groupId = group.id,
@@ -2065,7 +2068,7 @@ class SerafielViewModel(
             )
             _isBusy.value = false
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo enviar la imagen al grupo")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_la_3))
             }
         }
     }
@@ -2086,13 +2089,13 @@ class SerafielViewModel(
                 mediaMimeType = payload.mimeType,
                 mediaName = payload.displayName,
                 durationSec = payload.durationSec,
-                groupPreview = "🎤 Mensaje de voz ($durText)",
+                groupPreview = tr(R.string.s_mensaje_de_voz_3, durText),
                 chunkFile = payload.fullFile,
                 waveform = payload.waveform,
             )
             _isBusy.value = false
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo enviar la nota de voz")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_la_4))
             }
         }
     }
@@ -2106,7 +2109,7 @@ class SerafielViewModel(
             if (encodedRes.isFailure) {
                 _isBusy.value = false
                 _snackbarEvents.tryEmit(
-                    encodedRes.exceptionOrNull()?.localizedMessage ?: "No se pudo adjuntar el audio"
+                    encodedRes.exceptionOrNull()?.localizedMessage ?: tr(R.string.s_no_se_pudo_adjuntar_el)
                 )
                 return@launch
             }
@@ -2127,7 +2130,7 @@ class SerafielViewModel(
             )
             _isBusy.value = false
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo enviar el archivo de audio")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_el_4))
             }
         }
     }
@@ -2154,11 +2157,11 @@ class SerafielViewModel(
                 longitude = point.longitude,
                 locationLabel = point.label,
                 liveActive = false,
-                groupPreview = "📍 Ubicación: ${point.label.substringBefore('\n')}",
+                groupPreview = tr(R.string.s_ubicacion_3, point.label.substringBefore('\n')),
             )
             _isBusy.value = false
             if (res.isFailure) {
-                _snackbarEvents.tryEmit("No se pudo compartir tu ubicación")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_compartir_tu))
             }
         }
     }
@@ -2197,13 +2200,13 @@ class SerafielViewModel(
                 locationLabel = resolvedPoint.label,
                 liveActive = true,
                 liveExpiresAtMs = expiresAtMs,
-                groupPreview = if (cleanComment.isNotBlank()) "📍 En tiempo real: $cleanComment" else "📍 Ubicación en tiempo real ($durLabel)",
+                groupPreview = if (cleanComment.isNotBlank()) tr(R.string.s_en_tiempo_real, cleanComment) else tr(R.string.s_ubicacion_en_tiempo_real_3, durLabel),
             )
             _isBusy.value = false
 
             val messageId = createRes.getOrNull()
             if (messageId == null) {
-                _snackbarEvents.tryEmit("No se pudo iniciar la ubicación en tiempo real")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_iniciar_la_2))
                 return@launch
             }
 
@@ -2215,7 +2218,7 @@ class SerafielViewModel(
                 remainingSec = ((expiresAtMs - System.currentTimeMillis()) / 1000L).coerceAtLeast(0L),
                 isActive = true,
             )
-            _snackbarEvents.tryEmit("Compartiendo ubicación en el grupo ($durLabel)")
+            _snackbarEvents.tryEmit(tr(R.string.s_compartiendo_ubicacion_en_el_grupo, durLabel))
 
             var lastKnownPoint = resolvedPoint
             var lastPushMs = System.currentTimeMillis()
@@ -2275,11 +2278,11 @@ class SerafielViewModel(
             displayName = live?.displayName?.takeIf { it.isNotBlank() }
                 ?: fallbackName.trim().takeIf { it.isNotBlank() }
                 ?: existing?.displayName
-                ?: "Usuario ${targetUserId.take(8)}...",
+                ?: tr(R.string.s_usuario_2, targetUserId.take(8)),
             avatarColor = live?.avatarColor ?: existing?.avatarColor ?: AvatarColor.AMBER.key,
             photoData = live?.photoData?.takeIf { it.isNotBlank() } ?: existing?.photoData,
             photoUrl = live?.photoUrl?.takeIf { it.isNotBlank() } ?: existing?.photoUrl,
-            subtitle = live?.subtitle?.takeIf { it.isNotBlank() } ?: existing?.subtitle ?: "Persona bloqueada",
+            subtitle = live?.subtitle?.takeIf { it.isNotBlank() } ?: existing?.subtitle ?: tr(R.string.s_persona_bloqueada),
         )
         val updated = _cachedBlockedProfiles.value + (targetUserId to snapshot)
         _cachedBlockedProfiles.value = updated
@@ -2293,7 +2296,7 @@ class SerafielViewModel(
         val currentMap = _cachedBlockedProfiles.value.toMutableMap()
         var changed = false
         resolved.forEach { contact ->
-            val fallbackPrefix = "Usuario ${contact.userId.take(8)}"
+            val fallbackPrefix = tr(R.string.s_usuario_3, contact.userId.take(8))
             val hasMeaningfulInfo = !contact.displayName.startsWith(fallbackPrefix) ||
                 !contact.photoData.isNullOrBlank() ||
                 !contact.photoUrl.isNullOrBlank()
@@ -2371,10 +2374,10 @@ class SerafielViewModel(
             if (result.isSuccess) {
                 val count = result.getOrDefault(cleanIds.size)
                 _snackbarEvents.tryEmit(
-                    if (count == 1) "Conversación eliminada" else "$count conversaciones eliminadas"
+                    if (count == 1) tr(R.string.s_conversacion_eliminada) else tr(R.string.s_conversaciones_eliminadas, count)
                 )
             } else {
-                _snackbarEvents.tryEmit("No se pudieron eliminar las conversaciones seleccionadas")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudieron_eliminar_las))
             }
         }
     }
@@ -2384,9 +2387,9 @@ class SerafielViewModel(
         viewModelScope.launch {
             val result = repository.setUserBlocked(currentUserId, targetUserId, blocked = true)
             if (result.isSuccess) {
-                _snackbarEvents.tryEmit("$targetName fue bloqueado. Ya no verás sus mensajes ni baliza.")
+                _snackbarEvents.tryEmit(tr(R.string.s_fue_bloqueado_ya_no_veras, targetName))
             } else {
-                _snackbarEvents.tryEmit("No se pudo bloquear al usuario")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_bloquear_al))
             }
         }
     }
@@ -2400,7 +2403,7 @@ class SerafielViewModel(
         viewModelScope.launch {
             val result = repository.setUserBlocked(currentUserId, targetUserId, blocked = false)
             if (result.isSuccess) {
-                _snackbarEvents.tryEmit("Usuario desbloqueado")
+                _snackbarEvents.tryEmit(tr(R.string.s_usuario_desbloqueado))
             }
         }
     }
@@ -2430,9 +2433,9 @@ class SerafielViewModel(
                 repository.setUserBlocked(currentUserId, reportedUserId, blocked = true)
             }
             if (reportRes.isSuccess) {
-                _snackbarEvents.tryEmit("Reporte enviado. Gracias por cuidar la comunidad de Serafiel.")
+                _snackbarEvents.tryEmit(tr(R.string.s_reporte_enviado_gracias_por_cuidar))
             } else {
-                _snackbarEvents.tryEmit("No se pudo enviar el reporte")
+                _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_enviar_el_7))
             }
         }
     }

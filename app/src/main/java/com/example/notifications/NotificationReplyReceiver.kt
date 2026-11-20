@@ -1,5 +1,8 @@
 package com.example.notifications
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -84,7 +87,7 @@ class NotificationReplyReceiver : BroadcastReceiver() {
                     userId = uid,
                     chatId = chatId,
                     participantIds = participants,
-                    senderName = names[uid] ?: Firebase.auth.currentUser?.displayName ?: "Usuario Serafiel",
+                    senderName = names[uid] ?: Firebase.auth.currentUser?.displayName ?: tr(R.string.s_usuario_serafiel),
                     text = text,
                 )
                 if (res.isSuccess) repository.markChatRead(uid, chatId)
@@ -100,7 +103,7 @@ class NotificationReplyReceiver : BroadcastReceiver() {
                     userId = uid,
                     groupId = groupId,
                     memberIds = members,
-                    senderName = names[uid] ?: Firebase.auth.currentUser?.displayName ?: "Usuario Serafiel",
+                    senderName = names[uid] ?: Firebase.auth.currentUser?.displayName ?: tr(R.string.s_usuario_serafiel),
                     messageType = DirectMessage.TYPE_TEXT,
                     text = text,
                     groupPreview = text,

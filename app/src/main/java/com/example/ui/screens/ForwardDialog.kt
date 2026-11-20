@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.R
+import com.example.i18n.tr
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -42,7 +45,7 @@ fun ForwardDialog(
     onDismiss: () -> Unit,
     onForward: (List<ForwardTarget>) -> Unit,
 ) = ShareTargetDialog(
-    title = "Reenviar a…",
+    title = tr(R.string.s_reenviar_a),
     preview = message.previewLabel(),
     targets = targets,
     onDismiss = onDismiss,
@@ -80,12 +83,12 @@ fun ShareTargetDialog(
                     value = query,
                     onValueChange = { query = it },
                     singleLine = true,
-                    placeholder = { Text("Buscar chat o grupo") },
+                    placeholder = { Text(tr(R.string.s_buscar_chat_o_grupo)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (filtered.isEmpty()) {
                     Text(
-                        text = "No hay chats ni grupos disponibles.",
+                        text = tr(R.string.s_no_hay_chats_ni_grupos),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -117,7 +120,7 @@ fun ShareTargetDialog(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                                 Text(
-                                    text = if (target is ForwardTarget.Group) "Grupo" else "Chat",
+                                    text = if (target is ForwardTarget.Group) tr(R.string.s_grupo) else tr(R.string.s_chat),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -128,7 +131,7 @@ fun ShareTargetDialog(
                 }
                 if (selected.size >= MAX_FORWARD_TARGETS) {
                     Text(
-                        text = "Máximo $MAX_FORWARD_TARGETS destinos por reenvío",
+                        text = tr(R.string.s_maximo_destinos_por_reenvio, MAX_FORWARD_TARGETS),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -140,9 +143,9 @@ fun ShareTargetDialog(
                 enabled = selected.isNotEmpty(),
                 onClick = { onConfirm(targets.filter { it.id in selected }) },
             ) {
-                Text(if (selected.isEmpty()) "Enviar" else "Enviar (${selected.size})")
+                Text(if (selected.isEmpty()) tr(R.string.s_enviar) else tr(R.string.s_enviar_2, selected.size))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr(R.string.s_cancelar)) } },
     )
 }

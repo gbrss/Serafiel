@@ -1,5 +1,8 @@
 package com.example.data
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -61,14 +64,14 @@ object AppUpdater {
             val result = withContext(Dispatchers.IO) { runCatching { fetchLatest() } }
             result.onSuccess { info ->
                 _state.value = when {
-                    info == null -> UpdateState(Status.UP_TO_DATE, message = "No se pudo leer la versión publicada")
+                    info == null -> UpdateState(Status.UP_TO_DATE, message = tr(R.string.s_no_se_pudo_leer_la))
                     info.build > currentBuild -> UpdateState(Status.AVAILABLE, info = info)
                     else -> UpdateState(Status.UP_TO_DATE, info = info)
                 }
             }.onFailure {
                 _state.value = UpdateState(
                     Status.ERROR,
-                    message = if (silent) null else "No se pudo buscar actualizaciones. Revisa tu conexión.",
+                    message = if (silent) null else tr(R.string.s_no_se_pudo_buscar_actualizaciones),
                 )
             }
         }
@@ -146,14 +149,14 @@ object AppUpdater {
                         conn.disconnect()
                     }
                     if (target.exists()) target.delete()
-                    check(tmp.renameTo(target)) { "No se pudo guardar el APK" }
+                    check(tmp.renameTo(target)) { tr(R.string.s_no_se_pudo_guardar_el) }
                 }.isSuccess
             }
             if (ok) {
                 _state.value = UpdateState(Status.READY, info = info, progress = 1f)
                 install(appContext)
             } else {
-                _state.value = UpdateState(Status.AVAILABLE, info = info, message = "La descarga falló. Inténtalo de nuevo.")
+                _state.value = UpdateState(Status.AVAILABLE, info = info, message = tr(R.string.s_la_descarga_fallo_intentalo_de))
             }
         }
     }
@@ -162,13 +165,13 @@ object AppUpdater {
     fun install(context: Context) {
         val file = apkFile(context)
         if (!file.exists()) {
-            _state.value = _state.value.copy(status = Status.AVAILABLE, message = "Vuelve a descargar la actualización")
+            _state.value = _state.value.copy(status = Status.AVAILABLE, message = tr(R.string.s_vuelve_a_descargar_la_actualizacion))
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
             _state.value = _state.value.copy(
                 status = Status.READY,
-                message = "Permite instalar desde Serafiel y vuelve a tocar «Instalar»",
+                message = tr(R.string.s_permite_instalar_desde_serafiel_y),
             )
             context.startActivity(
                 Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
@@ -181,6 +184,6 @@ object AppUpdater {
             .setDataAndType(uri, "application/vnd.android.package-archive")
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { context.startActivity(intent) }
-            .onFailure { _state.value = _state.value.copy(message = "No se pudo abrir el instalador") }
+            .onFailure { _state.value = _state.value.copy(message = tr(R.string.s_no_se_pudo_abrir_el)) }
     }
 }

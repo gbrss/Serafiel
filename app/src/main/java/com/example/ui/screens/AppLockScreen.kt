@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.foundation.background
@@ -46,7 +49,7 @@ private fun Context.findFragmentActivity(): FragmentActivity? {
 fun AppLockScreen() {
     val activity = LocalContext.current.findFragmentActivity()
     fun ask() {
-        activity?.let { a -> AppLock.authenticate(a, "Desbloquear Serafiel") { ok -> if (ok) AppLock.unlock() } }
+        activity?.let { a -> AppLock.authenticate(a, tr(R.string.s_desbloquear_serafiel)) { ok -> if (ok) AppLock.unlock() } }
     }
     LaunchedEffect(Unit) { ask() }
     Box(
@@ -62,14 +65,14 @@ fun AppLockScreen() {
             modifier = Modifier.padding(32.dp),
         ) {
             Icon(Icons.Outlined.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Text("Serafiel está bloqueada", style = MaterialTheme.typography.titleLarge)
+            Text(tr(R.string.s_serafiel_esta_bloqueada), style = MaterialTheme.typography.titleLarge)
             Text(
-                "Usa tu huella, rostro o PIN para continuar.",
+                tr(R.string.s_usa_tu_huella_rostro_o),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            Button(onClick = { ask() }) { Text("Desbloquear") }
+            Button(onClick = { ask() }) { Text(tr(R.string.s_desbloquear)) }
         }
     }
 }
@@ -89,12 +92,12 @@ fun AppLockCard() {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Bloqueo de la app", style = MaterialTheme.typography.titleSmall)
+                    Text(tr(R.string.s_bloqueo_de_la_app), style = MaterialTheme.typography.titleSmall)
                     Text(
                         text = if (available) {
-                            "Pide huella, rostro o PIN al abrir Serafiel y al volver tras estar un rato fuera."
+                            tr(R.string.s_pide_huella_rostro_o_pin)
                         } else {
-                            "Configura un PIN, patrón o huella en los ajustes del teléfono para poder activarlo."
+                            tr(R.string.s_configura_un_pin_patron_o)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -105,7 +108,7 @@ fun AppLockCard() {
                     enabled = available && activity != null,
                     onCheckedChange = { want ->
                         activity?.let { a ->
-                            AppLock.authenticate(a, if (want) "Activar bloqueo" else "Desactivar bloqueo") { ok ->
+                            AppLock.authenticate(a, if (want) tr(R.string.s_activar_bloqueo) else tr(R.string.s_desactivar_bloqueo)) { ok ->
                                 if (ok) AppLock.setEnabled(context, want)
                             }
                         }

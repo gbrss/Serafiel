@@ -1,5 +1,8 @@
 package com.example.data
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -58,7 +61,7 @@ object LocationHelper {
 
     val UNRESOLVED_DEFAULT_ZONE = ZoneLocation(
         zoneKey = "plaza_central",
-        zoneName = "Obteniendo ubicación...",
+        zoneName = tr(R.string.s_obteniendo_ubicacion),
         approxLat = 0.0,
         approxLon = 0.0,
         isFromGps = false,
@@ -68,7 +71,7 @@ object LocationHelper {
     val fallbackZones: List<ZoneLocation> = listOf(
         ZoneLocation(
             zoneKey = "plaza_central",
-            zoneName = "Zona Abierta",
+            zoneName = tr(R.string.s_zona_abierta),
             approxLat = 40.42,
             approxLon = -3.70,
             isFromGps = false,
@@ -76,7 +79,7 @@ object LocationHelper {
         ),
         ZoneLocation(
             zoneKey = "barrio_cultural",
-            zoneName = "Barrio Cultural y Cafés",
+            zoneName = tr(R.string.s_barrio_cultural_y_cafes),
             approxLat = 40.41,
             approxLon = -3.71,
             isFromGps = false,
@@ -84,7 +87,7 @@ object LocationHelper {
         ),
         ZoneLocation(
             zoneKey = "campus_innovacion",
-            zoneName = "Distrito Universitario",
+            zoneName = tr(R.string.s_distrito_universitario),
             approxLat = 40.44,
             approxLon = -3.73,
             isFromGps = false,
@@ -92,7 +95,7 @@ object LocationHelper {
         ),
         ZoneLocation(
             zoneKey = "parque_mirador",
-            zoneName = "Parque y Mirador",
+            zoneName = tr(R.string.s_parque_y_mirador),
             approxLat = 40.42,
             approxLon = -3.68,
             isFromGps = false,
@@ -118,7 +121,7 @@ object LocationHelper {
         val lon = prefs.getString(KEY_LON, null)?.toDoubleOrNull() ?: return null
         if (lat == 0.0 && lon == 0.0) return null
         val key = prefs.getString(KEY_ZONE_KEY, null)?.takeIf { it.isNotBlank() } ?: formatZoneKey(lat, lon)
-        val name = prefs.getString(KEY_ZONE_NAME, null)?.takeIf { it.isNotBlank() } ?: "Zona GPS"
+        val name = prefs.getString(KEY_ZONE_NAME, null)?.takeIf { it.isNotBlank() } ?: tr(R.string.s_zona_gps)
         val acc = prefs.getInt(KEY_ACCURACY, -1).takeIf { it > 0 }
         return ZoneLocation(
             zoneKey = key,
@@ -486,9 +489,9 @@ object LocationHelper {
         lat: Double,
         lon: Double,
     ): String = withContext(Dispatchers.IO) {
-        if (lat == 0.0 && lon == 0.0) return@withContext "Obteniendo ubicación..."
+        if (lat == 0.0 && lon == 0.0) return@withContext tr(R.string.s_obteniendo_ubicacion)
         try {
-            if (!Geocoder.isPresent()) return@withContext "Zona GPS (${formatCoordsShort(lat, lon)})"
+            if (!Geocoder.isPresent()) return@withContext tr(R.string.s_zona_gps_2, formatCoordsShort(lat, lon))
             val geocoder = Geocoder(context.applicationContext, Locale.getDefault())
             val addresses = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 suspendCancellableCoroutine { cont ->
@@ -509,10 +512,10 @@ object LocationHelper {
                     "$street, $area, $country"
                 !area.isNullOrBlank() && !country.isNullOrBlank() -> "$area, $country"
                 !area.isNullOrBlank() -> area
-                else -> "Zona ${formatCoordsShort(lat, lon)}"
+                else -> tr(R.string.s_zona, formatCoordsShort(lat, lon))
             }
         } catch (_: Exception) {
-            "Zona ${formatCoordsShort(lat, lon)}"
+            tr(R.string.s_zona, formatCoordsShort(lat, lon))
         }
     }
 
@@ -557,7 +560,7 @@ object LocationHelper {
                         ?: addr.thoroughfare?.takeIf { it.isNotBlank() }
                         ?: addr.subLocality
                         ?: addr.locality
-                        ?: "Punto cercano ${idx + 1}"
+                        ?: tr(R.string.s_punto_cercano, idx + 1)
                     val line0 = (0..addr.maxAddressLineIndex)
                         .mapNotNull { i -> addr.getAddressLine(i)?.takeIf { it.isNotBlank() } }
                         .joinToString(", ")
@@ -577,7 +580,7 @@ object LocationHelper {
                                 address = address.ifBlank { formatCoordsShort(pLat, pLon) }.take(150),
                                 latitude = pLat,
                                 longitude = pLon,
-                                categoryLabel = "Dirección",
+                                categoryLabel = tr(R.string.s_direccion),
                                 distanceMeters = distMeters,
                             )
                         )
@@ -596,7 +599,7 @@ object LocationHelper {
                     address = "Lat ${formatCoordsShort(lat, lon)}",
                     latitude = lat,
                     longitude = lon,
-                    categoryLabel = "Zona",
+                    categoryLabel = tr(R.string.s_zona_2),
                     distanceMeters = 0,
                 )
             )
@@ -642,7 +645,7 @@ object LocationHelper {
                     address = line0.ifBlank { formatCoordsShort(addr.latitude, addr.longitude) }.take(150),
                     latitude = addr.latitude,
                     longitude = addr.longitude,
-                    categoryLabel = "Búsqueda",
+                    categoryLabel = tr(R.string.s_busqueda),
                     distanceMeters = distMeters,
                 )
             }.sortedBy { it.distanceMeters ?: Int.MAX_VALUE }
@@ -660,7 +663,7 @@ object LocationHelper {
             val latStr = String.format(Locale.US, "%.6f", lat)
             val lonStr = String.format(Locale.US, "%.6f", lon)
             val urlStr =
-                "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$latStr,$lonStr&radius=1200&language=es&key=${
+                "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$latStr,$lonStr&radius=1200&language=${java.util.Locale.getDefault().language}&key=${
                     URLEncoder.encode(apiKey, "UTF-8")
                 }"
             val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
@@ -824,30 +827,30 @@ object LocationHelper {
         val leisure = tags.optString("leisure")
         val healthcare = tags.optString("healthcare")
         return when {
-            amenity == "cafe" -> "Cafetería"
-            amenity == "restaurant" -> "Restaurante"
-            amenity == "fast_food" -> "Comida rápida"
-            amenity == "bar" || amenity == "pub" -> "Bar"
-            amenity == "pharmacy" -> "Farmacia"
-            amenity == "hospital" || amenity == "clinic" || healthcare.isNotBlank() -> "Centro de salud"
-            amenity == "bank" || amenity == "atm" -> "Banco"
-            amenity == "fuel" -> "Gasolinera"
-            amenity == "school" || amenity == "university" || amenity == "college" -> "Educación"
-            amenity == "parking" -> "Estacionamiento"
-            shop == "supermarket" || shop == "convenience" -> "Supermercado"
-            shop == "bakery" -> "Panadería"
-            shop == "mall" || shop == "department_store" -> "Centro comercial"
-            shop == "clothes" || shop == "shoes" -> "Tienda de ropa"
-            shop == "hardware" -> "Ferretería"
-            shop == "electronics" || shop == "mobile_phone" -> "Tecnología"
-            shop.isNotBlank() -> "Comercio"
-            tourism == "hotel" || tourism == "hostel" -> "Alojamiento"
-            tourism.isNotBlank() -> "Sitio de interés"
-            leisure == "park" -> "Parque"
-            leisure == "fitness_centre" || leisure == "sports_centre" -> "Gimnasio"
-            leisure.isNotBlank() -> "Ocio"
-            tags.optString("office").isNotBlank() -> "Oficina"
-            else -> "Lugar comercial"
+            amenity == "cafe" -> tr(R.string.s_cafeteria)
+            amenity == "restaurant" -> tr(R.string.s_restaurante)
+            amenity == "fast_food" -> tr(R.string.s_comida_rapida)
+            amenity == "bar" || amenity == "pub" -> tr(R.string.s_bar)
+            amenity == "pharmacy" -> tr(R.string.s_farmacia)
+            amenity == "hospital" || amenity == "clinic" || healthcare.isNotBlank() -> tr(R.string.s_centro_de_salud)
+            amenity == "bank" || amenity == "atm" -> tr(R.string.s_banco)
+            amenity == "fuel" -> tr(R.string.s_gasolinera)
+            amenity == "school" || amenity == "university" || amenity == "college" -> tr(R.string.s_educacion)
+            amenity == "parking" -> tr(R.string.s_estacionamiento)
+            shop == "supermarket" || shop == "convenience" -> tr(R.string.s_supermercado)
+            shop == "bakery" -> tr(R.string.s_panaderia)
+            shop == "mall" || shop == "department_store" -> tr(R.string.s_centro_comercial)
+            shop == "clothes" || shop == "shoes" -> tr(R.string.s_tienda_de_ropa)
+            shop == "hardware" -> tr(R.string.s_ferreteria)
+            shop == "electronics" || shop == "mobile_phone" -> tr(R.string.s_tecnologia)
+            shop.isNotBlank() -> tr(R.string.s_comercio)
+            tourism == "hotel" || tourism == "hostel" -> tr(R.string.s_alojamiento)
+            tourism.isNotBlank() -> tr(R.string.s_sitio_de_interes)
+            leisure == "park" -> tr(R.string.s_parque)
+            leisure == "fitness_centre" || leisure == "sports_centre" -> tr(R.string.s_gimnasio)
+            leisure.isNotBlank() -> tr(R.string.s_ocio)
+            tags.optString("office").isNotBlank() -> tr(R.string.s_oficina)
+            else -> tr(R.string.s_lugar_comercial)
         }
     }
 
@@ -877,7 +880,7 @@ object LocationHelper {
             return ChatLocationPoint(
                 latitude = effectiveZone.approxLat,
                 longitude = effectiveZone.approxLon,
-                label = if (effectiveZone.hasValidCoords) effectiveZone.zoneName else "Permiso de ubicación necesario",
+                label = if (effectiveZone.hasValidCoords) effectiveZone.zoneName else tr(R.string.s_permiso_de_ubicacion_necesario),
                 isFromGps = false,
                 accuracyMeters = effectiveZone.accuracyMeters ?: 40,
                 diagnosticCode = ChatLocationPoint.STATUS_NO_PERMISSION,
@@ -889,7 +892,7 @@ object LocationHelper {
             return ChatLocationPoint(
                 latitude = effectiveZone.approxLat,
                 longitude = effectiveZone.approxLon,
-                label = if (effectiveZone.hasValidCoords) effectiveZone.zoneName else "GPS del dispositivo desactivado",
+                label = if (effectiveZone.hasValidCoords) effectiveZone.zoneName else tr(R.string.s_gps_del_dispositivo_desactivado),
                 isFromGps = false,
                 accuracyMeters = effectiveZone.accuracyMeters ?: 40,
                 diagnosticCode = ChatLocationPoint.STATUS_GPS_DISABLED,
@@ -934,7 +937,7 @@ object LocationHelper {
         return ChatLocationPoint(
             latitude = effectiveZone.approxLat,
             longitude = effectiveZone.approxLon,
-            label = if (effectiveZone.hasValidCoords) effectiveZone.zoneName else "Señal GPS débil en interiores",
+            label = if (effectiveZone.hasValidCoords) effectiveZone.zoneName else tr(R.string.s_senal_gps_debil_en_interiores),
             isFromGps = effectiveZone.isFromGps,
             accuracyMeters = effectiveZone.accuracyMeters ?: 40,
             diagnosticCode = ChatLocationPoint.STATUS_UNAVAILABLE,
@@ -953,7 +956,7 @@ object LocationHelper {
     fun formatApproximateDistance(km: Double, sameZone: Boolean): String {
         val numeric = formatCompactDistance(km)
         return if (sameZone) {
-            "A $numeric · Misma zona"
+            tr(R.string.s_a_misma_zona, numeric)
         } else {
             "A $numeric"
         }

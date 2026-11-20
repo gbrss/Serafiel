@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.R
+import com.example.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -63,7 +66,7 @@ fun CreatePollDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nueva encuesta") },
+        title = { Text(tr(R.string.s_nueva_encuesta)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -74,7 +77,7 @@ fun CreatePollDialog(
                 OutlinedTextField(
                     value = question,
                     onValueChange = { question = it.take(200) },
-                    label = { Text("Pregunta") },
+                    label = { Text(tr(R.string.s_pregunta)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 options.forEachIndexed { index, value ->
@@ -82,28 +85,28 @@ fun CreatePollDialog(
                         OutlinedTextField(
                             value = value,
                             onValueChange = { options[index] = it.take(60) },
-                            label = { Text("Opción ${index + 1}") },
+                            label = { Text(tr(R.string.s_opcion, index + 1)) },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                         )
                         if (options.size > 2) {
                             IconButton(onClick = { options.removeAt(index) }) {
-                                Icon(Icons.Outlined.Close, contentDescription = "Quitar opción")
+                                Icon(Icons.Outlined.Close, contentDescription = tr(R.string.s_quitar_opcion))
                             }
                         }
                     }
                 }
                 if (options.size < MAX_OPTIONS) {
-                    TextButton(onClick = { options.add("") }) { Text("+ Añadir opción") }
+                    TextButton(onClick = { options.add("") }) { Text(tr(R.string.s_anadir_opcion)) }
                 }
             }
         },
         confirmButton = {
             TextButton(enabled = canCreate, onClick = { onCreate(question.trim(), validOptions) }) {
-                Text("Enviar")
+                Text(tr(R.string.s_enviar))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr(R.string.s_cancelar)) } },
     )
 }
 
@@ -175,7 +178,7 @@ fun PollContent(
             }
         }
         Text(
-            text = if (total == 1) "1 voto" else "$total votos",
+            text = if (total == 1) tr(R.string.s_1_voto) else "$total votos",
             style = MaterialTheme.typography.labelSmall,
             color = contentColor.copy(alpha = 0.7f),
         )

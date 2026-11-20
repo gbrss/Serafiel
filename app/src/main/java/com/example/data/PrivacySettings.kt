@@ -1,5 +1,8 @@
 package com.example.data
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,9 +18,9 @@ import kotlin.math.max
  */
 object PrivacySettings {
     enum class Precision(val level: Int, val label: String, val hint: String, internal val cellDeg: Double) {
-        EXACT(0, "Exacta", "Te ven en tu posición real", 0.0),
-        APPROX(1, "~500 m", "Te ven dentro de una cuadrícula de unos 500 m", 0.005),
-        ZONE(2, "~2 km", "Solo se publica tu zona general (unos 2 km)", 0.02),
+        EXACT(0, tr(R.string.s_exacta), tr(R.string.s_te_ven_en_tu_posicion), 0.0),
+        APPROX(1, "~500 m", tr(R.string.s_te_ven_dentro_de_una), 0.005),
+        ZONE(2, tr(R.string.s_2_km), tr(R.string.s_solo_se_publica_tu_zona), 0.02),
     }
 
     private const val PREFS = "serafiel_privacy"

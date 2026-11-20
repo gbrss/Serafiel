@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.R
+import com.example.i18n.tr
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -65,13 +68,13 @@ fun ChatSearchBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onClose) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Cerrar búsqueda")
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = tr(R.string.s_cerrar_busqueda))
             }
             TextField(
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
-                placeholder = { Text("Buscar en el chat") },
+                placeholder = { Text(tr(R.string.s_buscar_en_el_chat)) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -92,10 +95,10 @@ fun ChatSearchBar(
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
                 IconButton(onClick = onPrev, enabled = resultCount > 0 && position > 0) {
-                    Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Resultado anterior")
+                    Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = tr(R.string.s_resultado_anterior))
                 }
                 IconButton(onClick = onNext, enabled = resultCount > 0 && position < resultCount - 1) {
-                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Resultado siguiente")
+                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = tr(R.string.s_resultado_siguiente))
                 }
             }
         }
@@ -119,14 +122,14 @@ fun PinnedMessageBanner(
         ) {
             Icon(Icons.Outlined.PushPin, contentDescription = null, modifier = Modifier.width(18.dp))
             Text(
-                text = preview.ifBlank { "Mensaje fijado" },
+                text = preview.ifBlank { tr(R.string.s_mensaje_fijado) },
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onUnpin) {
-                Icon(Icons.Outlined.Close, contentDescription = "Desfijar mensaje")
+                Icon(Icons.Outlined.Close, contentDescription = tr(R.string.s_desfijar_mensaje))
             }
         }
     }

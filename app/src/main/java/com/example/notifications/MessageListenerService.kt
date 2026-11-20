@@ -1,5 +1,7 @@
 package com.example.notifications
 
+import com.example.i18n.tr
+
 import android.content.Context
 import android.util.Log
 import com.example.R
@@ -277,7 +279,7 @@ object MessageListenerService {
                 context = appContext,
                 messageId = msg.id,
                 zoneName = zoneName,
-                senderName = msg.senderName.ifBlank { "Alguien cerca" },
+                senderName = msg.senderName.ifBlank { tr(R.string.s_alguien_cerca) },
                 messageText = msg.text,
             )
         }
@@ -315,7 +317,7 @@ object MessageListenerService {
             if (!notifiedDirectMessageIds.add(latest.id)) return
 
             val senderName = chat.participantNames[peerId]
-                ?: latest.senderName.ifBlank { "Nuevo mensaje" }
+                ?: latest.senderName.ifBlank { tr(R.string.s_nuevo_mensaje) }
             val notifBody = latest.text.ifBlank { latest.previewLabel() }
             SerafielNotificationHelper.showDirectMessageNotification(
                 context = appContext,
@@ -356,12 +358,12 @@ object MessageListenerService {
             if (!notifiedGroupMessageIds.add(latest.id)) return
 
             val senderName = group.memberNames[latest.senderId]
-                ?: latest.senderName.ifBlank { "Miembro del grupo" }
+                ?: latest.senderName.ifBlank { tr(R.string.s_miembro_del_grupo) }
             val notifBody = latest.text.ifBlank { latest.previewLabel() }
             SerafielNotificationHelper.showGroupMessageNotification(
                 context = appContext,
                 groupId = group.id,
-                groupName = group.name.ifBlank { "Grupo" },
+                groupName = group.name.ifBlank { tr(R.string.s_grupo) },
                 senderName = senderName,
                 messageText = notifBody,
             )

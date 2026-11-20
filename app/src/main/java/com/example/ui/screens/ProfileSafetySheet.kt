@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -106,8 +109,8 @@ fun ProfileSafetySheet(
             blockedIds.map { uid ->
                 byId[uid] ?: KnownContact(
                     userId = uid,
-                    displayName = "Usuario ${uid.take(8)}...",
-                    subtitle = "Persona bloqueada",
+                    displayName = tr(R.string.s_usuario_2, uid.take(8)),
+                    subtitle = tr(R.string.s_persona_bloqueada),
                 )
             }
         }
@@ -163,7 +166,7 @@ fun ProfileSafetySheet(
                             modifier = Modifier.height(16.dp),
                         )
                         Text(
-                            text = "Cuenta Google autenticada · ${currentZone.zoneName}",
+                            text = tr(R.string.s_cuenta_google_autenticada, currentZone.zoneName),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -183,7 +186,7 @@ fun ProfileSafetySheet(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     },
-                    label = { Text("Subir foto") },
+                    label = { Text(tr(R.string.s_subir_foto)) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Outlined.PhotoCamera,
@@ -198,7 +201,7 @@ fun ProfileSafetySheet(
                 ) {
                     AssistChip(
                         onClick = onUseGooglePhoto,
-                        label = { Text("Usar foto Google") },
+                        label = { Text(tr(R.string.s_usar_foto_google)) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Outlined.AccountCircle,
@@ -212,7 +215,7 @@ fun ProfileSafetySheet(
                 if (!resolvedPhotoData.isNullOrBlank() || !resolvedPhotoUrl.isNullOrBlank()) {
                     AssistChip(
                         onClick = onClearPhoto,
-                        label = { Text("Usar iniciales") },
+                        label = { Text(tr(R.string.s_usar_iniciales)) },
                         modifier = Modifier.testTag("profile_clear_photo_chip"),
                     )
                 }
@@ -244,7 +247,7 @@ fun ProfileSafetySheet(
             ) {
                 Icon(imageVector = Icons.Outlined.Edit, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Editar perfil y baliza")
+                Text(tr(R.string.s_editar_perfil_y_baliza))
             }
 
             Surface(
@@ -267,11 +270,11 @@ fun ProfileSafetySheet(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (showOnline) "En línea (círculo verde activo)" else "Estado en línea oculto",
+                            text = if (showOnline) tr(R.string.s_en_linea_circulo_verde_activo) else tr(R.string.s_estado_en_linea_oculto),
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
-                            text = "Cuando estás activo, los demás ven un círculo verde en tu foto de perfil.",
+                            text = tr(R.string.s_cuando_estas_activo_los_demas),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -290,6 +293,7 @@ fun ProfileSafetySheet(
                 onSetPrecision = onSetPrecision,
                 onSetGhost = onSetGhost,
             )
+            LanguageCard()
             AppLockCard()
             MediaQualitySettingsCard()
             AppUpdateCard()
@@ -324,17 +328,17 @@ fun ProfileSafetySheet(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = if (hasNotificationPermission) {
-                                "Notificaciones activas"
+                                tr(R.string.s_notificaciones_activas)
                             } else {
-                                "Notificaciones desactivadas"
+                                tr(R.string.s_notificaciones_desactivadas)
                             },
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
                             text = if (hasNotificationPermission) {
-                                "Recibirás avisos de mensajes nuevos aunque la app esté minimizada."
+                                tr(R.string.s_recibiras_avisos_de_mensajes_nuevos)
                             } else {
-                                "Activa el permiso para enterarte al instante de nuevos mensajes."
+                                tr(R.string.s_activa_el_permiso_para_enterarte)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -344,7 +348,7 @@ fun ProfileSafetySheet(
                         onClick = onRequestNotificationPermission,
                         modifier = Modifier.testTag("profile_notification_button"),
                     ) {
-                        Text(if (hasNotificationPermission) "Ajustes" else "Activar")
+                        Text(if (hasNotificationPermission) tr(R.string.s_ajustes) else tr(R.string.s_activar))
                     }
                 }
             }
@@ -357,18 +361,18 @@ fun ProfileSafetySheet(
             ) {
                 Icon(imageVector = Icons.Outlined.Shield, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Guía de convivencia y uso")
+                Text(tr(R.string.s_guia_de_convivencia_y_uso))
             }
 
             HorizontalDivider()
 
             Text(
-                text = "Personas bloqueadas (${resolvedBlockedProfiles.size})",
+                text = tr(R.string.s_personas_bloqueadas, resolvedBlockedProfiles.size),
                 style = MaterialTheme.typography.titleSmall,
             )
             if (resolvedBlockedProfiles.isEmpty()) {
                 Text(
-                    text = "No tienes usuarios bloqueados actualmente.",
+                    text = tr(R.string.s_no_tienes_usuarios_bloqueados_actualmente),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -403,7 +407,7 @@ fun ProfileSafetySheet(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                                 Text(
-                                    text = blocked.subtitle.ifBlank { "Persona bloqueada" },
+                                    text = blocked.subtitle.ifBlank { tr(R.string.s_persona_bloqueada) },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
@@ -416,7 +420,7 @@ fun ProfileSafetySheet(
                                     .minimumInteractiveComponentSize()
                                     .testTag("unblock_user_button_${blocked.userId}"),
                             ) {
-                                Text("Desbloquear")
+                                Text(tr(R.string.s_desbloquear))
                             }
                         }
                     }
@@ -437,7 +441,7 @@ fun ProfileSafetySheet(
             ) {
                 Icon(imageVector = Icons.AutoMirrored.Outlined.Logout, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Cerrar sesión")
+                Text(tr(R.string.s_cerrar_sesion))
             }
         }
     }
@@ -463,15 +467,15 @@ private fun MediaQualitySettingsCard() {
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Calidad de fotos y videos", style = MaterialTheme.typography.titleSmall)
+            Text(tr(R.string.s_calidad_de_fotos_y_videos), style = MaterialTheme.typography.titleSmall)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Enviar en HD", style = MaterialTheme.typography.bodyLarge)
+                    Text(tr(R.string.s_enviar_en_hd), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        text = "Fotos hasta 2048 px y videos 720p (máx. 1 min). Usa más datos y tarda más en enviarse.",
+                        text = tr(R.string.s_fotos_hasta_2048_px_y),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -490,9 +494,9 @@ private fun MediaQualitySettingsCard() {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Recibir en HD automáticamente", style = MaterialTheme.typography.bodyLarge)
+                    Text(tr(R.string.s_recibir_en_hd_automaticamente), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        text = "Descarga sola la versión HD de las fotos que te envían. Si lo apagas, se ve la versión ligera y la HD se baja al abrirla.",
+                        text = tr(R.string.s_descarga_sola_la_version_hd),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -525,27 +529,27 @@ private fun AppUpdateCard() {
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("Actualizaciones", style = MaterialTheme.typography.titleSmall)
+            Text(tr(R.string.s_actualizaciones), style = MaterialTheme.typography.titleSmall)
             Text(
-                text = "Versión instalada: ${com.example.data.AppUpdater.currentVersionName}",
+                text = tr(R.string.s_version_instalada, com.example.data.AppUpdater.currentVersionName),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             when (update.status) {
                 com.example.data.AppUpdater.Status.CHECKING ->
-                    Text("Buscando actualizaciones…", style = MaterialTheme.typography.bodyMedium)
+                    Text(tr(R.string.s_buscando_actualizaciones), style = MaterialTheme.typography.bodyMedium)
                 com.example.data.AppUpdater.Status.UP_TO_DATE ->
-                    Text("Tienes la última versión.", style = MaterialTheme.typography.bodyMedium)
+                    Text(tr(R.string.s_tienes_la_ultima_version), style = MaterialTheme.typography.bodyMedium)
                 com.example.data.AppUpdater.Status.AVAILABLE, com.example.data.AppUpdater.Status.READY -> {
                     val info = update.info
                     Text(
-                        text = "Hay una versión nueva (#${info?.build ?: "?"})" +
-                            (info?.sizeBytes?.takeIf { it > 0 }?.let { " · ${it / (1024 * 1024)} MB" } ?: ""),
+                        text = tr(R.string.s_hay_una_version_nueva, info?.build ?: "?") +
+                            (info?.sizeBytes?.takeIf { it > 0 }?.let { tr(R.string.s_mb, it / (1024 * 1024)) } ?: ""),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
                 com.example.data.AppUpdater.Status.DOWNLOADING -> {
-                    Text("Descargando… ${(update.progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                    Text(tr(R.string.s_descargando_2, (update.progress * 100).toInt()), style = MaterialTheme.typography.bodyMedium)
                     androidx.compose.material3.LinearProgressIndicator(
                         progress = { update.progress },
                         modifier = Modifier.fillMaxWidth(),
@@ -562,7 +566,7 @@ private fun AppUpdateCard() {
                         onClick = { com.example.data.AppUpdater.downloadAndInstall(context) },
                         modifier = Modifier.testTag("settings_install_update_button"),
                     ) {
-                        Text(if (update.status == com.example.data.AppUpdater.Status.READY) "Instalar" else "Descargar e instalar")
+                        Text(if (update.status == com.example.data.AppUpdater.Status.READY) tr(R.string.s_instalar) else tr(R.string.s_descargar_e_instalar))
                     }
                 com.example.data.AppUpdater.Status.DOWNLOADING, com.example.data.AppUpdater.Status.CHECKING -> {}
                 else ->
@@ -570,7 +574,7 @@ private fun AppUpdateCard() {
                         onClick = { com.example.data.AppUpdater.check() },
                         modifier = Modifier.testTag("settings_check_update_button"),
                     ) {
-                        Text("Buscar actualizaciones")
+                        Text(tr(R.string.s_buscar_actualizaciones))
                     }
             }
         }
@@ -603,9 +607,9 @@ private fun LocationPrivacyCard(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("Privacidad de ubicación", style = MaterialTheme.typography.titleSmall)
+            Text(tr(R.string.s_privacidad_de_ubicacion), style = MaterialTheme.typography.titleSmall)
             Text(
-                text = "Precisión con la que apareces en el radar. Tu ubicación exacta solo se envía cuando tú la compartes en un chat.",
+                text = tr(R.string.s_precision_con_la_que_apareces),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -630,21 +634,21 @@ private fun LocationPrivacyCard(
 
             HorizontalDivider()
 
-            Text("Modo fantasma", style = MaterialTheme.typography.titleSmall)
+            Text(tr(R.string.s_modo_fantasma), style = MaterialTheme.typography.titleSmall)
             if (ghostActive) {
                 val minsLeft = ((ghostUntilMs - now) / 60_000L).coerceAtLeast(1)
-                val label = if (minsLeft >= 60) "${minsLeft / 60} h ${minsLeft % 60} min" else "$minsLeft min"
+                val label = if (minsLeft >= 60) tr(R.string.s_h_min, minsLeft / 60, minsLeft % 60) else "$minsLeft min"
                 Text(
-                    text = "Nadie te ve en el radar. Vuelves a aparecer en $label.",
+                    text = tr(R.string.s_nadie_te_ve_en_el, label),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 OutlinedButton(
                     onClick = { onSetGhost(null) },
                     modifier = Modifier.testTag("ghost_off_button"),
-                ) { Text("Volver a ser visible") }
+                ) { Text(tr(R.string.s_volver_a_ser_visible)) }
             } else {
                 Text(
-                    text = "Desaparece del radar por un tiempo y reaparece solo.",
+                    text = tr(R.string.s_desaparece_del_radar_por_un),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -652,12 +656,49 @@ private fun LocationPrivacyCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                 ) {
-                    listOf("1 hora" to 1L, "8 horas" to 8L, "24 horas" to 24L).forEach { (label, hours) ->
+                    listOf(tr(R.string.s_1_hora) to 1L, tr(R.string.s_8_horas) to 8L, tr(R.string.s_24_horas) to 24L).forEach { (label, hours) ->
                         OutlinedButton(
                             onClick = { onSetGhost(hours * 3_600_000L) },
                             modifier = Modifier.testTag("ghost_${hours}h_button"),
                         ) { Text(label) }
                     }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun LanguageCard() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = generateSequence(context) { (it as? android.content.ContextWrapper)?.baseContext }
+        .filterIsInstance<android.app.Activity>().firstOrNull()
+    val current = com.example.i18n.Lang.saved(context)
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(tr(R.string.s_idioma), style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = tr(R.string.s_la_app_se_reiniciara_para),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+            ) {
+                val options = listOf(com.example.i18n.Lang.AUTO to tr(R.string.s_automatico)) + com.example.i18n.Lang.supported
+                options.forEach { (code, label) ->
+                    androidx.compose.material3.FilterChip(
+                        selected = code == current,
+                        onClick = { if (code != current) activity?.let { com.example.i18n.Lang.change(it, code) } },
+                        label = { Text(label) },
+                        modifier = Modifier.testTag("language_$code"),
+                    )
                 }
             }
         }

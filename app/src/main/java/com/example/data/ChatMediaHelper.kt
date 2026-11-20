@@ -1,5 +1,8 @@
 package com.example.data
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -143,7 +146,7 @@ object ChatMediaHelper {
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
                 if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-                    return@withContext Result.failure(IllegalArgumentException("No se pudo leer la foto de perfil."))
+                    return@withContext Result.failure(IllegalArgumentException(tr(R.string.s_no_se_pudo_leer_la_2)))
                 }
 
                 var sampleSize = 1
@@ -154,7 +157,7 @@ object ChatMediaHelper {
                 val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
                 val sampled = resolver.openInputStream(uri)?.use {
                     BitmapFactory.decodeStream(it, null, decodeOpts)
-                } ?: return@withContext Result.failure(IllegalArgumentException("No se pudo abrir la foto seleccionada."))
+                } ?: return@withContext Result.failure(IllegalArgumentException(tr(R.string.s_no_se_pudo_abrir_la)))
 
                 val cropSize = kotlin.math.min(sampled.width, sampled.height)
                 val cropX = ((sampled.width - cropSize) / 2).coerceAtLeast(0)
@@ -244,7 +247,7 @@ object ChatMediaHelper {
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
                 if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-                    return@withContext Result.failure(IllegalArgumentException("No se pudo leer la imagen seleccionada."))
+                    return@withContext Result.failure(IllegalArgumentException(tr(R.string.s_no_se_pudo_leer_la_3)))
                 }
 
                 var sampleSize = 1
@@ -256,7 +259,7 @@ object ChatMediaHelper {
                 val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
                 val sampledRaw = resolver.openInputStream(uri)?.use {
                     BitmapFactory.decodeStream(it, null, decodeOpts)
-                } ?: return@withContext Result.failure(IllegalArgumentException("No se pudo abrir la imagen."))
+                } ?: return@withContext Result.failure(IllegalArgumentException(tr(R.string.s_no_se_pudo_abrir_la_2)))
                 val sampled = applyExifRotation(context, uri, sampledRaw)
 
                 val scale = MAX_IMAGE_DIMENSION_PX.toFloat() / max(sampled.width, sampled.height).toFloat()
@@ -282,7 +285,7 @@ object ChatMediaHelper {
                 bitmap.recycle()
 
                 if (bytes.size > MAX_IMAGE_BYTES * 2) {
-                    return@withContext Result.failure(IllegalArgumentException("La imagen sigue siendo muy pesada para enviarla."))
+                    return@withContext Result.failure(IllegalArgumentException(tr(R.string.s_la_imagen_sigue_siendo_muy)))
                 }
 
                 val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
@@ -318,18 +321,18 @@ object ChatMediaHelper {
                             if (total > ChunkedMediaStore.MAX_CHUNKED_BYTES) {
                                 copy.delete()
                                 return@withContext Result.failure(
-                                    IllegalArgumentException("El audio supera el límite de 24 MB.")
+                                    IllegalArgumentException(tr(R.string.s_el_audio_supera_el_limite))
                                 )
                             }
                             out.write(chunk, 0, read)
                         }
                         total
                     }
-                } ?: return@withContext Result.failure(IllegalArgumentException("No se pudo leer el archivo de audio."))
+                } ?: return@withContext Result.failure(IllegalArgumentException(tr(R.string.s_no_se_pudo_leer_el)))
 
                 if (total <= 0L) {
                     copy.delete()
-                    return@withContext Result.failure(IllegalArgumentException("El archivo de audio está vacío."))
+                    return@withContext Result.failure(IllegalArgumentException(tr(R.string.s_el_archivo_de_audio_esta)))
                 }
 
                 val durationSec = extractAudioDurationSec(context, uri)
@@ -448,7 +451,7 @@ class VoiceNoteRecorder(private val context: Context) {
         outputFile = null
 
         if (file == null || !file.exists() || file.length() == 0L) {
-            return@withContext Result.failure(IllegalStateException("No se grabó audio válido."))
+            return@withContext Result.failure(IllegalStateException(tr(R.string.s_no_se_grabo_audio_valido)))
         }
 
         return@withContext try {

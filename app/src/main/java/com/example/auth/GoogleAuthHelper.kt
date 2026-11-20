@@ -1,5 +1,7 @@
 package com.example.auth
 
+import com.example.i18n.tr
+
 import android.app.Activity
 import android.content.Context
 import android.util.Log
@@ -88,7 +90,7 @@ fun onGoogleSignInClicked(
     val clientId = try {
         context.getString(R.string.default_web_client_id)
     } catch (_: Exception) {
-        onAuthError("Configuración de Google Sign-In no encontrada (default_web_client_id).")
+        onAuthError(tr(R.string.s_configuracion_de_google_sign_in))
         return
     }
     val signInOption = GetSignInWithGoogleOption.Builder(serverClientId = clientId).build()
@@ -99,21 +101,21 @@ fun onGoogleSignInClicked(
     scope.launch {
         try {
             val activity = context as? Activity
-                ?: throw IllegalStateException("Se requiere un contexto de Activity para iniciar sesión.")
+                ?: throw IllegalStateException(tr(R.string.s_se_requiere_un_contexto_de))
             val cred = credentialManager.getCredential(activity, request).credential
             if (cred is CustomCredential && cred.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 val token = GoogleIdTokenCredential.createFrom(cred.data).idToken
                 Firebase.auth.signInWithCredential(GoogleAuthProvider.getCredential(token, null)).await()
                 onAuthSuccess()
             } else {
-                onAuthError("Tipo de credencial inesperado.")
+                onAuthError(tr(R.string.s_tipo_de_credencial_inesperado))
             }
         } catch (e: GetCredentialCancellationException) {
             Log.w("Auth", "Google Sign-In cancelled or dismissed: ${e.message}", e)
             onAuthCancelled()
         } catch (e: Exception) {
             Log.e("Auth", "Google Sign-In failed", e)
-            onAuthError(e.localizedMessage ?: "No pudimos iniciar sesión con Google.")
+            onAuthError(e.localizedMessage ?: tr(R.string.s_no_pudimos_iniciar_sesion_con))
         }
     }
 }

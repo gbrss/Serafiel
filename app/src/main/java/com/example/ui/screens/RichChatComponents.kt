@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.R
+import com.example.i18n.tr
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -283,7 +286,7 @@ fun MentionSuggestionsPanel(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Etiquetar persona (@)",
+                text = tr(R.string.s_etiquetar_persona),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
@@ -358,7 +361,7 @@ val SERAFIEL_EMOJI_CATEGORIES = listOf(
     EmojiCategory(
         key = "faces",
         icon = "😊",
-        labelEs = "Caras",
+        labelEs = tr(R.string.s_caras),
         emojis = listOf(
             "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂",
             "🙂", "🙃", "😉", "😊", "😇", "🥰", "😍", "🤩",
@@ -378,7 +381,7 @@ val SERAFIEL_EMOJI_CATEGORIES = listOf(
     EmojiCategory(
         key = "people",
         icon = "👋",
-        labelEs = "Gestos",
+        labelEs = tr(R.string.s_gestos),
         emojis = listOf(
             "👋", "🤚", "🖐️", "✋", "🖖", "👌", "🤌", "🤏",
             "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆",
@@ -393,7 +396,7 @@ val SERAFIEL_EMOJI_CATEGORIES = listOf(
     EmojiCategory(
         key = "nature",
         icon = "🌿",
-        labelEs = "Naturaleza",
+        labelEs = tr(R.string.s_naturaleza),
         emojis = listOf(
             "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼",
             "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🙈",
@@ -409,7 +412,7 @@ val SERAFIEL_EMOJI_CATEGORIES = listOf(
     EmojiCategory(
         key = "food",
         icon = "🍕",
-        labelEs = "Comida",
+        labelEs = tr(R.string.s_comida),
         emojis = listOf(
             "🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇",
             "🍓", "🫐", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝",
@@ -425,7 +428,7 @@ val SERAFIEL_EMOJI_CATEGORIES = listOf(
     EmojiCategory(
         key = "activities",
         icon = "⚽",
-        labelEs = "Deportes",
+        labelEs = tr(R.string.s_deportes),
         emojis = listOf(
             "⚽", "🏀", "🏈", "⚾", "🥎", "🎾", "🏐", "🏉",
             "🎱", "🏓", "🏸", "🏒", "⛳", "🏹", "🎣", "🥊",
@@ -440,7 +443,7 @@ val SERAFIEL_EMOJI_CATEGORIES = listOf(
     EmojiCategory(
         key = "travel",
         icon = "✈️",
-        labelEs = "Viajes",
+        labelEs = tr(R.string.s_viajes),
         emojis = listOf(
             "🚗", "🚕", "🚙", "🚌", "🚎", "🏎️", "🚓", "🚑",
             "🚒", "🚐", "🚚", "🚜", "🛵", "🏍️", "🚲", "🛴",
@@ -455,7 +458,7 @@ val SERAFIEL_EMOJI_CATEGORIES = listOf(
     EmojiCategory(
         key = "objects",
         icon = "💡",
-        labelEs = "Objetos",
+        labelEs = tr(R.string.s_objetos),
         emojis = listOf(
             "⌚", "📱", "💻", "⌨️", "🖥️", "🖨️", "📷", "📸",
             "📹", "🎥", "📞", "☎️", "📺", "📻", "🎙️", "⏰",
@@ -470,7 +473,7 @@ val SERAFIEL_EMOJI_CATEGORIES = listOf(
     EmojiCategory(
         key = "symbols",
         icon = "✨",
-        labelEs = "Símbolos",
+        labelEs = tr(R.string.s_simbolos),
         emojis = listOf(
             "💯", "💢", "💥", "💫", "💦", "💨", "💤", "💬",
             "💭", "🗯️", "♠️", "♥️", "♦️", "♣️", "🔔", "🎵",
@@ -575,7 +578,7 @@ fun ChatAttachmentOptionsBar(
         ) {
             AttachmentOptionTile(
                 icon = Icons.Outlined.PhotoCamera,
-                label = "Cámara",
+                label = tr(R.string.s_camara),
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 testTag = "attach_camera_button",
@@ -583,7 +586,7 @@ fun ChatAttachmentOptionsBar(
             )
             AttachmentOptionTile(
                 icon = Icons.Outlined.Image,
-                label = "Galería",
+                label = tr(R.string.s_galeria),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 testTag = "attach_image_button",
@@ -591,7 +594,7 @@ fun ChatAttachmentOptionsBar(
             )
             AttachmentOptionTile(
                 icon = Icons.Outlined.AudioFile,
-                label = "Audio",
+                label = tr(R.string.s_audio_2),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 testTag = "attach_audio_button",
@@ -599,7 +602,7 @@ fun ChatAttachmentOptionsBar(
             )
             AttachmentOptionTile(
                 icon = Icons.Outlined.LocationOn,
-                label = "Ubicación",
+                label = tr(R.string.s_ubicacion_2),
                 containerColor = Color(0xFFD1FAE5),
                 contentColor = Color(0xFF065F46),
                 testTag = "attach_location_button",
@@ -608,7 +611,7 @@ fun ChatAttachmentOptionsBar(
             if (onCreatePoll != null) {
                 AttachmentOptionTile(
                     icon = Icons.Outlined.Poll,
-                    label = "Encuesta",
+                    label = tr(R.string.s_encuesta_2),
                     containerColor = Color(0xFFFFE08A),
                     contentColor = Color(0xFF5F4A00),
                     testTag = "attach_poll_button",
@@ -729,7 +732,7 @@ fun SwipeToReplyWrapper(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.Reply,
-                        contentDescription = "Responder",
+                        contentDescription = tr(R.string.s_responder),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp),
                     )
@@ -783,7 +786,7 @@ fun ReplyQuoteBox(
                     )
                 }
                 Text(
-                    text = previewText.ifBlank { "Mensaje" },
+                    text = previewText.ifBlank { tr(R.string.s_mensaje_2) },
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor.copy(alpha = 0.78f),
                     maxLines = 2,
@@ -825,7 +828,7 @@ fun ReplyOrEditComposerBanner(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isEditing) "Editando mensaje" else "Respondiendo a ${replyDraft?.senderName ?: ""}",
+                    text = if (isEditing) tr(R.string.s_editando_mensaje) else tr(R.string.s_respondiendo_a, replyDraft?.senderName ?: ""),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
@@ -848,7 +851,7 @@ fun ReplyOrEditComposerBanner(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = "Cancelar",
+                    contentDescription = tr(R.string.s_cancelar),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
                 )
@@ -920,7 +923,7 @@ fun MessageActionsDialog(
                 }
                 MessageActionRow(
                     icon = Icons.AutoMirrored.Rounded.Reply,
-                    label = "Responder",
+                    label = tr(R.string.s_responder),
                     testTag = "action_reply_message",
                     onClick = {
                         onDismiss()
@@ -930,7 +933,7 @@ fun MessageActionsDialog(
                 if (canCopy) {
                     MessageActionRow(
                         icon = Icons.Outlined.ContentCopy,
-                        label = "Copiar texto",
+                        label = tr(R.string.s_copiar_texto),
                         testTag = "action_copy_message",
                         onClick = {
                             onDismiss()
@@ -941,7 +944,7 @@ fun MessageActionsDialog(
                 if (onPin != null) {
                     MessageActionRow(
                         icon = Icons.Outlined.PushPin,
-                        label = if (isPinned) "Desfijar mensaje" else "Fijar mensaje",
+                        label = if (isPinned) tr(R.string.s_desfijar_mensaje) else tr(R.string.s_fijar_mensaje),
                         testTag = "action_pin_message",
                         onClick = {
                             onDismiss()
@@ -952,7 +955,7 @@ fun MessageActionsDialog(
                 if (onForward != null) {
                     MessageActionRow(
                         icon = Icons.AutoMirrored.Rounded.Reply,
-                        label = "Reenviar",
+                        label = tr(R.string.s_reenviar),
                         testTag = "action_forward_message",
                         onClick = {
                             onDismiss()
@@ -963,7 +966,7 @@ fun MessageActionsDialog(
                 if (canEdit) {
                     MessageActionRow(
                         icon = Icons.Outlined.Edit,
-                        label = "Editar mensaje",
+                        label = tr(R.string.s_editar_mensaje_2),
                         testTag = "action_edit_message",
                         onClick = {
                             onDismiss()
@@ -974,7 +977,7 @@ fun MessageActionsDialog(
                 if (canDelete) {
                     MessageActionRow(
                         icon = Icons.Outlined.DeleteOutline,
-                        label = "Eliminar mensaje",
+                        label = tr(R.string.s_eliminar_mensaje_2),
                         tint = MaterialTheme.colorScheme.error,
                         testTag = "action_delete_message",
                         onClick = {
@@ -987,7 +990,7 @@ fun MessageActionsDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar")
+                Text(tr(R.string.s_cerrar))
             }
         },
     )
@@ -1096,7 +1099,7 @@ fun DirectMessageBubble(
 
                 if (message.forwarded) {
                     Text(
-                        text = "↪ Reenviado",
+                        text = tr(R.string.s_reenviado),
                         style = MaterialTheme.typography.labelSmall,
                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1122,7 +1125,7 @@ fun DirectMessageBubble(
                             Box {
                                 Image(
                                     bitmap = imageBitmap,
-                                    contentDescription = "Imagen compartida",
+                                    contentDescription = tr(R.string.s_imagen_compartida),
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1144,7 +1147,7 @@ fun DirectMessageBubble(
                             }
                         } else {
                             Text(
-                                text = "Imagen no disponible",
+                                text = tr(R.string.s_imagen_no_disponible),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = contentColor,
                             )
@@ -1186,16 +1189,16 @@ fun DirectMessageBubble(
                         val isPlaying = isThisActive && audioPlaybackState.isPlaying
                         val isVoice = message.messageType == DirectMessage.TYPE_VOICE
                         val titleLabel = if (isVoice) {
-                            "Mensaje de voz"
+                            tr(R.string.s_mensaje_de_voz_2)
                         } else {
-                            message.mediaName?.takeIf { it.isNotBlank() } ?: "Archivo de audio"
+                            message.mediaName?.takeIf { it.isNotBlank() } ?: tr(R.string.s_archivo_de_audio)
                         }
                         val timeText = if (isThisActive && audioPlaybackState.currentSec > 0L) {
                             "${DirectMessage.formatDuration(audioPlaybackState.currentSec)} / ${DirectMessage.formatDuration(message.durationSec)}"
                         } else if (message.durationSec > 0L) {
                             DirectMessage.formatDuration(message.durationSec)
                         } else {
-                            "Audio"
+                            tr(R.string.s_audio_2)
                         }
 
                         Row(
@@ -1220,7 +1223,7 @@ fun DirectMessageBubble(
                                 } else {
                                     Icon(
                                         imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                        contentDescription = if (isPlaying) "Pausar audio" else "Reproducir audio",
+                                        contentDescription = if (isPlaying) tr(R.string.s_pausar_audio) else tr(R.string.s_reproducir_audio),
                                     )
                                 }
                             }
@@ -1316,7 +1319,7 @@ fun DirectMessageBubble(
                 }
 
                 val baseTime = if (message.messageType == DirectMessage.TYPE_LIVE_LOCATION && message.updatedAt != null) {
-                    "Actualizado: ${formatClockTime(message.updatedAt)}"
+                    tr(R.string.s_actualizado, formatClockTime(message.updatedAt))
                 } else {
                     formatClockTime(message.createdAt)
                 }
@@ -1326,7 +1329,7 @@ fun DirectMessageBubble(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = if (message.edited) "$baseTime · Editado" else baseTime,
+                        text = if (message.edited) tr(R.string.s_editado, baseTime) else baseTime,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1408,7 +1411,7 @@ fun FullscreenImageDialog(
             if (imageBitmap != null) {
                 Image(
                     bitmap = imageBitmap,
-                    contentDescription = "Vista previa ampliable de imagen",
+                    contentDescription = tr(R.string.s_vista_previa_ampliable_de_imagen),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
@@ -1432,7 +1435,7 @@ fun FullscreenImageDialog(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = "Cerrar imagen",
+                    contentDescription = tr(R.string.s_cerrar_imagen),
                     tint = Color.White,
                 )
             }
@@ -1459,7 +1462,7 @@ fun FullscreenImageDialog(
                         },
                         modifier = Modifier.size(40.dp),
                     ) {
-                        Icon(Icons.Outlined.ZoomOut, contentDescription = "Alejar", tint = Color.White)
+                        Icon(Icons.Outlined.ZoomOut, contentDescription = tr(R.string.s_alejar), tint = Color.White)
                     }
                     Text(
                         text = "${(scale * 100).roundToInt()}%",
@@ -1471,7 +1474,7 @@ fun FullscreenImageDialog(
                         onClick = { scale = (scale + 0.5f).coerceIn(1f, 5f) },
                         modifier = Modifier.size(40.dp),
                     ) {
-                        Icon(Icons.Outlined.ZoomIn, contentDescription = "Ampliar", tint = Color.White)
+                        Icon(Icons.Outlined.ZoomIn, contentDescription = tr(R.string.s_ampliar), tint = Color.White)
                     }
                     if (scale > 1.05f) {
                         TextButton(

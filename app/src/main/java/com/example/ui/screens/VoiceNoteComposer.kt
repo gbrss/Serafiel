@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -109,7 +112,7 @@ class VoiceNoteController internal constructor(
         if (isActive) return true
         val res = recorder.startRecording()
         if (res.isFailure) {
-            onShowMessage("No se pudo iniciar la grabación de voz.")
+            onShowMessage(tr(R.string.s_no_se_pudo_iniciar_la))
             return false
         }
         startedAt = System.currentTimeMillis()
@@ -142,13 +145,13 @@ class VoiceNoteController internal constructor(
         reset()
         if (tooShort) {
             recorder.cancelRecording()
-            onShowMessage("Mantén pulsado para grabar, suelta para enviar.")
+            onShowMessage(tr(R.string.s_manten_pulsado_para_grabar_suelta))
             return
         }
         scope.launch {
             recorder.finishAndEncode()
                 .onSuccess { onSend(it.copy(waveform = waveform)) }
-                .onFailure { onShowMessage(it.localizedMessage ?: "No se pudo guardar la nota de voz.") }
+                .onFailure { onShowMessage(it.localizedMessage ?: tr(R.string.s_no_se_pudo_guardar_la)) }
         }
     }
 
@@ -157,7 +160,7 @@ class VoiceNoteController internal constructor(
         level = recorder.currentLevel()
         levelSamples += level
         if (elapsedMs >= VoiceNoteRecorder.MAX_VOICE_NOTE_SEC * 1000L) {
-            onShowMessage("Llegaste al máximo de 5 minutos: nota de voz enviada.")
+            onShowMessage(tr(R.string.s_llegaste_al_maximo_de_5))
             finishAndSend()
         }
     }
@@ -218,9 +221,9 @@ fun VoiceMicButton(
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (!granted) {
-            controller.onShowMessage("Activa el permiso de micrófono para enviar notas de voz.")
+            controller.onShowMessage(tr(R.string.s_activa_el_permiso_de_microfono))
         } else {
-            controller.onShowMessage("Listo. Mantén pulsado el micrófono para grabar.")
+            controller.onShowMessage(tr(R.string.s_listo_manten_pulsado_el_microfono))
         }
     }
     val hasMic = {
@@ -254,7 +257,7 @@ fun VoiceMicButton(
                     ) {
                         Icon(
                             Icons.Rounded.Lock,
-                            contentDescription = "Desliza hacia arriba para bloquear",
+                            contentDescription = tr(R.string.s_desliza_hacia_arriba_para_bloquear),
                             tint = if (lift > 0.9f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp),
                         )
@@ -333,7 +336,7 @@ fun VoiceMicButton(
         ) {
             Icon(
                 imageVector = Icons.Rounded.Mic,
-                contentDescription = "Mantén pulsado para grabar un mensaje de voz",
+                contentDescription = tr(R.string.s_manten_pulsado_para_grabar_un),
                 tint = if (holding) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
@@ -372,7 +375,7 @@ fun RowScope.VoiceHoldingContent(controller: VoiceNoteController) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = "Desliza para cancelar",
+                text = tr(R.string.s_desliza_para_cancelar),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -396,7 +399,7 @@ fun VoiceLockedBar(controller: VoiceNoteController, modifier: Modifier = Modifie
         ) {
             Icon(
                 Icons.Outlined.DeleteOutline,
-                contentDescription = "Descartar nota de voz",
+                contentDescription = tr(R.string.s_descartar_nota_de_voz),
                 tint = MaterialTheme.colorScheme.error,
             )
         }
@@ -417,7 +420,7 @@ fun VoiceLockedBar(controller: VoiceNoteController, modifier: Modifier = Modifie
                 .size(48.dp)
                 .testTag("send_voice_button"),
         ) {
-            Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Enviar nota de voz")
+            Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = tr(R.string.s_enviar_nota_de_voz))
         }
     }
 }

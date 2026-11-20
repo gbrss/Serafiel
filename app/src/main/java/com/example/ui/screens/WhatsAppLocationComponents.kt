@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.Manifest
 import android.content.Intent
 import android.graphics.Rect
@@ -385,7 +388,7 @@ private fun InteractiveMapBox(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.LocationOn,
-                        contentDescription = "Ubicación marcada",
+                        contentDescription = tr(R.string.s_ubicacion_marcada),
                         tint = Color(0xFFE53935),
                         modifier = Modifier.size(42.dp),
                     )
@@ -396,7 +399,7 @@ private fun InteractiveMapBox(
         if (showCenterCrosshairPin) {
             Icon(
                 imageVector = Icons.Rounded.LocationOn,
-                contentDescription = "Punto seleccionado en el mapa",
+                contentDescription = tr(R.string.s_punto_seleccionado_en_el_mapa),
                 tint = Color(0xFFE53935),
                 modifier = Modifier
                     .size(42.dp)
@@ -422,7 +425,7 @@ private fun InteractiveMapBox(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Add,
-                        contentDescription = "Acercar mapa",
+                        contentDescription = tr(R.string.s_acercar_mapa),
                         tint = Color(0xFF374151),
                         modifier = Modifier.size(20.dp),
                     )
@@ -440,7 +443,7 @@ private fun InteractiveMapBox(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Remove,
-                        contentDescription = "Alejar mapa",
+                        contentDescription = tr(R.string.s_alejar_mapa),
                         tint = Color(0xFF374151),
                         modifier = Modifier.size(20.dp),
                     )
@@ -731,7 +734,7 @@ fun WhatsAppSendLocationDialog(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                contentDescription = "Volver",
+                                contentDescription = tr(R.string.s_volver),
                                 tint = Color.White,
                             )
                         }
@@ -739,7 +742,7 @@ fun WhatsAppSendLocationDialog(
                             TextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
-                                placeholder = { Text("Buscar comercio o lugar...", color = Color.White.copy(alpha = 0.7f)) },
+                                placeholder = { Text(tr(R.string.s_buscar_comercio_o_lugar), color = Color.White.copy(alpha = 0.7f)) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                                 colors = TextFieldDefaults.colors(
@@ -757,11 +760,11 @@ fun WhatsAppSendLocationDialog(
                                 searchQuery = ""
                                 showSearchField = false
                             }) {
-                                Icon(Icons.Outlined.Close, contentDescription = "Cerrar búsqueda", tint = Color.White)
+                                Icon(Icons.Outlined.Close, contentDescription = tr(R.string.s_cerrar_busqueda), tint = Color.White)
                             }
                         } else {
                             Text(
-                                text = "Enviar ubicación",
+                                text = tr(R.string.s_enviar_ubicacion),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = Color.White,
                                 fontWeight = FontWeight.Medium,
@@ -771,7 +774,7 @@ fun WhatsAppSendLocationDialog(
                             )
                             if (pickerMode == WhatsAppPickerMode.MENU) {
                                 IconButton(onClick = { showSearchField = true }) {
-                                    Icon(Icons.Outlined.Search, contentDescription = "Buscar lugar", tint = Color.White)
+                                    Icon(Icons.Outlined.Search, contentDescription = tr(R.string.s_buscar_lugar), tint = Color.White)
                                 }
                             }
                             IconButton(
@@ -785,7 +788,7 @@ fun WhatsAppSendLocationDialog(
                                         color = Color.White,
                                     )
                                 } else {
-                                    Icon(Icons.Outlined.Refresh, contentDescription = "Actualizar ubicación", tint = Color.White)
+                                    Icon(Icons.Outlined.Refresh, contentDescription = tr(R.string.s_actualizar_ubicacion), tint = Color.White)
                                 }
                             }
                         }
@@ -842,7 +845,7 @@ fun WhatsAppSendLocationDialog(
                             ) {
                                 Icon(
                                     imageVector = if (isMapExpanded) Icons.Outlined.FullscreenExit else Icons.Outlined.Fullscreen,
-                                    contentDescription = "Ampliar mapa",
+                                    contentDescription = tr(R.string.s_ampliar_mapa),
                                     tint = Color(0xFF455A64),
                                 )
                             }
@@ -873,7 +876,7 @@ fun WhatsAppSendLocationDialog(
                             } else {
                                 Icon(
                                     imageVector = Icons.Outlined.MyLocation,
-                                    contentDescription = "Centrar en mi ubicación",
+                                    contentDescription = tr(R.string.s_centrar_en_mi_ubicacion),
                                     tint = Color(0xFF455A64),
                                 )
                             }
@@ -883,7 +886,7 @@ fun WhatsAppSendLocationDialog(
                     // GPS Status / Permission / Settings Diagnostic Pill
                     if (diagnosticCode != null) {
                         val (pillText, onPillAction) = when (diagnosticCode) {
-                            ChatLocationPoint.STATUS_NO_PERMISSION -> "Permiso GPS necesario · Toca para conceder" to {
+                            ChatLocationPoint.STATUS_NO_PERMISSION -> tr(R.string.s_permiso_gps_necesario_toca_para) to {
                                 permissionLauncher.launch(
                                     arrayOf(
                                         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -891,7 +894,7 @@ fun WhatsAppSendLocationDialog(
                                     )
                                 )
                             }
-                            ChatLocationPoint.STATUS_COARSE_ONLY -> "Ubicación aproximada · Activa precisión exacta" to {
+                            ChatLocationPoint.STATUS_COARSE_ONLY -> tr(R.string.s_ubicacion_aproximada_activa_precision_exacta) to {
                                 runCatching {
                                     val intent = Intent(
                                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -906,13 +909,13 @@ fun WhatsAppSendLocationDialog(
                                     )
                                 )
                             }
-                            ChatLocationPoint.STATUS_GPS_DISABLED -> "GPS del móvil desactivado · Toca para activar" to {
+                            ChatLocationPoint.STATUS_GPS_DISABLED -> tr(R.string.s_gps_del_movil_desactivado_toca) to {
                                 runCatching {
                                     context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                                 }
                                 Unit
                             }
-                            else -> "GPS débil en interiores · Toca para reintentar" to {
+                            else -> tr(R.string.s_gps_debil_en_interiores_toca) to {
                                 loadGpsAndPlaces(forceFresh = true)
                             }
                         }
@@ -968,7 +971,7 @@ fun WhatsAppSendLocationDialog(
                                     )
                                 }
                                 Text(
-                                    text = "Buscar lugares aquí",
+                                    text = tr(R.string.s_buscar_lugares_aqui),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = WhatsAppAccentTeal,
                                     fontWeight = FontWeight.SemiBold,
@@ -1012,7 +1015,7 @@ fun WhatsAppSendLocationDialog(
                                     )
                                 }
                                 Text(
-                                    text = "Ubicación en tiempo real",
+                                    text = tr(R.string.s_ubicacion_en_tiempo_real_2),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSurface,
@@ -1030,7 +1033,7 @@ fun WhatsAppSendLocationDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    text = "Lugares cercanos",
+                                    text = tr(R.string.s_lugares_cercanos),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = WhatsAppAccentTeal,
                                     fontWeight = FontWeight.SemiBold,
@@ -1079,12 +1082,12 @@ fun WhatsAppSendLocationDialog(
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Enviar mi ubicación actual",
+                                        text = tr(R.string.s_enviar_mi_ubicacion_actual),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Normal,
                                     )
                                     Text(
-                                        text = "Exacto a ${gpsPoint.accuracyMeters} metros",
+                                        text = tr(R.string.s_exacto_a_metros, gpsPoint.accuracyMeters),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -1136,7 +1139,7 @@ fun WhatsAppSendLocationDialog(
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = "Enviar punto marcado en el mapa",
+                                            text = tr(R.string.s_enviar_punto_marcado_en_el),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Normal,
                                         )
@@ -1238,8 +1241,8 @@ fun WhatsAppSendLocationDialog(
                                         )
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Enviar con nombre \"$searchQuery\"", style = MaterialTheme.typography.bodyLarge)
-                                        Text("Usar coordenadas del mapa", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(tr(R.string.s_enviar_con_nombre, searchQuery), style = MaterialTheme.typography.bodyLarge)
+                                        Text(tr(R.string.s_usar_coordenadas_del_mapa), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                             }
@@ -1262,14 +1265,14 @@ fun WhatsAppSendLocationDialog(
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
-                                    text = "Ubicación en tiempo real",
+                                    text = tr(R.string.s_ubicacion_en_tiempo_real_2),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 if (gpsPoint.label.isNotBlank()) {
                                     Text(
-                                        text = "${gpsPoint.label.substringBefore('\n')} · Exacto a ${gpsPoint.accuracyMeters} m",
+                                        text = tr(R.string.s_exacto_a_m, gpsPoint.label.substringBefore('\n'), gpsPoint.accuracyMeters),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
@@ -1279,9 +1282,9 @@ fun WhatsAppSendLocationDialog(
                             }
 
                             val durations = listOf(
-                                15 to "15 minutos",
-                                60 to "1 hora",
-                                480 to "8 horas",
+                                15 to tr(R.string.s_15_minutos),
+                                60 to tr(R.string.s_1_hora),
+                                480 to tr(R.string.s_8_horas),
                             )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1318,7 +1321,7 @@ fun WhatsAppSendLocationDialog(
                                 OutlinedTextField(
                                     value = liveComment,
                                     onValueChange = { liveComment = it.take(200) },
-                                    placeholder = { Text("Añade un comentario") },
+                                    placeholder = { Text(tr(R.string.s_anade_un_comentario)) },
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                                     shape = RoundedCornerShape(14.dp),
@@ -1338,7 +1341,7 @@ fun WhatsAppSendLocationDialog(
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Rounded.Send,
-                                        contentDescription = "Enviar ubicación en tiempo real",
+                                        contentDescription = tr(R.string.s_enviar_ubicacion_en_tiempo_real),
                                     )
                                 }
                             }
@@ -1369,7 +1372,7 @@ fun WhatsAppLocationMessageCard(
     val lat = message.latitude ?: 0.0
     val lon = message.longitude ?: 0.0
     val hasValidCoords = lat != 0.0 || lon != 0.0
-    val rawLabel = message.locationLabel?.takeIf { it.isNotBlank() } ?: "Ubicación compartida"
+    val rawLabel = message.locationLabel?.takeIf { it.isNotBlank() } ?: tr(R.string.s_ubicacion_compartida)
     val labelLines = rawLabel.split('\n').filter { it.isNotBlank() }
     val titleLine = labelLines.firstOrNull() ?: rawLabel
     val subtitleLine = labelLines.getOrNull(1)
@@ -1426,7 +1429,7 @@ fun WhatsAppLocationMessageCard(
                             contentAlignment = Alignment.Center,
                         ) {
                             AvatarCircle(
-                                name = message.senderName.ifBlank { "Usuario" },
+                                name = message.senderName.ifBlank { tr(R.string.s_usuario) },
                                 avatarColor = senderColor,
                                 size = 43.dp,
                                 verified = false,
@@ -1446,7 +1449,7 @@ fun WhatsAppLocationMessageCard(
                 } else {
                     Icon(
                         imageVector = Icons.Rounded.LocationOn,
-                        contentDescription = "Ubicación marcada",
+                        contentDescription = tr(R.string.s_ubicacion_marcada),
                         tint = Color(0xFFE53935),
                         modifier = Modifier
                             .size(40.dp)
@@ -1475,9 +1478,9 @@ fun WhatsAppLocationMessageCard(
                         Text(
                             text = when {
                                 stillWithinWindow && expiresFormatted.isNotBlank() ->
-                                    "Compartiendo hasta las $expiresFormatted"
-                                stillWithinWindow -> "Compartiendo ubicación en tiempo real"
-                                else -> "Ubicación en tiempo real finalizada"
+                                    tr(R.string.s_compartiendo_hasta_las, expiresFormatted)
+                                stillWithinWindow -> tr(R.string.s_compartiendo_ubicacion_en_tiempo_real_2)
+                                else -> tr(R.string.s_ubicacion_en_tiempo_real_finalizada)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
@@ -1492,7 +1495,7 @@ fun WhatsAppLocationMessageCard(
                         )
                     }
                     Text(
-                        text = "$titleLine · Toca para ver mapa en la app",
+                        text = tr(R.string.s_toca_para_ver_mapa_en, titleLine),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -1515,7 +1518,7 @@ fun WhatsAppLocationMessageCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "Toca para explorar en el mapa",
+                        text = tr(R.string.s_toca_para_explorar_en_el),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -1533,7 +1536,7 @@ fun WhatsAppLocationMessageCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Dejar de compartir",
+                        text = tr(R.string.s_dejar_de_compartir),
                         style = MaterialTheme.typography.titleSmall,
                         color = WhatsAppLiveRed,
                         fontWeight = FontWeight.SemiBold,
@@ -1612,7 +1615,7 @@ fun InAppDynamicLocationDialog(
         }
     }
 
-    val rawLabel = message.locationLabel?.takeIf { it.isNotBlank() } ?: "Ubicación compartida"
+    val rawLabel = message.locationLabel?.takeIf { it.isNotBlank() } ?: tr(R.string.s_ubicacion_compartida)
     val labelLines = rawLabel.split('\n').filter { it.isNotBlank() }
     val titleLine = labelLines.firstOrNull() ?: rawLabel
     val subtitleLine = labelLines.getOrNull(1)
@@ -1620,7 +1623,7 @@ fun InAppDynamicLocationDialog(
 
     val distText = if (viewerZone.hasValidCoords && (targetLat != 0.0 || targetLon != 0.0)) {
         val km = LocationHelper.distanceKm(viewerZone.approxLat, viewerZone.approxLon, targetLat, targetLon)
-        "A ${LocationHelper.formatCompactDistance(km)} de ti"
+        tr(R.string.s_a_de_ti, LocationHelper.formatCompactDistance(km))
     } else {
         null
     }
@@ -1657,7 +1660,7 @@ fun InAppDynamicLocationDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     AvatarCircle(
-                        name = message.senderName.ifBlank { "Usuario" },
+                        name = message.senderName.ifBlank { tr(R.string.s_usuario) },
                         avatarColor = senderColor,
                         size = 40.dp,
                         isOnline = isLiveType && stillWithinWindow,
@@ -1666,7 +1669,7 @@ fun InAppDynamicLocationDialog(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (isLiveType) "Ubicación en tiempo real" else titleLine,
+                            text = if (isLiveType) tr(R.string.s_ubicacion_en_tiempo_real_2) else titleLine,
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White,
                             maxLines = 1,
@@ -1675,10 +1678,10 @@ fun InAppDynamicLocationDialog(
                         Text(
                             text = when {
                                 others.isNotEmpty() ->
-                                    "$sharingCount personas compartiendo en vivo"
+                                    tr(R.string.s_personas_compartiendo_en_vivo, sharingCount)
                                 isLiveType && stillWithinWindow && expiresFormatted.isNotBlank() ->
-                                    "${message.senderName.ifBlank { "Usuario" }} · Hasta las $expiresFormatted"
-                                isLiveType && !stillWithinWindow -> "Finalizada"
+                                    tr(R.string.s_hasta_las, message.senderName.ifBlank { tr(R.string.s_usuario) }, expiresFormatted)
+                                isLiveType && !stillWithinWindow -> tr(R.string.s_finalizada)
                                 distText != null -> distText
                                 else -> subtitleLine
                             },
@@ -1694,7 +1697,7 @@ fun InAppDynamicLocationDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Close,
-                            contentDescription = "Cerrar mapa",
+                            contentDescription = tr(R.string.s_cerrar_mapa),
                             tint = Color.White,
                         )
                     }
@@ -1714,7 +1717,7 @@ fun InAppDynamicLocationDialog(
                         showAccuracyCircle = false,
                         showCenterCrosshairPin = false,
                         showStaticMarkerPin = !isLiveType,
-                        avatarName = if (isLiveType) message.senderName.ifBlank { "Usuario" } else null,
+                        avatarName = if (isLiveType) message.senderName.ifBlank { tr(R.string.s_usuario) } else null,
                         avatarColor = senderColor,
                         avatarPhotoData = senderPhotoData,
                         avatarPhotoUrl = senderPhotoUrl,
@@ -1746,7 +1749,7 @@ fun InAppDynamicLocationDialog(
                                     modifier = Modifier.size(14.dp),
                                 )
                                 Text(
-                                    text = "En vivo",
+                                    text = tr(R.string.s_en_vivo),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
@@ -1771,7 +1774,7 @@ fun InAppDynamicLocationDialog(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.MyLocation,
-                                    contentDescription = "Centrar en marcador",
+                                    contentDescription = tr(R.string.s_centrar_en_marcador),
                                     tint = WhatsAppAccentTeal,
                                 )
                             }
@@ -1809,9 +1812,9 @@ fun InAppDynamicLocationDialog(
                     }
                     if (others.isNotEmpty()) {
                         Text(
-                            text = "Compartiendo ahora: " + buildList {
-                                add(message.senderName.ifBlank { "Usuario" })
-                                others.forEach { add(if (it.isMine) "Tú" else it.name) }
+                            text = tr(R.string.s_compartiendo_ahora) + buildList {
+                                add(message.senderName.ifBlank { tr(R.string.s_usuario) })
+                                others.forEach { add(if (it.isMine) tr(R.string.s_tu) else it.name) }
                             }.joinToString(", "),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1834,11 +1837,11 @@ fun InAppDynamicLocationDialog(
                                 ),
                                 modifier = Modifier.padding(end = 8.dp),
                             ) {
-                                Text("Dejar de compartir")
+                                Text(tr(R.string.s_dejar_de_compartir))
                             }
                         }
                         TextButton(onClick = onDismiss) {
-                            Text("Cerrar")
+                            Text(tr(R.string.s_cerrar))
                         }
                     }
                 }

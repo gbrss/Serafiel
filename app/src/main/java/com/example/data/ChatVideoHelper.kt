@@ -1,5 +1,8 @@
 package com.example.data
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
@@ -49,7 +52,7 @@ object ChatVideoHelper {
     suspend fun prepare(context: Context, uri: Uri, hd: Boolean): Result<PreparedVideo> {
         val appContext = context.applicationContext
         val meta = withContext(Dispatchers.IO) { readMetadata(appContext, uri) }
-            ?: return Result.failure(IllegalArgumentException("No se pudo leer el video."))
+            ?: return Result.failure(IllegalArgumentException(tr(R.string.s_no_se_pudo_leer_el_2)))
         val maxSec = if (hd) HD_MAX_SEC else SD_MAX_SEC
         val trimmed = meta.durationMs > maxSec * 1000L
         val effectiveMs = min(meta.durationMs, maxSec * 1000L)
@@ -61,11 +64,11 @@ object ChatVideoHelper {
         }
         if (transcode.isFailure) {
             out.delete()
-            return Result.failure(transcode.exceptionOrNull() ?: IllegalStateException("No se pudo comprimir el video."))
+            return Result.failure(transcode.exceptionOrNull() ?: IllegalStateException(tr(R.string.s_no_se_pudo_comprimir_el)))
         }
         if (out.length() > ChunkedMediaStore.MAX_CHUNKED_BYTES) {
             out.delete()
-            return Result.failure(IllegalArgumentException("El video sigue siendo muy pesado. Prueba con uno más corto."))
+            return Result.failure(IllegalArgumentException(tr(R.string.s_el_video_sigue_siendo_muy)))
         }
         val thumb = withContext(Dispatchers.IO) { thumbnailBase64(out) ?: meta.thumbBase64 }.orEmpty()
         val name = "video_${System.currentTimeMillis()}.mp4"
@@ -193,7 +196,7 @@ object ChatVideoHelper {
                     exportException: ExportException,
                 ) {
                     if (cont.isActive) {
-                        cont.resume(Result.failure(IllegalStateException("No se pudo comprimir el video.", exportException)))
+                        cont.resume(Result.failure(IllegalStateException(tr(R.string.s_no_se_pudo_comprimir_el), exportException)))
                     }
                 }
             })

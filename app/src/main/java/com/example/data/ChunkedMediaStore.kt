@@ -1,5 +1,7 @@
 package com.example.data
 
+import com.example.i18n.tr
+
 import android.content.Context
 import android.util.Base64
 import com.example.R
@@ -48,8 +50,8 @@ object ChunkedMediaStore {
     suspend fun upload(messageRef: DocumentReference, senderId: String, file: File): Int =
         withContext(Dispatchers.IO) {
             val size = file.length()
-            require(size > 0) { "Archivo vacío" }
-            require(size <= MAX_CHUNKED_BYTES) { "El archivo supera ${MAX_CHUNKED_BYTES / (1024 * 1024)} MB" }
+            require(size > 0) { tr(R.string.s_archivo_vacio) }
+            require(size <= MAX_CHUNKED_BYTES) { tr(R.string.s_el_archivo_supera_mb, MAX_CHUNKED_BYTES / (1024 * 1024)) }
             val parts = partCount(size)
             RandomAccessFile(file, "r").use { raf ->
                 val buffer = ByteArray(PART_BYTES)

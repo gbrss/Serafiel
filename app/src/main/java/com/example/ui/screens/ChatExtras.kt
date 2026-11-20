@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.graphics.BitmapFactory
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -114,7 +117,7 @@ fun QuickReactionsRow(
             IconButton(onClick = onOpenFullPicker, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.Outlined.AddReaction,
-                    contentDescription = "Más reacciones",
+                    contentDescription = tr(R.string.s_mas_reacciones),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -176,9 +179,9 @@ fun ReactionChips(
 @Composable
 fun DeliveryTicks(status: MessageDeliveryStatus, modifier: Modifier = Modifier) {
     val (icon, tint, label) = when (status) {
-        MessageDeliveryStatus.SENT -> Triple(Icons.Rounded.Done, MaterialTheme.colorScheme.onSurfaceVariant, "Enviado")
-        MessageDeliveryStatus.DELIVERED -> Triple(Icons.Rounded.DoneAll, MaterialTheme.colorScheme.onSurfaceVariant, "Entregado")
-        MessageDeliveryStatus.SEEN -> Triple(Icons.Rounded.DoneAll, SeenBlue, "Visto")
+        MessageDeliveryStatus.SENT -> Triple(Icons.Rounded.Done, MaterialTheme.colorScheme.onSurfaceVariant, tr(R.string.s_enviado))
+        MessageDeliveryStatus.DELIVERED -> Triple(Icons.Rounded.DoneAll, MaterialTheme.colorScheme.onSurfaceVariant, tr(R.string.s_entregado))
+        MessageDeliveryStatus.SEEN -> Triple(Icons.Rounded.DoneAll, SeenBlue, tr(R.string.s_visto))
     }
     Icon(
         imageVector = icon,
@@ -234,7 +237,7 @@ fun VideoMessageContent(
         if (thumb != null) {
             Image(
                 bitmap = thumb,
-                contentDescription = "Video",
+                contentDescription = tr(R.string.s_video_3),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().heightIn(min = 140.dp),
             )
@@ -249,7 +252,7 @@ fun VideoMessageContent(
             if (progress != null) {
                 CircularProgressIndicator(progress = { progress }, color = Color.White, modifier = Modifier.size(40.dp))
             } else {
-                Icon(Icons.Rounded.PlayArrow, contentDescription = "Reproducir video", tint = Color.White, modifier = Modifier.size(34.dp))
+                Icon(Icons.Rounded.PlayArrow, contentDescription = tr(R.string.s_reproducir_video), tint = Color.White, modifier = Modifier.size(34.dp))
             }
         }
         Text(
@@ -311,12 +314,12 @@ fun VideoPlayerDialog(message: DirectMessage, onDismiss: () -> Unit) {
                     },
                     modifier = Modifier.fillMaxSize(),
                 )
-                failed -> Text("No se pudo cargar el video", color = Color.White)
+                failed -> Text(tr(R.string.s_no_se_pudo_cargar_el), color = Color.White)
                 else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val p = progressMap[message.id]
                     if (p != null) {
                         CircularProgressIndicator(progress = { p }, color = Color.White)
-                        Text("Descargando ${(p * 100).toInt()}%", color = Color.White, modifier = Modifier.padding(top = 12.dp))
+                        Text(tr(R.string.s_descargando, (p * 100).toInt()), color = Color.White, modifier = Modifier.padding(top = 12.dp))
                     } else {
                         CircularProgressIndicator(color = Color.White)
                     }
@@ -329,7 +332,7 @@ fun VideoPlayerDialog(message: DirectMessage, onDismiss: () -> Unit) {
                     .padding(20.dp)
                     .background(Color.Black.copy(alpha = 0.55f), CircleShape),
             ) {
-                Icon(Icons.Outlined.Close, contentDescription = "Cerrar video", tint = Color.White)
+                Icon(Icons.Outlined.Close, contentDescription = tr(R.string.s_cerrar_video), tint = Color.White)
             }
         }
     }

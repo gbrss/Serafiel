@@ -1,5 +1,8 @@
 package com.example.data
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
@@ -18,11 +21,11 @@ data class SharedContent(val text: String?, val uris: List<Uri>) {
             val images = uris.count { mimeOf(context, it).startsWith("image/") }
             val videos = uris.count { mimeOf(context, it).startsWith("video/") }
             val audios = uris.count { mimeOf(context, it).startsWith("audio/") }
-            if (images > 0) parts += if (images == 1) "1 imagen" else "$images imágenes"
-            if (videos > 0) parts += if (videos == 1) "1 video" else "$videos videos"
-            if (audios > 0) parts += if (audios == 1) "1 audio" else "$audios audios"
+            if (images > 0) parts += if (images == 1) tr(R.string.s_1_imagen) else tr(R.string.s_imagenes, images)
+            if (videos > 0) parts += if (videos == 1) tr(R.string.s_1_video) else "$videos videos"
+            if (audios > 0) parts += if (audios == 1) tr(R.string.s_1_audio) else "$audios audios"
         }
-        return parts.joinToString(" · ").ifBlank { "Contenido compartido" }
+        return parts.joinToString(" · ").ifBlank { tr(R.string.s_contenido_compartido) }
     }
 
     companion object {

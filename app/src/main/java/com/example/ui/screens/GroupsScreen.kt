@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.i18n.tr
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -210,8 +212,8 @@ fun GroupsTabScreen(
 
     if (showCreateDialog) {
         CreateOrEditGroupDialog(
-            title = "Crear grupo",
-            confirmLabel = "Crear grupo",
+            title = tr(R.string.s_crear_grupo),
+            confirmLabel = tr(R.string.s_crear_grupo),
             knownContacts = knownContacts,
             peerVisualMap = peerVisualMap,
             initialName = "",
@@ -228,8 +230,8 @@ fun GroupsTabScreen(
 
     groupToEdit?.let { target ->
         CreateOrEditGroupDialog(
-            title = "Editar grupo y miembros",
-            confirmLabel = "Guardar cambios",
+            title = tr(R.string.s_editar_grupo_y_miembros),
+            confirmLabel = tr(R.string.s_guardar_cambios),
             knownContacts = buildMergedContactList(knownContacts, target, currentUserId, peerVisualMap),
             peerVisualMap = peerVisualMap,
             initialName = target.name,
@@ -258,11 +260,11 @@ private fun buildMergedContactList(
             val visual = peerVisualMap[uid]
             merged[uid] = KnownContact(
                 userId = uid,
-                displayName = group.memberNames[uid] ?: "Miembro",
+                displayName = group.memberNames[uid] ?: tr(R.string.s_miembro),
                 avatarColor = group.memberColors[uid] ?: AvatarColor.AMBER.key,
                 photoData = visual?.photoData,
                 photoUrl = visual?.photoUrl,
-                subtitle = "Miembro del grupo",
+                subtitle = tr(R.string.s_miembro_del_grupo),
             )
         }
     }
@@ -322,7 +324,7 @@ private fun GroupsListScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    text = "Tus grupos (${allGroups.size})",
+                                    text = tr(R.string.s_tus_grupos, allGroups.size),
                                     style = MaterialTheme.typography.titleMedium,
                                 )
                                 TextButton(
@@ -331,7 +333,7 @@ private fun GroupsListScreen(
                                 ) {
                                     Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Nuevo grupo")
+                                    Text(tr(R.string.s_nuevo_grupo))
                                 }
                             }
                             Row(
@@ -343,7 +345,7 @@ private fun GroupsListScreen(
                                 FilterChip(
                                     selected = selectedCategoryFilter == null,
                                     onClick = { onSelectCategoryFilter(null) },
-                                    label = { Text("Todos") },
+                                    label = { Text(tr(R.string.s_todos)) },
                                     modifier = Modifier.testTag("group_filter_all"),
                                 )
                                 GroupCategory.entries.forEach { cat ->
@@ -386,15 +388,15 @@ private fun GroupsListScreen(
                                     )
                                     Text(
                                         text = if (allGroups.isEmpty()) {
-                                            "Crea grupos para Familia, Amigos o Comunidad"
+                                            tr(R.string.s_crea_grupos_para_familia_amigos)
                                         } else {
-                                            "No hay grupos en esta categoría"
+                                            tr(R.string.s_no_hay_grupos_en_esta)
                                         },
                                         style = MaterialTheme.typography.titleLarge,
                                         textAlign = TextAlign.Center,
                                     )
                                     Text(
-                                        text = "Organiza personas cercanas o tus contactos habituales y chatea con todos compartiendo emojis, fotos, audio y ubicación.",
+                                        text = tr(R.string.s_organiza_personas_cercanas_o_tus),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center,
@@ -407,7 +409,7 @@ private fun GroupsListScreen(
                                     ) {
                                         Icon(Icons.Outlined.GroupAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(Modifier.width(8.dp))
-                                        Text("Crear mi primer grupo")
+                                        Text(tr(R.string.s_crear_mi_primer_grupo))
                                     }
                                 }
                             }
@@ -465,7 +467,7 @@ private fun GroupsListScreen(
                                             }
                                         }
                                         Text(
-                                            text = group.lastMessage.ifBlank { "Sin mensajes aún" },
+                                            text = group.lastMessage.ifBlank { tr(R.string.s_sin_mensajes_aun) },
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
@@ -474,7 +476,7 @@ private fun GroupsListScreen(
                                         Spacer(Modifier.height(4.dp))
                                         Text(
                                             text = "${group.memberIds.size} miembro${if (group.memberIds.size == 1) "" else "s"}" +
-                                                if (isCreator) " · Creado por ti" else "",
+                                                if (isCreator) tr(R.string.s_creado_por_ti) else "",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.primary,
                                         )
@@ -497,7 +499,7 @@ private fun GroupsListScreen(
         ExtendedFloatingActionButton(
             onClick = onOpenCreateDialog,
             icon = { Icon(Icons.Outlined.GroupAdd, contentDescription = null) },
-            text = { Text("Crear grupo") },
+            text = { Text(tr(R.string.s_crear_grupo)) },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(20.dp)
@@ -541,8 +543,8 @@ fun CreateOrEditGroupDialog(
                         name = it.take(50)
                         nameError = null
                     },
-                    label = { Text("Nombre del grupo") },
-                    placeholder = { Text("Ej: Familia, Amigos del Café...") },
+                    label = { Text(tr(R.string.s_nombre_del_grupo)) },
+                    placeholder = { Text(tr(R.string.s_ej_familia_amigos_del_cafe)) },
                     isError = nameError != null,
                     supportingText = nameError?.let { { Text(it) } },
                     singleLine = true,
@@ -552,7 +554,7 @@ fun CreateOrEditGroupDialog(
                 )
 
                 Text(
-                    text = "Categoría",
+                    text = tr(R.string.s_categoria),
                     style = MaterialTheme.typography.labelLarge,
                 )
                 Row(
@@ -572,7 +574,7 @@ fun CreateOrEditGroupDialog(
                 }
 
                 Text(
-                    text = "Color del grupo",
+                    text = tr(R.string.s_color_del_grupo),
                     style = MaterialTheme.typography.labelLarge,
                 )
                 Row(
@@ -611,12 +613,12 @@ fun CreateOrEditGroupDialog(
                 }
 
                 Text(
-                    text = "Personas a incluir (${selectedIds.size})",
+                    text = tr(R.string.s_personas_a_incluir, selectedIds.size),
                     style = MaterialTheme.typography.labelLarge,
                 )
                 if (knownContacts.isEmpty()) {
                     Text(
-                        text = "Puedes crear el grupo ahora y añadir personas más tarde desde el Radar o tus Chats.",
+                        text = tr(R.string.s_puedes_crear_el_grupo_ahora),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -675,7 +677,7 @@ fun CreateOrEditGroupDialog(
                 onClick = {
                     val clean = name.trim()
                     if (clean.length < 2) {
-                        nameError = "Escribe al menos 2 caracteres"
+                        nameError = tr(R.string.s_escribe_al_menos_2_caracteres)
                     } else {
                         val chosen = knownContacts.filter { it.userId in selectedIds }
                         onConfirm(clean, selectedCategory, selectedColor, chosen)
@@ -688,7 +690,7 @@ fun CreateOrEditGroupDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(tr(R.string.s_cancelar))
             }
         },
     )
@@ -718,7 +720,7 @@ fun AddToGroupDialog(
                 tint = MaterialTheme.colorScheme.primary,
             )
         },
-        title = { Text("Añadir a ${contact.displayName} a un grupo") },
+        title = { Text(tr(R.string.s_anadir_a_a_un_grupo, contact.displayName)) },
         text = {
             Column(
                 modifier = Modifier
@@ -728,7 +730,7 @@ fun AddToGroupDialog(
             ) {
                 if (editableGroups.isNotEmpty()) {
                     Text(
-                        text = "Tus grupos",
+                        text = tr(R.string.s_tus_grupos_2),
                         style = MaterialTheme.typography.labelLarge,
                     )
                     editableGroups.forEach { group ->
@@ -757,13 +759,13 @@ fun AddToGroupDialog(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(group.name, style = MaterialTheme.typography.titleSmall)
                                     Text(
-                                        text = "${GroupCategory.fromKey(group.category).labelEs} · ${group.memberIds.size} miembro(s)",
+                                        text = tr(R.string.s_miembro_s, GroupCategory.fromKey(group.category).labelEs, group.memberIds.size),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 Text(
-                                    text = if (alreadyIn) "Incluido" else "Añadir",
+                                    text = if (alreadyIn) tr(R.string.s_incluido) else tr(R.string.s_anadir),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.SemiBold,
@@ -774,14 +776,14 @@ fun AddToGroupDialog(
                 }
 
                 Text(
-                    text = if (editableGroups.isEmpty()) "Crear un grupo nuevo" else "O crear un grupo nuevo",
+                    text = if (editableGroups.isEmpty()) tr(R.string.s_crear_un_grupo_nuevo) else tr(R.string.s_o_crear_un_grupo_nuevo),
                     style = MaterialTheme.typography.labelLarge,
                 )
                 OutlinedTextField(
                     value = newGroupName,
                     onValueChange = { newGroupName = it.take(50) },
-                    label = { Text("Nombre del nuevo grupo") },
-                    placeholder = { Text("Ej: Familia, Amigos...") },
+                    label = { Text(tr(R.string.s_nombre_del_nuevo_grupo)) },
+                    placeholder = { Text(tr(R.string.s_ej_familia_amigos)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -809,13 +811,13 @@ fun AddToGroupDialog(
                     enabled = newGroupName.trim().length >= 2,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Crear y añadir a ${contact.displayName.substringBefore(" ")}")
+                    Text(tr(R.string.s_crear_y_anadir_a, contact.displayName.substringBefore(" ")))
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar")
+                Text(tr(R.string.s_cerrar))
             }
         },
     )
@@ -921,7 +923,7 @@ private fun GroupDetailScreen(
         group.memberIds
             .filter { it != currentUserId }
             .map { memberId ->
-                val name = group.memberNames[memberId]?.takeIf { it.isNotBlank() } ?: "Miembro"
+                val name = group.memberNames[memberId]?.takeIf { it.isNotBlank() } ?: tr(R.string.s_miembro)
                 val colorKey = group.memberColors[memberId] ?: AvatarColor.AMBER.key
                 val visual = peerVisualMap[memberId]
                 MentionCandidate(
@@ -932,7 +934,7 @@ private fun GroupDetailScreen(
                     photoData = visual?.photoData,
                     photoUrl = visual?.photoUrl,
                     subtitle = visual?.distanceKm?.let { "A ${LocationHelper.formatCompactDistance(it)}" }
-                        ?: if (visual?.isOnline == true) "En línea" else "En el grupo",
+                        ?: if (visual?.isOnline == true) tr(R.string.s_en_linea) else tr(R.string.s_en_el_grupo),
                 )
             }
             .sortedBy { it.displayName.lowercase() }
@@ -974,7 +976,7 @@ private fun GroupDetailScreen(
         if (granted) {
             startCameraCapture()
         } else {
-            onShowMessage("Activa el permiso de cámara para tomar y enviar fotos.")
+            onShowMessage(tr(R.string.s_activa_el_permiso_de_camara))
         }
     }
 
@@ -1010,7 +1012,7 @@ private fun GroupDetailScreen(
         if (anyGranted) {
             showWhatsAppLocationPicker = true
         } else {
-            onShowMessage("Activa el permiso de ubicación para compartir tu ubicación.")
+            onShowMessage(tr(R.string.s_activa_el_permiso_de_ubicacion_2))
         }
     }
 
@@ -1090,7 +1092,7 @@ private fun GroupDetailScreen(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                text = "${category.labelEs} · ${group.memberIds.size} miembro${if (group.memberIds.size == 1) "" else "s"}",
+                                text = tr(R.string.s_miembro_2, category.labelEs, group.memberIds.size, if (group.memberIds.size == 1) "" else "s"),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1104,7 +1106,7 @@ private fun GroupDetailScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.MoreVert,
-                                    contentDescription = "Opciones del grupo",
+                                    contentDescription = tr(R.string.s_opciones_del_grupo),
                                 )
                             }
                             DropdownMenu(
@@ -1112,7 +1114,7 @@ private fun GroupDetailScreen(
                                 onDismissRequest = { menuExpanded = false },
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Buscar en el chat") },
+                                    text = { Text(tr(R.string.s_buscar_en_el_chat)) },
                                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                                     onClick = {
                                         menuExpanded = false
@@ -1121,7 +1123,7 @@ private fun GroupDetailScreen(
                                 )
                                 if (isCreator) {
                                     DropdownMenuItem(
-                                        text = { Text("Editar grupo y miembros") },
+                                        text = { Text(tr(R.string.s_editar_grupo_y_miembros)) },
                                         leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
                                         onClick = {
                                             menuExpanded = false
@@ -1130,7 +1132,7 @@ private fun GroupDetailScreen(
                                     )
                                 }
                                 DropdownMenuItem(
-                                    text = { Text(if (isCreator) "Eliminar grupo" else "Salir del grupo") },
+                                    text = { Text(if (isCreator) tr(R.string.s_eliminar_grupo) else tr(R.string.s_salir_del_grupo)) },
                                     leadingIcon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null) },
                                     onClick = {
                                         menuExpanded = false
@@ -1151,8 +1153,8 @@ private fun GroupDetailScreen(
                     ) {
                         group.memberIds.forEach { memberId ->
                             val isSelf = memberId == currentUserId
-                            val rawMemberName = group.memberNames[memberId] ?: "Miembro"
-                            val memberName = if (isSelf) "Tú" else rawMemberName
+                            val rawMemberName = group.memberNames[memberId] ?: tr(R.string.s_miembro)
+                            val memberName = if (isSelf) tr(R.string.s_tu) else rawMemberName
                             val memberColor = AvatarColor.fromKey(group.memberColors[memberId])
                             val photos = peerVisualMap[memberId]
                             Surface(
@@ -1235,13 +1237,13 @@ private fun GroupDetailScreen(
                             modifier = Modifier.size(18.dp),
                         )
                         Text(
-                            text = "Ubicación en vivo en el grupo · ${DirectMessage.formatDuration(liveLocationState.remainingSec)}",
+                            text = tr(R.string.s_ubicacion_en_vivo_en_el, DirectMessage.formatDuration(liveLocationState.remainingSec)),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.weight(1f),
                         )
                         TextButton(onClick = onStopLiveLocation) {
-                            Text("Detener", color = MaterialTheme.colorScheme.error)
+                            Text(tr(R.string.s_detener), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -1271,7 +1273,7 @@ private fun GroupDetailScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = "Envía el primer mensaje, foto, audio o ubicación a ${group.name}.",
+                                    text = tr(R.string.s_envia_el_primer_mensaje_foto, group.name),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
@@ -1304,7 +1306,7 @@ private fun GroupDetailScreen(
                                             editingMessage = null
                                             replyDraft = ReplyDraft(
                                                 messageId = msg.id,
-                                                senderName = if (mine) "Tú" else msg.senderName,
+                                                senderName = if (mine) tr(R.string.s_tu) else msg.senderName,
                                                 previewText = msg.previewLabel(),
                                             )
                                         },
@@ -1432,7 +1434,7 @@ private fun GroupDetailScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.EmojiEmotions,
-                                    contentDescription = "Emojis",
+                                    contentDescription = tr(R.string.s_emojis),
                                     tint = if (showEmojiPicker) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
@@ -1447,7 +1449,7 @@ private fun GroupDetailScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.AddCircleOutline,
-                                    contentDescription = "Adjuntar",
+                                    contentDescription = tr(R.string.s_adjuntar),
                                     tint = if (showAttachmentsPanel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
@@ -1459,7 +1461,7 @@ private fun GroupDetailScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.PhotoCamera,
-                                    contentDescription = "Tomar foto con cámara",
+                                    contentDescription = tr(R.string.s_tomar_foto_con_camara),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
@@ -1468,7 +1470,7 @@ private fun GroupDetailScreen(
                                 onValueChange = { incoming ->
                                     draft = if (incoming.text.length <= 1000) incoming else incoming.copy(text = incoming.text.take(1000))
                                 },
-                                placeholder = { Text(if (editingMessage != null) "Editar mensaje..." else "Mensaje al grupo (@ para etiquetar)...") },
+                                placeholder = { Text(if (editingMessage != null) tr(R.string.s_editar_mensaje) else tr(R.string.s_mensaje_al_grupo_para_etiquetar)) },
                                 maxLines = 4,
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                                 shape = RoundedCornerShape(22.dp),
@@ -1574,7 +1576,7 @@ private fun GroupDetailScreen(
                     val visual = peerVisualMap[senderId]
                     LiveMapParticipant(
                         userId = senderId,
-                        name = if (isMe) myName else senderName.ifBlank { "Usuario" },
+                        name = if (isMe) myName else senderName.ifBlank { tr(R.string.s_usuario) },
                         lat = 0.0,
                         lon = 0.0,
                         color = if (isMe) myAvatarColor else AvatarColor.fromKey(group.memberColors[senderId]),
@@ -1594,7 +1596,7 @@ private fun GroupDetailScreen(
             onForward = { forwardHandler(msg.toDirectMessageView()) },
             onPin = { pinHandlerState(true, group.id, if (group.pinnedMessageId == msg.id) null else msg.id, msg.previewLabel()) },
             isPinned = group.pinnedMessageId == msg.id,
-            senderName = if (mine) "Tú" else msg.senderName,
+            senderName = if (mine) tr(R.string.s_tu) else msg.senderName,
             previewText = msg.previewLabel(),
             canCopy = msg.text.isNotBlank(),
             canEdit = mine && msg.messageType == DirectMessage.TYPE_TEXT,
@@ -1604,14 +1606,14 @@ private fun GroupDetailScreen(
                 editingMessage = null
                 replyDraft = ReplyDraft(
                     messageId = msg.id,
-                    senderName = if (mine) "Tú" else msg.senderName,
+                    senderName = if (mine) tr(R.string.s_tu) else msg.senderName,
                     previewText = msg.previewLabel(),
                 )
             },
             onCopy = {
                 if (msg.text.isNotBlank()) {
                     clipboardManager.setText(AnnotatedString(msg.text))
-                    onShowMessage("Texto copiado")
+                    onShowMessage(tr(R.string.s_texto_copiado))
                 }
             },
             onEdit = {
@@ -1628,8 +1630,8 @@ private fun GroupDetailScreen(
     pendingDeleteMessage?.let { msg ->
         AlertDialog(
             onDismissRequest = { pendingDeleteMessage = null },
-            title = { Text("¿Eliminar mensaje?") },
-            text = { Text("Se eliminará este mensaje para todo el grupo.") },
+            title = { Text(tr(R.string.s_eliminar_mensaje)) },
+            text = { Text(tr(R.string.s_se_eliminara_este_mensaje_para)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -1642,7 +1644,7 @@ private fun GroupDetailScreen(
                         val fallbackLast = if (isLatest) {
                             messages.filter { it.id != msg.id }.lastOrNull()?.let { prev ->
                                 "${prev.senderName}: ${prev.previewLabel()}"
-                            } ?: "Sin mensajes aún"
+                            } ?: tr(R.string.s_sin_mensajes_aun)
                         } else {
                             null
                         }
@@ -1654,12 +1656,12 @@ private fun GroupDetailScreen(
                     ),
                     modifier = Modifier.testTag("confirm_delete_group_message_button"),
                 ) {
-                    Text("Eliminar")
+                    Text(tr(R.string.s_eliminar))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteMessage = null }) {
-                    Text("Cancelar")
+                    Text(tr(R.string.s_cancelar))
                 }
             },
         )

@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.R
+import com.example.i18n.tr
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -135,7 +138,7 @@ fun AvatarCircle(
             if (decodedBitmap != null) {
                 Image(
                     bitmap = decodedBitmap,
-                    contentDescription = "Foto de perfil de $name",
+                    contentDescription = tr(R.string.s_foto_de_perfil_de, name),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -148,7 +151,7 @@ fun AvatarCircle(
                 )
                 AsyncImage(
                     model = photoUrl,
-                    contentDescription = "Foto de perfil de $name",
+                    contentDescription = tr(R.string.s_foto_de_perfil_de, name),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -186,7 +189,7 @@ fun AvatarCircle(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Check,
-                    contentDescription = "Perfil verificado",
+                    contentDescription = tr(R.string.s_perfil_verificado),
                     tint = MaterialTheme.colorScheme.onSecondary,
                     modifier = Modifier.size(badgeSize * 0.62f),
                 )
@@ -238,6 +241,13 @@ fun isSameDay(a: Timestamp?, b: Timestamp?): Boolean {
 }
 
 /** Etiqueta de día estilo WhatsApp: Hoy, Ayer, día de la semana (esta semana) o fecha. */
+/** Fecha con el orden y los textos propios del idioma activo (p. ej. "20 de noviembre", "November 20"). */
+private fun localizedDate(skeleton: String, date: java.util.Date): String {
+    val locale = Locale.getDefault()
+    val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton)
+    return SimpleDateFormat(pattern, locale).format(date)
+}
+
 fun formatDayLabel(timestamp: Timestamp?): String {
     val date = timestamp?.toDate() ?: java.util.Date()
     val now = java.util.Calendar.getInstance()
@@ -248,13 +258,13 @@ fun formatDayLabel(timestamp: Timestamp?): String {
     }.timeInMillis
     val days = ((startOfDay(now) - startOfDay(then)) / 86_400_000L).toInt()
     return when {
-        days <= 0 -> "Hoy"
-        days == 1 -> "Ayer"
+        days <= 0 -> tr(R.string.s_hoy)
+        days == 1 -> tr(R.string.s_ayer)
         days < 7 -> SimpleDateFormat("EEEE", Locale.getDefault()).format(date)
             .replaceFirstChar { it.uppercase() }
         now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) ->
-            SimpleDateFormat("d 'de' MMMM", Locale.getDefault()).format(date)
-        else -> SimpleDateFormat("d 'de' MMMM 'de' yyyy", Locale.getDefault()).format(date)
+            localizedDate("dMMMM", date)
+        else -> localizedDate("dMMMMyyyy", date)
     }
 }
 
@@ -281,13 +291,13 @@ fun DaySeparator(timestamp: Timestamp?) {
 }
 
 fun formatRelativeTimestamp(timestamp: Timestamp?): String {
-    if (timestamp == null) return "Ahora"
+    if (timestamp == null) return tr(R.string.s_ahora)
     val diffMs = System.currentTimeMillis() - timestamp.toDate().time
     val mins = diffMs / 60_000L
     return when {
-        mins < 1 -> "Ahora"
-        mins < 60 -> "Hace ${mins}m"
-        mins < 1440 -> "Hace ${mins / 60}h"
+        mins < 1 -> tr(R.string.s_ahora)
+        mins < 60 -> tr(R.string.s_hace_m, mins)
+        mins < 1440 -> tr(R.string.s_hace_h, mins / 60)
         else -> SimpleDateFormat("dd MMM", Locale.getDefault()).format(timestamp.toDate())
     }
 }
@@ -297,12 +307,12 @@ fun formatRelativeTimestamp(timestamp: Timestamp?): String {
  * esta semana, y fecha con hora si fue hace más de una semana.
  */
 fun formatLastSeen(timestamp: Timestamp?): String {
-    if (timestamp == null) return "hace un momento"
+    if (timestamp == null) return tr(R.string.s_hace_un_momento)
     val date = timestamp.toDate()
     val now = java.util.Calendar.getInstance()
     val then = java.util.Calendar.getInstance().apply { time = date }
     val diffMs = now.timeInMillis - then.timeInMillis
-    if (diffMs < 60_000L) return "hace un momento"
+    if (diffMs < 60_000L) return tr(R.string.s_hace_un_momento)
     val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
     fun dayIndex(c: java.util.Calendar) = c.get(java.util.Calendar.YEAR) * 400 + c.get(java.util.Calendar.DAY_OF_YEAR)
     val daysAgo = run {
@@ -315,12 +325,12 @@ fun formatLastSeen(timestamp: Timestamp?): String {
         d
     }
     return when {
-        daysAgo == 0 -> "hoy a las $time"
-        daysAgo == 1 -> "ayer a las $time"
-        daysAgo < 7 -> SimpleDateFormat("EEEE", Locale.getDefault()).format(date) + " a las $time"
+        daysAgo == 0 -> tr(R.string.s_hoy_a_las, time)
+        daysAgo == 1 -> tr(R.string.s_ayer_a_las, time)
+        daysAgo < 7 -> SimpleDateFormat("EEEE", Locale.getDefault()).format(date) + tr(R.string.s_a_las, time)
         now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) ->
-            SimpleDateFormat("d MMM", Locale.getDefault()).format(date) + " a las $time"
-        else -> SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(date) + " a las $time"
+            localizedDate("dMMM", date) + tr(R.string.s_a_las, time)
+        else -> localizedDate("dMMMyyyy", date) + tr(R.string.s_a_las, time)
     }
 }
 
@@ -380,9 +390,9 @@ fun BeaconEditorSheet(
                 res.onSuccess { b64 ->
                     editedPhotoData = b64
                     editedPhotoUrl = ""
-                    photoStatusMessage = "Foto personalizada lista para guardar"
+                    photoStatusMessage = tr(R.string.s_foto_personalizada_lista_para_guardar)
                 }.onFailure { err ->
-                    photoStatusMessage = err.localizedMessage ?: "No se pudo procesar la foto"
+                    photoStatusMessage = err.localizedMessage ?: tr(R.string.s_no_se_pudo_procesar_la)
                 }
             }
         }
@@ -392,10 +402,10 @@ fun BeaconEditorSheet(
         mutableStateOf(SocialPurpose.fromRaw(existingBeacon?.purpose))
     }
     var statusText by remember {
-        mutableStateOf(existingBeacon?.statusText ?: "Abierto a saludar y compartir un buen rato por la zona")
+        mutableStateOf(existingBeacon?.statusText ?: tr(R.string.s_abierto_a_saludar_y_compartir))
     }
     var languagesText by remember {
-        mutableStateOf((existingBeacon?.languages ?: listOf("Español")).joinToString(", "))
+        mutableStateOf((existingBeacon?.languages ?: listOf(tr(R.string.s_espanol))).joinToString(", "))
     }
     var isActive by remember { mutableStateOf(existingBeacon?.active ?: true) }
     var showOnlineState by remember {
@@ -434,11 +444,11 @@ fun BeaconEditorSheet(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (existingBeacon == null) "Enciende tu baliza" else "Edita tu perfil y baliza",
+                        text = if (existingBeacon == null) tr(R.string.s_enciende_tu_baliza) else tr(R.string.s_edita_tu_perfil_y_baliza),
                         style = MaterialTheme.typography.titleLarge,
                     )
                     Text(
-                        text = "Personaliza tu foto, nombre y propósito en la zona",
+                        text = tr(R.string.s_personaliza_tu_foto_nombre_y),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -455,7 +465,7 @@ fun BeaconEditorSheet(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Imagen de perfil",
+                        text = tr(R.string.s_imagen_de_perfil),
                         style = MaterialTheme.typography.labelLarge,
                     )
                     Row(
@@ -478,7 +488,7 @@ fun BeaconEditorSheet(
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(Modifier.width(6.dp))
-                            Text("Subir / Editar foto")
+                            Text(tr(R.string.s_subir_editar_foto))
                         }
                         if (googlePhotoUrl.isNotBlank()) {
                             FilterChip(
@@ -486,9 +496,9 @@ fun BeaconEditorSheet(
                                 onClick = {
                                     editedPhotoData = ""
                                     editedPhotoUrl = googlePhotoUrl
-                                    photoStatusMessage = "Usando foto predeterminada de Google"
+                                    photoStatusMessage = tr(R.string.s_usando_foto_predeterminada_de_google)
                                 },
-                                label = { Text("Foto de Google") },
+                                label = { Text(tr(R.string.s_foto_de_google)) },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = Icons.Outlined.AccountCircle,
@@ -504,9 +514,9 @@ fun BeaconEditorSheet(
                             onClick = {
                                 editedPhotoData = ""
                                 editedPhotoUrl = ""
-                                photoStatusMessage = "Usando solo iniciales y halo"
+                                photoStatusMessage = tr(R.string.s_usando_solo_iniciales_y_halo)
                             },
-                            label = { Text("Solo iniciales") },
+                            label = { Text(tr(R.string.s_solo_iniciales)) },
                             modifier = Modifier.testTag("use_initials_chip"),
                         )
                     }
@@ -526,7 +536,7 @@ fun BeaconEditorSheet(
                     displayName = it.take(40)
                     nameError = null
                 },
-                label = { Text("Nombre visible") },
+                label = { Text(tr(R.string.s_nombre_visible)) },
                 isError = nameError != null,
                 supportingText = nameError?.let { { Text(it) } },
                 singleLine = true,
@@ -537,7 +547,7 @@ fun BeaconEditorSheet(
             )
 
             Text(
-                text = "Color de tu halo",
+                text = tr(R.string.s_color_de_tu_halo),
                 style = MaterialTheme.typography.labelLarge,
             )
             Row(
@@ -576,7 +586,7 @@ fun BeaconEditorSheet(
             }
 
             Text(
-                text = "Propósito actual",
+                text = tr(R.string.s_proposito_actual),
                 style = MaterialTheme.typography.labelLarge,
             )
             Row(
@@ -609,8 +619,8 @@ fun BeaconEditorSheet(
             OutlinedTextField(
                 value = statusText,
                 onValueChange = { statusText = it.take(160) },
-                label = { Text("Mensaje de estado (opcional)") },
-                placeholder = { Text("Ej: Tomando un café cerca y con ganas de charlar") },
+                label = { Text(tr(R.string.s_mensaje_de_estado_opcional)) },
+                placeholder = { Text(tr(R.string.s_ej_tomando_un_cafe_cerca)) },
                 minLines = 2,
                 maxLines = 3,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
@@ -622,7 +632,7 @@ fun BeaconEditorSheet(
             OutlinedTextField(
                 value = languagesText,
                 onValueChange = { languagesText = it.take(60) },
-                label = { Text("Idiomas (separados por coma)") },
+                label = { Text(tr(R.string.s_idiomas_separados_por_coma)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -630,7 +640,7 @@ fun BeaconEditorSheet(
             OutlinedTextField(
                 value = bio,
                 onValueChange = { bio = it.take(200) },
-                label = { Text("Sobre ti (opcional)") },
+                label = { Text(tr(R.string.s_sobre_ti_opcional)) },
                 minLines = 2,
                 maxLines = 3,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
@@ -654,18 +664,18 @@ fun BeaconEditorSheet(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            text = "Radio de alcance de tu baliza",
+                            text = tr(R.string.s_radio_de_alcance_de_tu),
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
-                            text = if (isGlobalRadius) "+1000 km · Todo el mundo" else "$radiusKm km",
+                            text = if (isGlobalRadius) tr(R.string.s_1000_km_todo_el_mundo) else "$radiusKm km",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
                     Text(
-                        text = "Amplía hasta 1000 km o elige +1000 km (Todo el mundo) para descubrir personas de cualquier país.",
+                        text = tr(R.string.s_amplia_hasta_1000_km_o),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -694,7 +704,7 @@ fun BeaconEditorSheet(
                         FilterChip(
                             selected = isGlobalRadius,
                             onClick = { radiusKm = ProximityBeacon.GLOBAL_RADIUS_KM },
-                            label = { Text("+1000 km · Todo el mundo") },
+                            label = { Text(tr(R.string.s_1000_km_todo_el_mundo)) },
                             modifier = Modifier.testTag("editor_radius_preset_global"),
                         )
                     }
@@ -719,11 +729,11 @@ fun BeaconEditorSheet(
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Baliza visible en el radar",
+                            text = tr(R.string.s_baliza_visible_en_el_radar),
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
-                            text = "Muestra tu perfil y tu distancia abierta (en metros o kilómetros) en el radar.",
+                            text = tr(R.string.s_muestra_tu_perfil_y_tu),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -758,11 +768,11 @@ fun BeaconEditorSheet(
                     Spacer(Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Mostrar estado en línea",
+                            text = tr(R.string.s_mostrar_estado_en_linea),
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
-                            text = "Muestra un círculo verde en tu foto de perfil cuando estás activo.",
+                            text = tr(R.string.s_muestra_un_circulo_verde_en),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -785,19 +795,19 @@ fun BeaconEditorSheet(
                         .weight(1f)
                         .height(50.dp),
                 ) {
-                    Text("Cancelar")
+                    Text(tr(R.string.s_cancelar))
                 }
                 Button(
                     onClick = {
                         val trimmed = displayName.trim()
                         if (trimmed.length < 2) {
-                            nameError = "Escribe al menos 2 caracteres"
+                            nameError = tr(R.string.s_escribe_al_menos_2_caracteres)
                         } else {
                             val parsedLangs = languagesText.split(",")
                                 .map { it.trim() }
                                 .filter { it.isNotBlank() }
                                 .take(5)
-                                .ifEmpty { listOf("Español") }
+                                .ifEmpty { listOf(tr(R.string.s_espanol)) }
                             onSave(
                                 trimmed,
                                 bio.trim(),
@@ -820,7 +830,7 @@ fun BeaconEditorSheet(
                         .height(50.dp)
                         .testTag("save_beacon_button"),
                 ) {
-                    Text("Guardar baliza")
+                    Text(tr(R.string.s_guardar_baliza))
                 }
             }
         }
@@ -846,14 +856,14 @@ fun SafetyReportDialog(
                 tint = MaterialTheme.colorScheme.primary,
             )
         },
-        title = { Text("Reportar a $targetName") },
+        title = { Text(tr(R.string.s_reportar_a, targetName)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "Serafiel es un espacio seguro y respetuoso. Cuéntanos qué ocurrió:",
+                    text = tr(R.string.s_serafiel_es_un_espacio_seguro),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -879,7 +889,7 @@ fun SafetyReportDialog(
                 OutlinedTextField(
                     value = details,
                     onValueChange = { details = it.take(500) },
-                    label = { Text("Detalles adicionales (opcional)") },
+                    label = { Text(tr(R.string.s_detalles_adicionales_opcional)) },
                     minLines = 2,
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth(),
@@ -896,7 +906,7 @@ fun SafetyReportDialog(
                         onCheckedChange = { alsoBlock = it },
                     )
                     Text(
-                        text = "Bloquear también a esta persona",
+                        text = tr(R.string.s_bloquear_tambien_a_esta_persona),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -907,12 +917,12 @@ fun SafetyReportDialog(
                 onClick = { onSubmit(selectedReason, details, alsoBlock) },
                 modifier = Modifier.testTag("confirm_report_button"),
             ) {
-                Text("Enviar reporte")
+                Text(tr(R.string.s_enviar_reporte))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(tr(R.string.s_cancelar))
             }
         },
     )
@@ -929,26 +939,26 @@ fun CommunityGuidelinesDialog(onDismiss: () -> Unit) {
                 tint = MaterialTheme.colorScheme.secondary,
             )
         },
-        title = { Text("Convivencia y Seguridad en Serafiel") },
+        title = { Text(tr(R.string.s_convivencia_y_seguridad_en_serafiel)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "1. Espacio abierto y no es una app de citas: recibe a todas las personas con amabilidad, sin importar su propósito, origen o identidad.",
+                    text = tr(R.string.s_1_espacio_abierto_y_no),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    text = "2. App abierta y transparente: tu distancia en metros o kilómetros se muestra en el radar para conectar de forma real con quienes están cerca.",
+                    text = tr(R.string.s_2_app_abierta_y_transparente),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    text = "3. Control total: puedes activar el Modo Pausa, cerrar cualquier chat o bloquear y reportar conductas irrespetuosas en un toque.",
+                    text = tr(R.string.s_3_control_total_puedes_activar),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
         },
         confirmButton = {
             Button(onClick = onDismiss) {
-                Text("Entendido")
+                Text(tr(R.string.s_entendido))
             }
         },
     )

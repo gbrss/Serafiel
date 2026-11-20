@@ -1,5 +1,7 @@
 package com.example.data
 
+import com.example.i18n.tr
+
 import android.content.Context
 import com.example.R
 import com.example.model.AvatarColor
@@ -43,9 +45,9 @@ class SerafielRepository(
 
     private fun requireUserId(): String =
         auth.currentUser?.uid
-            ?: throw IllegalStateException("Debes iniciar sesión con Google para continuar.")
+            ?: throw IllegalStateException(tr(R.string.s_debes_iniciar_sesion_con_google))
 
-    private fun normalizeDisplayName(raw: String?, fallback: String = "Usuario Serafiel"): String {
+    private fun normalizeDisplayName(raw: String?, fallback: String = tr(R.string.s_usuario_serafiel)): String {
         val trimmed = raw.orEmpty().trim().take(40)
         return if (trimmed.length >= 2) trimmed else fallback
     }
@@ -83,9 +85,9 @@ class SerafielRepository(
         val docPath = "users/$userId"
         return try {
             val uid = requireUserId()
-            check(uid == userId) { "La sesión activa cambió; operación cancelada." }
+            check(uid == userId) { tr(R.string.s_la_sesion_activa_cambio_operacion) }
             val cleanName = displayName.trim().take(40)
-            require(cleanName.length >= 2) { "El nombre debe tener al menos 2 caracteres." }
+            require(cleanName.length >= 2) { tr(R.string.s_el_nombre_debe_tener_al) }
             val cleanBio = bio.trim().take(200)
             val purposes = preferredPurposes.take(5).map { it.name }
 
@@ -372,15 +374,15 @@ class SerafielRepository(
             val uid = requireUserId()
             check(uid == userId)
             val cleanName = displayName.trim().take(40)
-            require(cleanName.length >= 2) { "El nombre debe tener al menos 2 caracteres." }
+            require(cleanName.length >= 2) { tr(R.string.s_el_nombre_debe_tener_al) }
             val cleanStatus = statusText.trim().take(160)
             val cleanLangs = languages.map { it.trim() }.filter { it.isNotBlank() }.take(5)
             val cleanZoneKey = zone.zoneKey.take(40)
             val cleanZoneName = if (PrivacySettings.precision != PrivacySettings.Precision.EXACT) {
                 // El nombre puede ser una calle exacta: con precisión reducida se oculta.
-                "Zona aproximada"
+                tr(R.string.s_zona_aproximada)
             } else {
-                zone.zoneName.trim().take(80).let { if (it.length >= 2) it else "Zona Abierta" }
+                zone.zoneName.trim().take(80).let { if (it.length >= 2) it else tr(R.string.s_zona_abierta) }
             }
             val clampedRadius = radiusKm.coerceIn(1, ProximityBeacon.GLOBAL_RADIUS_KM).toLong()
             // Privacidad: la baliza publica una posición ajustada, no la real.
@@ -583,7 +585,7 @@ class SerafielRepository(
             val uid = requireUserId()
             check(uid == userId)
             val cleanText = text.trim().take(500)
-            require(cleanText.isNotEmpty()) { "El mensaje no puede estar vacío." }
+            require(cleanText.isNotEmpty()) { tr(R.string.s_el_mensaje_no_puede_estar) }
             val cleanName = normalizeDisplayName(senderName)
             val docRef = db.collection("zone_rooms")
                 .document(zoneKey)
@@ -626,7 +628,7 @@ class SerafielRepository(
             val uid = requireUserId()
             check(uid == userId)
             val cleanText = newText.trim().take(500)
-            require(cleanText.isNotEmpty()) { "El mensaje no puede estar vacío." }
+            require(cleanText.isNotEmpty()) { tr(R.string.s_el_mensaje_no_puede_estar) }
             db.collection("zone_rooms")
                 .document(zoneKey)
                 .collection("messages")
@@ -717,10 +719,10 @@ class SerafielRepository(
             val snapshot = chatRef.get().await()
             val cleanGreeting = initialGreeting.trim().take(500)
             val cleanMyName = normalizeDisplayName(myName)
-            val cleanPeerName = normalizeDisplayName(peerName, fallback = "Persona cercana")
+            val cleanPeerName = normalizeDisplayName(peerName, fallback = tr(R.string.s_persona_cercana))
 
             if (!snapshot.exists()) {
-                val preview = cleanGreeting.ifBlank { "Conexión iniciada para ${purpose.labelEs}" }.take(240)
+                val preview = cleanGreeting.ifBlank { tr(R.string.s_conexion_iniciada_para, purpose.labelEs) }.take(240)
                 chatRef.set(
                     mapOf(
                         "participantIds" to sortedIds,
@@ -1039,7 +1041,7 @@ class SerafielRepository(
                 mapOf(
                     "latitude" to latitude,
                     "longitude" to longitude,
-                    "locationLabel" to locationLabel.trim().take(240).ifBlank { "Ubicación en vivo" },
+                    "locationLabel" to locationLabel.trim().take(240).ifBlank { tr(R.string.s_ubicacion_en_vivo) },
                     "liveActive" to liveActive,
                     "updatedAt" to FieldValue.serverTimestamp(),
                 )
@@ -1047,7 +1049,7 @@ class SerafielRepository(
             if (!liveActive) {
                 db.collection("chats").document(chatId).update(
                     mapOf(
-                        "lastMessage" to "📍 Ubicación compartida finalizada",
+                        "lastMessage" to tr(R.string.s_ubicacion_compartida_finalizada),
                         "updatedAt" to FieldValue.serverTimestamp(),
                     )
                 ).await()
@@ -1149,7 +1151,7 @@ class SerafielRepository(
             val uid = requireUserId()
             check(uid == userId)
             val cleanGroupName = name.trim().take(50)
-            require(cleanGroupName.length >= 2) { "El nombre del grupo debe tener al menos 2 caracteres." }
+            require(cleanGroupName.length >= 2) { tr(R.string.s_el_nombre_del_grupo_debe) }
 
             val cleanMyName = normalizeDisplayName(myName)
             val memberIds = linkedSetOf(uid)
@@ -1159,7 +1161,7 @@ class SerafielRepository(
             initialMembers.take(49).forEach { member ->
                 if (member.userId.isNotBlank() && member.userId != uid) {
                     memberIds.add(member.userId)
-                    memberNames[member.userId] = normalizeDisplayName(member.displayName, "Persona")
+                    memberNames[member.userId] = normalizeDisplayName(member.displayName, tr(R.string.s_persona))
                     memberColors[member.userId] = AvatarColor.fromKey(member.avatarColor).key
                 }
             }
@@ -1174,7 +1176,7 @@ class SerafielRepository(
                     "memberIds" to memberIds.toList(),
                     "memberNames" to memberNames,
                     "memberColors" to memberColors,
-                    "lastMessage" to "Grupo creado (${memberIds.size} miembro${if (memberIds.size == 1) "" else "s"})",
+                    "lastMessage" to tr(R.string.s_grupo_creado_miembro, memberIds.size, if (memberIds.size == 1) "" else "s"),
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp(),
                 )
@@ -1203,7 +1205,7 @@ class SerafielRepository(
             val uid = requireUserId()
             check(uid == userId)
             val cleanName = name.trim().take(50)
-            require(cleanName.length >= 2) { "El nombre del grupo debe tener al menos 2 caracteres." }
+            require(cleanName.length >= 2) { tr(R.string.s_el_nombre_del_grupo_debe) }
             require(memberIds.isNotEmpty())
             val normalizedIds = memberIds.distinct().take(50)
             db.collection("groups").document(groupId)
@@ -1442,7 +1444,7 @@ class SerafielRepository(
                 mapOf(
                     "latitude" to latitude,
                     "longitude" to longitude,
-                    "locationLabel" to locationLabel.trim().take(240).ifBlank { "Ubicación en vivo" },
+                    "locationLabel" to locationLabel.trim().take(240).ifBlank { tr(R.string.s_ubicacion_en_vivo) },
                     "liveActive" to liveActive,
                     "updatedAt" to FieldValue.serverTimestamp(),
                 )
@@ -1450,7 +1452,7 @@ class SerafielRepository(
             if (!liveActive) {
                 db.collection("groups").document(groupId).update(
                     mapOf(
-                        "lastMessage" to "📍 Ubicación compartida finalizada",
+                        "lastMessage" to tr(R.string.s_ubicacion_compartida_finalizada),
                         "updatedAt" to FieldValue.serverTimestamp(),
                     )
                 ).await()

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.i18n.tr
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -126,7 +128,7 @@ fun AuthScreen(
                                 modifier = Modifier.size(18.dp),
                             )
                             Text(
-                                text = "100% gratuito · Radar social abierto",
+                                text = tr(R.string.s_100_gratuito_radar_social_abierto),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
@@ -259,7 +261,7 @@ fun AuthScreen(
                 }
 
                 Text(
-                    text = "Sin suscripciones, sin algoritmos ocultos y abierto a todo tipo de conexión humana.",
+                    text = tr(R.string.s_sin_suscripciones_sin_algoritmos_ocultos),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
