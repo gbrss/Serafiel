@@ -21,11 +21,13 @@ data class NowPlaying(
     val posMs: Long,
     val atMs: Long,
     val index: Int,
+    /** true mientras la hora del servidor aún no llegó (escritura local pendiente). */
+    val pending: Boolean = false,
 ) {
     val isYoutube get() = provider == PROVIDER_YOUTUBE
 
     /** Posición actual según la hora de inicio guardada por el servidor. */
-    fun targetPositionMs(nowMs: Long = System.currentTimeMillis()): Long =
+    fun targetPositionMs(nowMs: Long = ServerClock.now()): Long =
         if (playing) (posMs + (nowMs - atMs)).coerceAtLeast(0L) else posMs
 
     companion object {
@@ -46,10 +48,30 @@ data class NowPlaying(
                 byName = map["byName"] as? String ?: "",
                 playing = map["playing"] as? Boolean ?: false,
                 posMs = (map["posMs"] as? Number)?.toLong() ?: 0L,
-                atMs = (map["at"] as? Timestamp)?.toDate()?.time ?: System.currentTimeMillis(),
+                atMs = (map["at"] as? Timestamp)?.toDate()?.time ?: ServerClock.now(),
                 index = (map["index"] as? Number)?.toInt() ?: 0,
+                pending = map["at"] !is Timestamp,
             )
         }
+    }
+}
+
+/**
+ * Estimación de la diferencia entre el reloj del teléfono y el del servidor, para no
+ * depender de que la hora del teléfono esté bien. Se afina con cada actualización en vivo.
+ */
+object ServerClock {
+    @Volatile var offsetMs: Long = 0L
+        private set
+
+    fun now(): Long = System.currentTimeMillis() + offsetMs
+
+    /** [serverAtMs] llegó ahora mismo (≈150 ms de latencia de entrega). */
+    fun observeLive(serverAtMs: Long) {
+        val estimate = serverAtMs + 150L - System.currentTimeMillis()
+        // Ignora valores absurdos (> 10 min) y suaviza las variaciones de latencia.
+        if (kotlin.math.abs(estimate) > 600_000L) return
+        offsetMs = if (offsetMs == 0L) estimate else (offsetMs + estimate) / 2
     }
 }
 
@@ -135,9 +157,22 @@ function onYouTubeIframeAPIReady(){
 }
 function sync(playing,ms,idx){
   try{
-    if(idx>=0 && ${if (np.listId.isNotEmpty()) "true" else "false"}){var c=pl.getPlaylistIndex(); if(c!==idx){pl.playVideoAt(idx);}}
-    pl.seekTo(ms/1000,true);
-    if(playing){pl.playVideo();}else{pl.pauseVideo();}
+    var changed=false;
+    if(idx>=0 && ${if (np.listId.isNotEmpty()) "true" else "false"}){var c=pl.getPlaylistIndex(); if(c!==idx){pl.playVideoAt(idx);changed=true;}}
+    var go=function(){
+      pl.seekTo(ms/1000,true);
+      if(playing){pl.playVideo();}else{pl.pauseVideo();}
+    };
+    if(changed){setTimeout(go,1200);}else{go();}
+  }catch(x){}
+}
+function check(ms){
+  try{
+    var st=pl.getPlayerState();
+    if(st===3){return;}
+    if(st!==1){pl.playVideo();return;}
+    var d=pl.getCurrentTime()*1000-ms;
+    if(Math.abs(d)>1000){pl.seekTo(ms/1000,true);}
   }catch(x){}
 }
 function vol(n){try{pl.setVolume(n);}catch(x){}}
@@ -167,6 +202,14 @@ function sync(playing,ms,idx){
     if(idx>=0){w.getCurrentSoundIndex(function(c){ if(c!==idx){w.skip(idx);} });}
     w.seekTo(ms);
     if(playing){w.play();}else{w.pause();}
+  }catch(x){}
+}
+function check(ms){
+  try{
+    w.isPaused(function(p){
+      if(p){w.play();return;}
+      w.getPosition(function(pos){ if(Math.abs(pos-ms)>1000){w.seekTo(ms);} });
+    });
   }catch(x){}
 }
 function vol(n){try{w.setVolume(n);}catch(x){}}

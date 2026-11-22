@@ -59,6 +59,7 @@ import com.example.R
 import com.example.data.ChatAudioPlayer
 import com.example.data.GroupMusic
 import com.example.data.NowPlaying
+import com.example.data.ServerClock
 import com.example.i18n.tr
 import com.example.model.SocialGroup
 import kotlinx.coroutines.launch
@@ -121,12 +122,13 @@ private class PlayerBridge(
     private val onReadyCb: () -> Unit,
     private val onTrackCb: (Int) -> Unit,
     private val onErrorCb: () -> Unit,
+    private val onPlayingCb: () -> Unit,
 ) {
     private val main = Handler(Looper.getMainLooper())
 
     @JavascriptInterface fun onReady() { main.post { onReadyCb() } }
     @JavascriptInterface fun onTrack(index: Int) { main.post { onTrackCb(index) } }
-    @JavascriptInterface fun onState(state: Int) {}
+    @JavascriptInterface fun onState(state: Int) { if (state == 1) main.post { onPlayingCb() } }
     @JavascriptInterface fun onError(code: String) { main.post { onErrorCb() } }
 }
 
@@ -148,6 +150,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
     var muted by remember { mutableStateOf(false) }
     var expanded by remember(np.provider) { mutableStateOf(np.isYoutube) }
     var resyncTick by remember { mutableIntStateOf(0) }
+    var checkTick by remember(np.url) { mutableIntStateOf(0) }
     var ignoreTrackUntil by remember(np.url) { mutableStateOf(0L) }
 
     val voicePlaying = ChatAudioPlayer.playbackState.collectAsState().value.isPlaying
@@ -185,6 +188,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
                         }
                     },
                     onErrorCb = { error = true },
+                    onPlayingCb = { checkTick++ },
                 ),
                 "Bridge",
             )
@@ -199,6 +203,20 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
         ignoreTrackUntil = System.currentTimeMillis() + 4000
         val idx = if (np.listId.isNotEmpty() || !np.isYoutube) np.index else -1
         webView.evaluateJavascript("sync(${np.playing},${np.targetPositionMs()},$idx)", null)
+    }
+    // Afina el reloj del servidor con cada actualización en vivo (no con la primera lectura).
+    var firstAt by remember(np.url) { mutableStateOf(np.atMs) }
+    LaunchedEffect(np.atMs, np.pending) {
+        if (!np.pending && np.atMs != firstAt) ServerClock.observeLive(np.atMs)
+    }
+    // Corrección continua del desfase: al empezar a sonar y cada pocos segundos.
+    LaunchedEffect(ready, np.playing, np.atMs, np.index, localStopped, checkTick) {
+        if (!ready || localStopped || !np.playing) return@LaunchedEffect
+        kotlinx.coroutines.delay(2500)
+        while (true) {
+            webView.evaluateJavascript("check(${np.targetPositionMs()})", null)
+            kotlinx.coroutines.delay(4000)
+        }
     }
     LaunchedEffect(ready, volume) {
         if (ready) webView.evaluateJavascript("vol($volume)", null)
