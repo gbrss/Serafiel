@@ -253,10 +253,10 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
     // Corrección continua del desfase: al empezar a sonar y cada pocos segundos.
     LaunchedEffect(ready, np.playing, np.atMs, np.index, localStopped, checkTick) {
         if (!ready || localStopped || !np.playing) return@LaunchedEffect
-        kotlinx.coroutines.delay(2500)
+        kotlinx.coroutines.delay(6000)
         while (true) {
             webView.evaluateJavascript("check(${target()})", null)
-            kotlinx.coroutines.delay(4000)
+            kotlinx.coroutines.delay(8000)
         }
     }
     LaunchedEffect(ready, volume) {

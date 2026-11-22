@@ -193,12 +193,13 @@ var pl=null, prog=0, lastPos=-1, lastT=0;
 function mark(){prog=Date.now()+2500;}
 setInterval(function(){
   try{
-    if(!pl||pl.getPlayerState()!==1){lastPos=-1;return;}
-    var cur=pl.getCurrentTime()*1000, now=Date.now();
-    if(lastPos>=0 && now>prog && Math.abs(cur-(lastPos+(now-lastT)))>2000){Bridge.onSeek(Math.round(cur));}
+    if(!pl){return;}
+    var st=pl.getPlayerState(), cur=pl.getCurrentTime()*1000, now=Date.now();
+    if(st!==1){ if(lastPos>=0){lastT=now;} return; }  // en carga o pausa: congela la referencia
+    if(lastPos>=0 && now>prog && Math.abs(cur-(lastPos+(now-lastT)))>2000){prog=now+2500;Bridge.onSeek(Math.round(cur));}
     lastPos=cur; lastT=now;
   }catch(x){}
-},1000);
+},700);
 function onYouTubeIframeAPIReady(){
   pl=new YT.Player('p',{width:'100%',height:'100%',${video}playerVars:{$vars},events:{
     onReady:function(){Bridge.onReady();},
@@ -217,7 +218,8 @@ function sync(playing,ms,idx){
     mark();
     var go=function(){
       mark();
-      pl.seekTo(ms/1000,true);
+      var cur=-1; try{cur=pl.getCurrentTime()*1000;}catch(x){}
+      if(!(playing && pl.getPlayerState()===1 && Math.abs(cur-ms)<1500)){pl.seekTo(ms/1000,true);lastPos=-1;}
       if(playing){pl.playVideo();}else{pl.pauseVideo();}
     };
     if(changed){setTimeout(go,1200);}else{go();}
@@ -226,10 +228,10 @@ function sync(playing,ms,idx){
 function check(ms){
   try{
     var st=pl.getPlayerState();
-    if(st===3){return;}
+    if(st===3||Date.now()<prog+4000){return;}
     if(st!==1){pl.playVideo();return;}
     var d=pl.getCurrentTime()*1000-ms;
-    if(Math.abs(d)>2000){mark();pl.seekTo(ms/1000,true);}
+    if(Math.abs(d)>3000){mark();lastPos=-1;pl.seekTo(ms/1000,true);}
   }catch(x){}
 }
 function vol(n){try{pl.setVolume(n);}catch(x){}}
@@ -260,15 +262,16 @@ function sync(playing,ms,idx){
   try{
     mark();
     if(idx>=0){w.getCurrentSoundIndex(function(c){ if(c!==idx){w.skip(idx);} });}
-    if(playing){w.play(); setTimeout(function(){mark();w.seekTo(ms);},800);}
+    if(playing){w.play(); setTimeout(function(){w.getPosition(function(p){ if(Math.abs(p-ms)>=1500){mark();w.seekTo(ms);} });},800);}
     else{mark();w.seekTo(ms); w.pause();}
   }catch(x){}
 }
 function check(ms){
   try{
+    if(Date.now()<prog+4000){return;}
     w.isPaused(function(p){
       if(p){w.play();return;}
-      w.getPosition(function(pos){ if(Math.abs(pos-ms)>2000){mark();w.seekTo(ms);} });
+      w.getPosition(function(pos){ if(Math.abs(pos-ms)>3000){mark();w.seekTo(ms);} });
     });
   }catch(x){}
 }
