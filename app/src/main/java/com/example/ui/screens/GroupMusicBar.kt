@@ -158,13 +158,19 @@ object MusicSession {
         if (k == key && v != null && br != null) return v to br
         release()
         val newBridge = PlayerBridge()
-        val wv = WebView(context.applicationContext).apply {
+        val wv = WebView(context).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.mediaPlaybackRequiresUserGesture = false
             setBackgroundColor(android.graphics.Color.BLACK)
             webViewClient = WebViewClient()
             webChromeClient = android.webkit.WebChromeClient()
+            // Sin capa por hardware el video del WebView se ve negro en muchos teléfonos.
+            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+            layoutParams = android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            )
             addJavascriptInterface(newBridge, "Bridge")
             loadDataWithBaseURL("https://serafiel.app/", GroupMusic.playerHtml(np), "text/html", "utf-8", null)
         }
