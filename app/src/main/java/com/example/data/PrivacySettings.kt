@@ -7,9 +7,7 @@ import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.math.cos
 import kotlin.math.floor
-import kotlin.math.max
 
 /**
  * Privacidad de la ubicación en el radar: precisión con la que se publica la baliza
@@ -18,7 +16,7 @@ import kotlin.math.max
  */
 object PrivacySettings {
     enum class Precision(val level: Int, val label: String, val hint: String, internal val cellDeg: Double) {
-        EXACT(0, tr(R.string.s_exacta), tr(R.string.s_te_ven_en_tu_posicion), 0.0),
+        HIGH(0, "~250 m", tr(R.string.precision_250_hint), 0.0025),
         APPROX(1, "~500 m", tr(R.string.s_te_ven_dentro_de_una), 0.005),
         ZONE(2, tr(R.string.s_2_km), tr(R.string.s_solo_se_publica_tu_zona), 0.02),
     }
@@ -75,16 +73,25 @@ object PrivacySettings {
         _ghostUntilMs.value = 0L
     }
 
+    /** Unidad de la cuadrícula fina (grados). Las reglas de Firestore exigen múltiplos IMPARES de ella. */
+    private const val UNIT = 0.00125
+
+    private fun snapToUnit(x: Double): Double {
+        var k = Math.round(x / UNIT)
+        if (k % 2L == 0L) k += 1
+        return k * UNIT
+    }
+
     /**
-     * Ajusta la posición a una cuadrícula y devuelve su centro. Es determinista
-     * (no se puede promediar varias lecturas para recuperar el punto exacto).
+     * Ajusta la posición a una cuadrícula fija en grados (igual para latitud y longitud) y devuelve
+     * el centro de su celda, encajado en la cuadrícula fina de 250 m que validan las reglas.
+     * Es determinista (no se puede promediar varias lecturas para recuperar el punto exacto).
      */
     fun blur(lat: Double, lon: Double, level: Precision = precision): Pair<Double, Double> {
+        if (lat == 0.0 && lon == 0.0) return lat to lon
         val cell = level.cellDeg
-        if (cell <= 0.0 || (lat == 0.0 && lon == 0.0)) return lat to lon
         val latCenter = floor(lat / cell) * cell + cell / 2
-        val lonCell = cell / max(cos(Math.toRadians(latCenter)), 0.2)
-        val lonCenter = floor(lon / lonCell) * lonCell + lonCell / 2
-        return latCenter to lonCenter
+        val lonCenter = floor(lon / cell) * cell + cell / 2
+        return snapToUnit(latCenter) to snapToUnit(lonCenter)
     }
 }

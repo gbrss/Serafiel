@@ -660,4 +660,5 @@
     <string name="privacy_intro_body">Serafiel использует GPS, чтобы показывать людей рядом и чтобы вас видели на радаре. Выберите точность:</string>
     <string name="privacy_intro_footer">Точное местоположение отправляется только если вы делитесь им в чате. Это можно изменить в профиле.</string>
     <string name="privacy_intro_ok">Продолжить</string>
+    <string name="precision_250_hint">Вас видят в квадрате около 250 м (ваш район)</string>
 </resources>

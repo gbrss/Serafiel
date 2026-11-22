@@ -662,4 +662,5 @@
     <string name="privacy_intro_body">Serafiel usa tu GPS para mostrarte gente cercana y para que te vean en el radar. Elige con qué precisión apareces:</string>
     <string name="privacy_intro_footer">Tu ubicación exacta solo se envía si tú la compartes en un chat. Puedes cambiarlo cuando quieras en el perfil.</string>
     <string name="privacy_intro_ok">Continuar</string>
+    <string name="precision_250_hint">Te ven dentro de una cuadrícula de unos 250 m (tu barrio)</string>
 </resources>

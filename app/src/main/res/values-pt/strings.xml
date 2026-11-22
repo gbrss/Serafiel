@@ -660,4 +660,5 @@
     <string name="privacy_intro_body">O Serafiel usa seu GPS para mostrar pessoas por perto e para que vejam você no radar. Escolha com que precisão você aparece:</string>
     <string name="privacy_intro_footer">Sua localização exata só é enviada se você a compartilhar em um chat. Você pode mudar isso quando quiser no perfil.</string>
     <string name="privacy_intro_ok">Continuar</string>
+    <string name="precision_250_hint">Veem você dentro de uma grade de ~250 m (seu bairro)</string>
 </resources>

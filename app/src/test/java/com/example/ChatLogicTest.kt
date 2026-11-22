@@ -126,4 +126,29 @@ class ChatLogicTest {
         assertEquals(0.0, LocationHelper.distanceKm(10.0, 10.0, 10.0, 10.0), 1e-9)
         assertTrue("Santiago-Valparaíso ~100 km, fue $d1", d1 in 85.0..115.0)
     }
+
+    @Test
+    fun blur_alwaysLandsOnOddFineGrid_forEveryLevel() {
+        val points = listOf(-36.12594 to -71.81117, 37.78123 to -122.42123, -33.4489 to -70.6693, 0.0003 to -0.0004)
+        for (level in com.example.data.PrivacySettings.Precision.entries) {
+            for ((lat, lon) in points) {
+                val (a, b) = com.example.data.PrivacySettings.blur(lat, lon, level)
+                for (x in listOf(a, b)) {
+                    val k = x / 0.00125
+                    assertEquals("$level $x", Math.round(k).toDouble(), k, 1e-4)
+                    assertTrue("$level $x debe ser impar", Math.round(k) % 2L != 0L)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun blur_isDeterministic_andKeepsNoLocation() {
+        val a = com.example.data.PrivacySettings.blur(-36.12594, -71.81117, com.example.data.PrivacySettings.Precision.HIGH)
+        val b = com.example.data.PrivacySettings.blur(-36.12594, -71.81117, com.example.data.PrivacySettings.Precision.HIGH)
+        assertEquals(a, b)
+        assertEquals(0.0 to 0.0, com.example.data.PrivacySettings.blur(0.0, 0.0))
+        // El punto publicado queda a menos de ~350 m del real con la precisión fina
+        assertTrue(LocationHelper.distanceKm(-36.12594, -71.81117, a.first, a.second) < 0.35)
+    }
 }

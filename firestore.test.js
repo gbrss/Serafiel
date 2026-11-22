@@ -134,14 +134,25 @@ test("Beacons: owner writes, filtered active query succeeds, unfiltered query an
       languages: ["Español", "English"],
       zoneKey: "3778_-12242",
       zoneName: "Zona Centro",
-      approxLat: 37.78123,
-      approxLon: -122.42123,
+      approxLat: 37.78125,
+      approxLon: -122.42125,
       active: true,
       verifiedGoogle: true,
       radiusKm: 500,
       createdAt: created,
       updatedAt: created,
     })
+  );
+
+  // Exact (non-grid) coordinates are rejected; grid centers are accepted
+  await assertFails(
+    aliceDb.collection("beacons").doc(ALICE_UID).update({ approxLat: 37.78123, approxLon: -122.42123 })
+  );
+  await assertFails(
+    aliceDb.collection("beacons").doc(ALICE_UID).update({ approxLat: 37.78125, approxLon: -122.4213 })
+  );
+  await assertSucceeds(
+    aliceDb.collection("beacons").doc(ALICE_UID).update({ approxLat: 37.78375, approxLon: -122.42375 })
   );
 
   // Out-of-bounds accuracyMeters fails

@@ -378,17 +378,12 @@ class SerafielRepository(
             val cleanStatus = statusText.trim().take(160)
             val cleanLangs = languages.map { it.trim() }.filter { it.isNotBlank() }.take(5)
             val cleanZoneKey = zone.zoneKey.take(40)
-            val cleanZoneName = if (PrivacySettings.precision != PrivacySettings.Precision.EXACT) {
-                // El nombre puede ser una calle exacta: con precisión reducida se oculta.
-                tr(R.string.s_zona_aproximada)
-            } else {
-                zone.zoneName.trim().take(80).let { if (it.length >= 2) it else tr(R.string.s_zona_abierta) }
-            }
+            // El nombre puede ser una calle exacta: nunca se publica.
+            val cleanZoneName = tr(R.string.s_zona_aproximada)
             val clampedRadius = radiusKm.coerceIn(1, ProximityBeacon.GLOBAL_RADIUS_KM).toLong()
             // Privacidad: la baliza publica una posición ajustada, no la real.
-            val blurred = PrivacySettings.precision != PrivacySettings.Precision.EXACT
             val (pubLat, pubLon) = PrivacySettings.blur(zone.approxLat, zone.approxLon)
-            val cleanAcc = if (blurred) null else zone.accuracyMeters?.coerceIn(0, 50_000)
+            val cleanAcc: Int? = null
 
             val docRef = db.collection("beacons").document(uid)
             val exists = docRef.get().await().exists()

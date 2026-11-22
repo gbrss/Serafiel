@@ -122,6 +122,13 @@ service cloud.firestore {
              isValidTimestamp(data.updatedAt);
     }
 
+    // La baliza solo puede publicar el centro de una celda de la cuadrícula de 250 m
+    // (múltiplos IMPARES de 0.00125°), o 0,0 si no hay posición.
+    function onFineGrid(x) {
+      let k = x / 0.00125;
+      return math.abs(k - math.round(k)) < 0.0001 && math.round(k) % 2 != 0;
+    }
+
     function isValidBeacon(data) {
       return data.userId is string && isValidId(data.userId) &&
              data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 40 &&
@@ -139,6 +146,7 @@ service cloud.firestore {
              data.zoneName is string && data.zoneName.size() >= 2 && data.zoneName.size() <= 80 &&
              data.approxLat is number && data.approxLat >= -90.0 && data.approxLat <= 90.0 &&
              data.approxLon is number && data.approxLon >= -180.0 && data.approxLon <= 180.0 &&
+             ((data.approxLat == 0 && data.approxLon == 0) || (onFineGrid(data.approxLat) && onFineGrid(data.approxLon))) &&
              data.active is bool &&
              data.verifiedGoogle is bool &&
              (!('radiusKm' in data) || (data.radiusKm is int && data.radiusKm >= 1 && data.radiusKm <= 25000)) &&
