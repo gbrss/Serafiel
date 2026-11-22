@@ -679,6 +679,11 @@ private fun SerafielAuthenticatedShell(
                 typing = { group, has -> viewModel.onGroupComposerTyping(group, has) },
                 markRead = { group, id -> viewModel.markGroupRead(group, id) },
             ),
+            com.example.ui.screens.LocalGroupMusic provides com.example.ui.screens.GroupMusicActions(
+                start = { group, link -> viewModel.startGroupMusic(group, link) },
+                stopForAll = { group -> viewModel.stopGroupMusicForAll(group) },
+                playback = { group, playing, pos, idx -> viewModel.updateGroupPlayback(group, playing, pos, idx) },
+            ),
             LocalPinHandler provides { isGroup, parentId, messageId, preview ->
                 viewModel.setPinnedMessage(isGroup, parentId, messageId, preview)
             },

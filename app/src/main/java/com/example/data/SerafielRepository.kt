@@ -519,6 +519,45 @@ class SerafielRepository(
         }
     }
 
+    /** Inicia (o reemplaza) la música compartida del grupo; [np] = null la quita para todos. */
+    suspend fun setGroupNowPlaying(groupId: String, np: Map<String, Any>?): Result<Unit> {
+        val path = "groups/$groupId"
+        return try {
+            requireUserId()
+            db.collection("groups").document(groupId).update(
+                "nowPlaying", np ?: FieldValue.delete()
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, path)
+            Result.failure(e)
+        }
+    }
+
+    /** Pausa, reanuda, salta o cambia de pista: lo ve todo el grupo. */
+    suspend fun updateGroupPlayback(groupId: String, playing: Boolean, posMs: Long, index: Int): Result<Unit> {
+        val path = "groups/$groupId"
+        return try {
+            requireUserId()
+            db.collection("groups").document(groupId).update(
+                mapOf(
+                    "nowPlaying.playing" to playing,
+                    "nowPlaying.posMs" to posMs.coerceAtLeast(0L),
+                    "nowPlaying.index" to index.coerceAtLeast(0),
+                    "nowPlaying.at" to FieldValue.serverTimestamp(),
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, path)
+            Result.failure(e)
+        }
+    }
+
     suspend fun setBeaconActive(userId: String, active: Boolean): Result<Unit> {
         val docPath = "beacons/$userId"
         return try {

@@ -253,6 +253,23 @@ service cloud.firestore {
              isValidTimestamp(data.updatedAt);
     }
 
+    function isValidNowPlaying(n, memberIds) {
+      return n is map &&
+             n.keys().hasAll(['provider', 'url', 'title', 'byId', 'byName', 'playing', 'posMs', 'at', 'index']) &&
+             n.keys().hasOnly(['provider', 'url', 'videoId', 'listId', 'title', 'byId', 'byName', 'playing', 'posMs', 'at', 'index']) &&
+             n.provider in ['youtube', 'soundcloud'] &&
+             n.url is string && n.url.size() <= 300 && n.url.matches('^https://.*') &&
+             (!('videoId' in n) || (n.videoId is string && n.videoId.size() <= 64)) &&
+             (!('listId' in n) || (n.listId is string && n.listId.size() <= 64)) &&
+             n.title is string && n.title.size() <= 120 &&
+             n.byId is string && n.byId in memberIds &&
+             n.byName is string && n.byName.size() <= 40 &&
+             n.playing is bool &&
+             n.posMs is int && n.posMs >= 0 && n.posMs <= 86400000 &&
+             n.index is int && n.index >= 0 && n.index <= 5000 &&
+             isValidTimestamp(n.at);
+    }
+
     function isValidGroupMessage(data) {
       return data.groupId is string && isValidId(data.groupId) &&
              data.memberIds is list && data.memberIds.size() >= 1 && data.memberIds.size() <= 50 &&
@@ -656,6 +673,10 @@ service cloud.firestore {
                          (
                            incoming().diff(existing()).affectedKeys().hasOnly(['pinnedMessageId', 'pinnedPreview']) &&
                            isValidPin(incoming())
+                         ) ||
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['nowPlaying']) &&
+                           (!('nowPlaying' in incoming()) || isValidNowPlaying(incoming().nowPlaying, incoming().memberIds))
                          ) ||
                          (
                            incoming().diff(existing()).affectedKeys().hasOnly(['typingAt', 'lastReadAt']) &&

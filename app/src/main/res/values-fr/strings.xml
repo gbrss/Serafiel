@@ -683,4 +683,19 @@
     <string name="appearance_theme_hint">Les thèmes autres que Serafiel imposent clair ou sombre et ignorent le mode ci-dessus.</string>
     <string name="appearance_close">Terminé</string>
     <string name="fine_location_hint">Sa position précise n\'est visible qu\'après acceptation d\'un chat.</string>
+    <string name="music_menu">Musique du groupe</string>
+    <string name="music_dialog_title">Musique pour le groupe</string>
+    <string name="music_dialog_hint">Collez un lien YouTube ou SoundCloud (vidéo, titre ou playlist). Lecture pour tous en même temps, à peu près synchronisée et seulement app ouverte.</string>
+    <string name="music_link_invalid">Ce lien n\'est ni YouTube ni SoundCloud</string>
+    <string name="music_play_all">Lire pour tous</string>
+    <string name="music_remove_all">Retirer la musique pour tous</string>
+    <string name="music_by">par %1$s · %2$s</string>
+    <string name="music_stopped_local">Arrêtée juste pour vous</string>
+    <string name="music_resume">Reprendre</string>
+    <string name="music_error">Lecture impossible ici : l\'auteur a peut-être bloqué la lecture intégrée.</string>
+    <string name="music_cd_playpause">Pause ou reprise pour tous</string>
+    <string name="music_cd_mute">Couper le son pour moi</string>
+    <string name="music_cd_resync">Resynchroniser</string>
+    <string name="music_cd_stop_local">Arrêter pour moi</string>
+    <string name="music_cd_expand">Afficher ou masquer le lecteur</string>
 </resources>

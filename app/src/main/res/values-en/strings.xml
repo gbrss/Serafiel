@@ -683,4 +683,19 @@
     <string name="appearance_theme_hint">Themes other than Serafiel fix light or dark and ignore the mode above.</string>
     <string name="appearance_close">Done</string>
     <string name="fine_location_hint">Their precise location is visible only after a chat is accepted.</string>
+    <string name="music_menu">Group music</string>
+    <string name="music_dialog_title">Music for the group</string>
+    <string name="music_dialog_hint">Paste a YouTube or SoundCloud link (video, track or playlist). It plays for everyone at once, roughly in sync and only while the app is open.</string>
+    <string name="music_link_invalid">That is not a YouTube or SoundCloud link</string>
+    <string name="music_play_all">Play for everyone</string>
+    <string name="music_remove_all">Remove music for everyone</string>
+    <string name="music_by">by %1$s · %2$s</string>
+    <string name="music_stopped_local">Stopped just for you</string>
+    <string name="music_resume">Resume</string>
+    <string name="music_error">Can\'t play here: the owner may have blocked embedded playback.</string>
+    <string name="music_cd_playpause">Pause or resume for everyone</string>
+    <string name="music_cd_mute">Mute just for me</string>
+    <string name="music_cd_resync">Resync</string>
+    <string name="music_cd_stop_local">Stop just for me</string>
+    <string name="music_cd_expand">Show or hide player</string>
 </resources>

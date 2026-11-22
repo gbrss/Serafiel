@@ -355,6 +355,8 @@ data class SocialGroup(
     val typingAt: Map<String, Timestamp> = emptyMap(),
     /** uid -> última vez que abrió/leyó el grupo (para "visto"). */
     val lastReadAt: Map<String, Timestamp> = emptyMap(),
+    /** Música compartida (YouTube/SoundCloud); vacío si no hay nada sonando. */
+    val nowPlaying: Map<String, Any?> = emptyMap(),
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null,
 ) {

@@ -683,4 +683,19 @@
     <string name="appearance_theme_hint">Andere Designs als Serafiel legen Hell oder Dunkel fest und ignorieren den Modus oben.</string>
     <string name="appearance_close">Fertig</string>
     <string name="fine_location_hint">Der genaue Standort ist erst nach einem angenommenen Chat sichtbar.</string>
+    <string name="music_menu">Gruppenmusik</string>
+    <string name="music_dialog_title">Musik für die Gruppe</string>
+    <string name="music_dialog_hint">Füge einen YouTube- oder SoundCloud-Link ein (Video, Titel oder Playlist). Läuft für alle gleichzeitig, ungefähr synchron und nur bei geöffneter App.</string>
+    <string name="music_link_invalid">Das ist kein YouTube- oder SoundCloud-Link</string>
+    <string name="music_play_all">Für alle abspielen</string>
+    <string name="music_remove_all">Musik für alle entfernen</string>
+    <string name="music_by">von %1$s · %2$s</string>
+    <string name="music_stopped_local">Nur für dich gestoppt</string>
+    <string name="music_resume">Fortsetzen</string>
+    <string name="music_error">Hier nicht abspielbar: Der Urheber hat die eingebettete Wiedergabe evtl. gesperrt.</string>
+    <string name="music_cd_playpause">Für alle pausieren oder fortsetzen</string>
+    <string name="music_cd_mute">Nur für mich stummschalten</string>
+    <string name="music_cd_resync">Neu synchronisieren</string>
+    <string name="music_cd_stop_local">Nur für mich stoppen</string>
+    <string name="music_cd_expand">Player ein- oder ausblenden</string>
 </resources>

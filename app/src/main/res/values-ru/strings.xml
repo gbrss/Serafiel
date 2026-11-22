@@ -683,4 +683,19 @@
     <string name="appearance_theme_hint">Темы, кроме Serafiel, задают светлый или тёмный вид и игнорируют режим выше.</string>
     <string name="appearance_close">Готово</string>
     <string name="fine_location_hint">Точное местоположение видно только после принятия чата.</string>
+    <string name="music_menu">Музыка группы</string>
+    <string name="music_dialog_title">Музыка для группы</string>
+    <string name="music_dialog_hint">Вставьте ссылку YouTube или SoundCloud (видео, трек или плейлист). Играет у всех одновременно, примерно синхронно и только при открытом приложении.</string>
+    <string name="music_link_invalid">Это не ссылка YouTube или SoundCloud</string>
+    <string name="music_play_all">Включить для всех</string>
+    <string name="music_remove_all">Убрать музыку для всех</string>
+    <string name="music_by">от %1$s · %2$s</string>
+    <string name="music_stopped_local">Остановлено только для вас</string>
+    <string name="music_resume">Продолжить</string>
+    <string name="music_error">Не удаётся воспроизвести: автор мог запретить встроенное воспроизведение.</string>
+    <string name="music_cd_playpause">Пауза или продолжить для всех</string>
+    <string name="music_cd_mute">Отключить звук только для меня</string>
+    <string name="music_cd_resync">Синхронизировать</string>
+    <string name="music_cd_stop_local">Остановить только для меня</string>
+    <string name="music_cd_expand">Показать или скрыть плеер</string>
 </resources>

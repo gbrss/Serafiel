@@ -1,0 +1,264 @@
+package com.example.ui.screens
+
+import android.annotation.SuppressLint
+import android.os.Handler
+import android.os.Looper
+import android.webkit.JavascriptInterface
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.example.R
+import com.example.data.ChatAudioPlayer
+import com.example.data.GroupMusic
+import com.example.data.NowPlaying
+import com.example.i18n.tr
+import com.example.model.SocialGroup
+import kotlinx.coroutines.launch
+
+/** Acciones de la música compartida de un grupo. */
+class GroupMusicActions(
+    val start: suspend (SocialGroup, String) -> Boolean = { _, _ -> false },
+    val stopForAll: (SocialGroup) -> Unit = {},
+    val playback: (SocialGroup, Boolean, Long, Int) -> Unit = { _, _, _, _ -> },
+)
+
+val LocalGroupMusic = compositionLocalOf { GroupMusicActions() }
+
+/** Ventana para pegar un enlace de YouTube/SoundCloud (o quitar la música actual). */
+@Composable
+fun GroupMusicDialog(group: SocialGroup, hasMusic: Boolean, onDismiss: () -> Unit) {
+    val actions = LocalGroupMusic.current
+    val scope = rememberCoroutineScope()
+    var link by remember { mutableStateOf("") }
+    var invalid by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(tr(R.string.music_dialog_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(tr(R.string.music_dialog_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(
+                    value = link,
+                    onValueChange = { link = it.take(300); invalid = false },
+                    singleLine = true,
+                    isError = invalid,
+                    placeholder = { Text("https://…") },
+                    supportingText = if (invalid) ({ Text(tr(R.string.music_link_invalid)) }) else null,
+                    modifier = Modifier.fillMaxWidth().testTag("group_music_link"),
+                )
+                if (hasMusic) {
+                    TextButton(onClick = { actions.stopForAll(group); onDismiss() }) { Text(tr(R.string.music_remove_all)) }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = link.isNotBlank() && !busy,
+                onClick = {
+                    busy = true
+                    scope.launch {
+                        val ok = actions.start(group, link)
+                        busy = false
+                        if (ok) onDismiss() else invalid = true
+                    }
+                },
+            ) { Text(tr(R.string.music_play_all)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr(R.string.appearance_close)) } },
+    )
+}
+
+private class PlayerBridge(
+    private val onReadyCb: () -> Unit,
+    private val onTrackCb: (Int) -> Unit,
+    private val onErrorCb: () -> Unit,
+) {
+    private val main = Handler(Looper.getMainLooper())
+
+    @JavascriptInterface fun onReady() { main.post { onReadyCb() } }
+    @JavascriptInterface fun onTrack(index: Int) { main.post { onTrackCb(index) } }
+    @JavascriptInterface fun onState(state: Int) {}
+    @JavascriptInterface fun onError(code: String) { main.post { onErrorCb() } }
+}
+
+/**
+ * Barra de música compartida: todos oyen lo mismo a la vez (sincronía aproximada).
+ * Silenciar, detener y el volumen son locales; pausar/reanudar valen para todo el grupo.
+ */
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
+    val context = LocalContext.current
+    val actions = LocalGroupMusic.current
+    val npState = rememberUpdatedState(np)
+    val groupState = rememberUpdatedState(group)
+
+    var ready by remember(np.url) { mutableStateOf(false) }
+    var error by remember(np.url) { mutableStateOf(false) }
+    var localStopped by remember(np.url) { mutableStateOf(false) }
+    var muted by remember { mutableStateOf(false) }
+    var expanded by remember(np.provider) { mutableStateOf(np.isYoutube) }
+    var resyncTick by remember { mutableIntStateOf(0) }
+    var ignoreTrackUntil by remember(np.url) { mutableStateOf(0L) }
+
+    val voicePlaying = ChatAudioPlayer.playbackState.collectAsState().value.isPlaying
+    val targetVolume = when {
+        muted -> 0
+        recording -> 10
+        voicePlaying -> 30
+        else -> 100
+    }
+    val volume by animateIntAsState(targetVolume, tween(350), label = "music_volume")
+
+    val webView = remember(np.provider, np.url, np.videoId, np.listId) {
+        WebView(context).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.mediaPlaybackRequiresUserGesture = false
+            setBackgroundColor(android.graphics.Color.BLACK)
+            webViewClient = WebViewClient()
+            addJavascriptInterface(
+                PlayerBridge(
+                    onReadyCb = { ready = true },
+                    onTrackCb = { idx ->
+                        val cur = npState.value
+                        val tracksMatter = cur.listId.isNotEmpty() || !cur.isYoutube
+                        if (tracksMatter && idx >= 0 && idx != cur.index && cur.playing &&
+                            System.currentTimeMillis() > ignoreTrackUntil
+                        ) {
+                            actions.playback(groupState.value, true, 0L, idx)
+                        }
+                    },
+                    onErrorCb = { error = true },
+                ),
+                "Bridge",
+            )
+            loadDataWithBaseURL("https://serafiel.app/", GroupMusic.playerHtml(np), "text/html", "utf-8", null)
+        }
+    }
+    DisposableEffect(webView) { onDispose { webView.destroy() } }
+
+    // Sincroniza con el estado compartido (al entrar, al pausar/reanudar, al cambiar de pista).
+    LaunchedEffect(ready, np.playing, np.posMs, np.atMs, np.index, localStopped, resyncTick) {
+        if (!ready || localStopped) return@LaunchedEffect
+        ignoreTrackUntil = System.currentTimeMillis() + 4000
+        val idx = if (np.listId.isNotEmpty() || !np.isYoutube) np.index else -1
+        webView.evaluateJavascript("sync(${np.playing},${np.targetPositionMs()},$idx)", null)
+    }
+    LaunchedEffect(ready, volume) {
+        if (ready) webView.evaluateJavascript("vol($volume)", null)
+    }
+
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth().testTag("group_music_bar")) {
+        Column {
+            Row(
+                modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                    Text(np.title.ifBlank { np.url }, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        tr(R.string.music_by, np.byName.ifBlank { "…" }, if (np.isYoutube) "YouTube" else "SoundCloud"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                IconButton(
+                    onClick = { actions.playback(group, !np.playing, np.targetPositionMs(), np.index) },
+                    modifier = Modifier.size(36.dp),
+                ) { Icon(if (np.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, tr(R.string.music_cd_playpause)) }
+                IconButton(onClick = { muted = !muted }, modifier = Modifier.size(36.dp)) {
+                    Icon(if (muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp, tr(R.string.music_cd_mute))
+                }
+                IconButton(onClick = { resyncTick++ }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Rounded.Refresh, tr(R.string.music_cd_resync))
+                }
+                IconButton(
+                    onClick = {
+                        localStopped = true
+                        webView.evaluateJavascript("stopAll()", null)
+                    },
+                    modifier = Modifier.size(36.dp),
+                ) { Icon(Icons.Rounded.Stop, tr(R.string.music_cd_stop_local)) }
+                IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(36.dp)) {
+                    Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, tr(R.string.music_cd_expand))
+                }
+            }
+            if (localStopped) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(tr(R.string.music_stopped_local), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { localStopped = false; resyncTick++ }) { Text(tr(R.string.music_resume)) }
+                }
+            }
+            if (error) {
+                Text(
+                    tr(R.string.music_error),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                )
+            }
+            // El reproductor siempre está montado (para que siga sonando); plegado queda mínimo.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (!localStopped && expanded) (if (np.isYoutube) 190.dp else 166.dp) else 1.dp),
+            ) {
+                AndroidView(factory = { webView }, modifier = Modifier.fillMaxWidth().height(if (expanded) (if (np.isYoutube) 190.dp else 166.dp) else 1.dp))
+            }
+        }
+    }
+}

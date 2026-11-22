@@ -1585,6 +1585,35 @@ class SerafielViewModel(
      * Llamar en cada cambio del texto del compositor. Envía un pulso de "escribiendo"
      * como mucho cada 4 s y lo borra tras 5 s sin teclear.
      */
+    /** Pega un enlace y lo reproduce para todo el grupo. Devuelve false si el enlace no es válido. */
+    suspend fun startGroupMusic(group: SocialGroup, rawLink: String): Boolean {
+        val link = com.example.data.GroupMusic.parse(rawLink) ?: return false
+        val myName = group.memberNames[currentUserId].orEmpty().ifBlank { tr(R.string.s_usuario_serafiel) }
+        val title = com.example.data.GroupMusic.fetchTitle(link, link.url.removePrefix("https://").take(80))
+        val np = mapOf<String, Any>(
+            "provider" to link.provider,
+            "url" to link.url,
+            "videoId" to link.videoId,
+            "listId" to link.listId,
+            "title" to title,
+            "byId" to currentUserId,
+            "byName" to myName.take(40),
+            "playing" to true,
+            "posMs" to 0L,
+            "index" to 0,
+            "at" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+        )
+        return repository.setGroupNowPlaying(group.id, np).isSuccess
+    }
+
+    fun stopGroupMusicForAll(group: SocialGroup) {
+        viewModelScope.launch { repository.setGroupNowPlaying(group.id, null) }
+    }
+
+    fun updateGroupPlayback(group: SocialGroup, playing: Boolean, posMs: Long, index: Int) {
+        viewModelScope.launch { repository.updateGroupPlayback(group.id, playing, posMs, index) }
+    }
+
     suspend fun loadPeerFineLocation(peerId: String): Pair<Double, Double>? = repository.getPeerFineLocation(peerId)
 
     fun respondToChatRequest(chat: DirectChat, accept: Boolean) {

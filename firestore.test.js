@@ -945,3 +945,34 @@ test("Posición fina privada: solo el dueño o quien tiene un chat aceptado la l
   });
   await assertFails(ref(bobDb).get());
 });
+
+test("Música del grupo: solo miembros, enlaces https de YouTube/SoundCloud y campos válidos", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("groups").doc("music_group").set({
+      name: "Música", category: "FRIENDS", colorKey: "amber", creatorId: ALICE_UID,
+      memberIds: [ALICE_UID, BOB_UID], memberNames: { [ALICE_UID]: "Alicia", [BOB_UID]: "Roberto" },
+      memberColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" }, lastMessage: "",
+      createdAt: pastDate(10000), updatedAt: pastDate(10000),
+    });
+  });
+  const g = (db) => db.collection("groups").doc("music_group");
+  const np = (over = {}) => ({
+    provider: "youtube", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", videoId: "dQw4w9WgXcQ", listId: "",
+    title: "Canción", byId: BOB_UID, byName: "Roberto", playing: true, posMs: 0, index: 0, at: serverNow(), ...over,
+  });
+  await assertSucceeds(g(bobDb).update({ nowPlaying: np() }));
+  await assertFails(g(charlieDb).update({ nowPlaying: np({ byId: CHARLIE_UID }) }));
+  await assertFails(g(bobDb).update({ nowPlaying: np({ provider: "spotify" }) }));
+  await assertFails(g(bobDb).update({ nowPlaying: np({ url: "http://youtube.com/x" }) }));
+  await assertFails(g(bobDb).update({ nowPlaying: np({ title: "x".repeat(121) }) }));
+  await assertFails(g(bobDb).update({ nowPlaying: np({ extra: 1 }) }));
+  // Pausar/saltar por dotted path y mezclar con otros campos del grupo no está permitido
+  await assertSucceeds(g(aliceDb).update({ "nowPlaying.playing": false, "nowPlaying.posMs": 42000, "nowPlaying.at": serverNow() }));
+  await assertFails(g(aliceDb).update({ "nowPlaying.posMs": -5 }));
+  await assertFails(g(aliceDb).update({ nowPlaying: np(), name: "Hackeado" }));
+  // Quitarla para todos
+  await assertSucceeds(g(aliceDb).update({ nowPlaying: firebaseCompat.firestore.FieldValue.delete() }));
+});

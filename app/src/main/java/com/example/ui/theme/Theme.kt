@@ -131,6 +131,21 @@ fun SerafielTheme(
         )
     }
 
+    // Iconos de las barras del sistema: oscuros sobre fondo claro y viceversa.
+    val view = androidx.compose.ui.platform.LocalView.current
+    if (!view.isInEditMode) {
+        androidx.compose.runtime.SideEffect {
+            var ctx = view.context
+            while (ctx is android.content.ContextWrapper && ctx !is android.app.Activity) ctx = ctx.baseContext
+            val window = (ctx as? android.app.Activity)?.window
+            if (window != null) {
+                val controller = androidx.core.view.WindowCompat.getInsetsController(window, view)
+                controller.isAppearanceLightStatusBars = !darkTheme
+                controller.isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
+    }
+
     MaterialTheme(
         colorScheme = colorScheme,
         typography = SerafielTypography,

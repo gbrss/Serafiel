@@ -60,6 +60,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import com.example.data.NowPlaying
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -879,6 +881,7 @@ private fun GroupDetailScreen(
     var openVideoMessage by remember(group.id) { mutableStateOf<DirectMessage?>(null) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
+    var showMusicDialog by remember { mutableStateOf(false) }
     val voiceController = rememberVoiceNoteController(
         key = group.id,
         onSend = onSendVoiceNote,
@@ -1150,6 +1153,14 @@ private fun GroupDetailScreen(
                                         searchActive = true
                                     },
                                 )
+                                DropdownMenuItem(
+                                    text = { Text(tr(R.string.music_menu)) },
+                                    leadingIcon = { Icon(Icons.Outlined.MusicNote, contentDescription = null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showMusicDialog = true
+                                    },
+                                )
                                 if (isCreator) {
                                     DropdownMenuItem(
                                         text = { Text(tr(R.string.s_editar_grupo_y_miembros)) },
@@ -1237,6 +1248,13 @@ private fun GroupDetailScreen(
                     onNext = { if (searchPos < searchResults.size - 1) searchPos++ },
                     onClose = { searchActive = false; searchQuery = "" },
                 )
+            }
+            val nowPlaying = remember(group.nowPlaying) { NowPlaying.from(group.nowPlaying) }
+            if (nowPlaying != null) {
+                GroupMusicBar(group = group, np = nowPlaying, recording = voiceController.isActive)
+            }
+            if (showMusicDialog) {
+                GroupMusicDialog(group = group, hasMusic = nowPlaying != null, onDismiss = { showMusicDialog = false })
             }
             if (group.pinnedMessageId.isNotBlank() && !searchActive) {
                 PinnedMessageBanner(
