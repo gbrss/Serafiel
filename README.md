@@ -95,7 +95,7 @@ El inicio de sesión es con cuenta de Google y toda la información vive en Clou
 ### 🎨 Personalización
 - **Tema** claro, oscuro o del sistema, y **5 colores de acento**.
 - **Fondo de los chats:** 5 degradados, un degradado propio con selector RGB, o tu foto.
-- **7 idiomas:** español, inglés, portugués, francés, alemán, italiano y ruso.
+- **8 idiomas:** español, inglés, portugués, francés, alemán, italiano, ruso y griego.
 - **Compartir con Serafiel** desde el menú Compartir de otras apps.
 - **Actualizaciones** desde la propia app.
 

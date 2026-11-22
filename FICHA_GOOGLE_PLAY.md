@@ -51,7 +51,7 @@ Serafiel es software libre (GPL v3). Mapas con OpenStreetMap y OpenFreeMap, sin 
 Descárgala y enciende tu baliza.
 
 ## Novedades de esta versión (máx. 500)
-Primera versión pública: radar GPS, modo viaje, chats y grupos con encuestas, ubicación en tiempo real, modo fantasma, bloqueo con huella/PIN, temas y fondos personalizados, 7 idiomas y envío de mensajes sin conexión.
+Primera versión pública: radar GPS, modo viaje, chats y grupos con encuestas, ubicación en tiempo real, modo fantasma, bloqueo con huella/PIN, temas y fondos personalizados, 8 idiomas y envío de mensajes sin conexión.
 
 ## Recursos gráficos que debes preparar
 | Recurso | Requisito |

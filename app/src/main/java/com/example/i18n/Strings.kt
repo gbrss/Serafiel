@@ -23,6 +23,7 @@ object Lang {
         "de" to "Deutsch",
         "it" to "Italiano",
         "ru" to "Русский",
+        "el" to "Ελληνικά",
     )
 
     private const val PREFS = "serafiel_lang"
