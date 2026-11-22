@@ -1585,6 +1585,14 @@ class SerafielViewModel(
      * Llamar en cada cambio del texto del compositor. Envía un pulso de "escribiendo"
      * como mucho cada 4 s y lo borra tras 5 s sin teclear.
      */
+    fun respondToChatRequest(chat: DirectChat, accept: Boolean) {
+        viewModelScope.launch {
+            repository.respondToChatRequest(chat.id, accept).onFailure { err ->
+                _snackbarEvents.tryEmit(err.localizedMessage ?: tr(R.string.s_no_se_pudo_abrir_la_3))
+            }
+        }
+    }
+
     fun onComposerTyping(chat: DirectChat, hasText: Boolean) {
         if (!hasText) {
             stopTyping(chat)

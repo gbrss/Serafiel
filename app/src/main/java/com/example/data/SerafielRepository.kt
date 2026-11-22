@@ -731,7 +731,7 @@ class SerafielRepository(
                         ),
                         "initiatorId" to uid,
                         "purpose" to purpose.name,
-                        "status" to "active",
+                        "status" to "pending",
                         "lastMessage" to preview,
                         "zoneName" to zoneName.trim().take(80),
                         "createdAt" to FieldValue.serverTimestamp(),
@@ -740,7 +740,7 @@ class SerafielRepository(
                 ).await()
 
                 if (cleanGreeting.isNotEmpty()) {
-                    chatRef.collection("messages").document().set(
+                    chatRef.collection("messages").document("greeting").set(
                         mapOf(
                             "chatId" to chatId,
                             "participantIds" to sortedIds,
@@ -751,6 +751,8 @@ class SerafielRepository(
                         )
                     ).await()
                 }
+            } else if (snapshot.getString("status") == "pending" || snapshot.getString("status") == "declined") {
+                // Solicitud sin resolver: no se reenvía ni se reabre desde aquí.
             } else if (sendGreetingIfExists && cleanGreeting.isNotEmpty()) {
                 chatRef.collection("messages").document().set(
                     mapOf(
@@ -782,6 +784,26 @@ class SerafielRepository(
             throw e
         } catch (e: Exception) {
             handleFirestoreError(e, OperationType.CREATE, chatPath)
+            Result.failure(e)
+        }
+    }
+
+    /** La persona que recibió la solicitud la acepta o la rechaza. */
+    suspend fun respondToChatRequest(chatId: String, accept: Boolean): Result<Unit> {
+        val path = "chats/$chatId"
+        return try {
+            requireUserId()
+            db.collection("chats").document(chatId).update(
+                mapOf(
+                    "status" to if (accept) "active" else "declined",
+                    "updatedAt" to FieldValue.serverTimestamp(),
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, path)
             Result.failure(e)
         }
     }

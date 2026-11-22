@@ -661,4 +661,10 @@
     <string name="privacy_intro_footer">Точное местоположение отправляется только если вы делитесь им в чате. Это можно изменить в профиле.</string>
     <string name="privacy_intro_ok">Продолжить</string>
     <string name="precision_250_hint">Вас видят в квадрате около 250 м (ваш район)</string>
+    <string name="chat_request_prefix">Запрос:</string>
+    <string name="chat_request_waiting">%1$s должен принять ваш запрос, чтобы вы могли общаться.</string>
+    <string name="chat_request_declined_me">Вы отклонили этот запрос. Можете принять его, если передумаете.</string>
+    <string name="chat_request_incoming">%1$s хочет пообщаться с вами. Точное местоположение будет видно, только если вы примете запрос.</string>
+    <string name="chat_request_decline">Отклонить</string>
+    <string name="chat_request_accept">Принять</string>
 </resources>

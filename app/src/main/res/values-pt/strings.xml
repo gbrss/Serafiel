@@ -661,4 +661,10 @@
     <string name="privacy_intro_footer">Sua localização exata só é enviada se você a compartilhar em um chat. Você pode mudar isso quando quiser no perfil.</string>
     <string name="privacy_intro_ok">Continuar</string>
     <string name="precision_250_hint">Veem você dentro de uma grade de ~250 m (seu bairro)</string>
+    <string name="chat_request_prefix">Pedido:</string>
+    <string name="chat_request_waiting">%1$s precisa aceitar seu pedido para vocês conversarem.</string>
+    <string name="chat_request_declined_me">Você recusou este pedido. Pode aceitá-lo se mudar de ideia.</string>
+    <string name="chat_request_incoming">%1$s quer conversar com você. Só verá sua localização precisa se você aceitar.</string>
+    <string name="chat_request_decline">Recusar</string>
+    <string name="chat_request_accept">Aceitar</string>
 </resources>

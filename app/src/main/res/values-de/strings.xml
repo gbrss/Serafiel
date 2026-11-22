@@ -661,4 +661,10 @@
     <string name="privacy_intro_footer">Dein genauer Standort wird nur gesendet, wenn du ihn in einem Chat teilst. Du kannst das jederzeit im Profil ändern.</string>
     <string name="privacy_intro_ok">Weiter</string>
     <string name="precision_250_hint">Man sieht dich in einem Raster von ca. 250 m (dein Viertel)</string>
+    <string name="chat_request_prefix">Anfrage:</string>
+    <string name="chat_request_waiting">%1$s muss deine Anfrage annehmen, bevor ihr chatten könnt.</string>
+    <string name="chat_request_declined_me">Du hast diese Anfrage abgelehnt. Du kannst sie annehmen, wenn du es dir anders überlegst.</string>
+    <string name="chat_request_incoming">%1$s möchte mit dir chatten. Dein genauer Standort ist nur sichtbar, wenn du annimmst.</string>
+    <string name="chat_request_decline">Ablehnen</string>
+    <string name="chat_request_accept">Annehmen</string>
 </resources>

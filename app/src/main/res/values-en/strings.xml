@@ -661,4 +661,10 @@
     <string name="privacy_intro_footer">Your exact location is only sent if you share it in a chat. You can change this anytime in your profile.</string>
     <string name="privacy_intro_ok">Continue</string>
     <string name="precision_250_hint">They see you within a ~250 m grid cell (your neighborhood)</string>
+    <string name="chat_request_prefix">Request:</string>
+    <string name="chat_request_waiting">%1$s needs to accept your request before you can chat.</string>
+    <string name="chat_request_declined_me">You declined this request. You can accept it if you change your mind.</string>
+    <string name="chat_request_incoming">%1$s wants to chat with you. They will only see your precise location if you accept.</string>
+    <string name="chat_request_decline">Decline</string>
+    <string name="chat_request_accept">Accept</string>
 </resources>

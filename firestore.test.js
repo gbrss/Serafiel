@@ -286,13 +286,15 @@ test("1:1 Chats & Messages: participant isolation, delete & cleanup, legacy clos
       participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
       initiatorId: ALICE_UID,
       purpose: "FRIENDSHIP",
-      status: "active",
+      status: "pending",
       lastMessage: "¡Hola! Vi tu baliza en Zona Centro.",
       zoneName: "Zona Centro",
       createdAt: created,
       updatedAt: created,
     })
   );
+  // Bob acepta la solicitud (solo quien la recibe puede)
+  await assertSucceeds(bobDb.collection("chats").doc(chatId).update({ status: "active", updatedAt: pastDate(5000) }));
 
   // Charlie cannot read, query, or delete Alice-Bob chat
   await assertFails(charlieDb.collection("chats").doc(chatId).get());
@@ -867,4 +869,38 @@ test("Encuestas en grupos: crear, votar solo el propio voto, opciones válidas",
   await assertFails(vote(charlieDb, CHARLIE_UID, 0));
   await assertSucceeds(msgs(bobDb).doc("p1").update({ [`pollVotes.${BOB_UID}`]: firebaseCompat.firestore.FieldValue.delete() }));
   await assertFails(msgs(bobDb).doc("p1").update({ pollOptions: ["x", "y"] }));
+});
+
+test("Solicitudes de chat: nace pending, solo un saludo, solo el receptor acepta o rechaza", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const chatId = "req_chat";
+  const base = {
+    participantIds: [ALICE_UID, BOB_UID],
+    participantNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+    participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+    initiatorId: ALICE_UID, purpose: "FRIENDSHIP", lastMessage: "Hola",
+    zoneName: "Zona Abierta", createdAt: pastDate(10000), updatedAt: pastDate(10000),
+  };
+  // No se puede crear ya activo
+  await assertFails(aliceDb.collection("chats").doc(chatId).set({ ...base, status: "active" }));
+  await assertSucceeds(aliceDb.collection("chats").doc(chatId).set({ ...base, status: "pending" }));
+  const msg = (uid, name, text) => ({
+    chatId, participantIds: [ALICE_UID, BOB_UID], senderId: uid, senderName: name, text, createdAt: pastDate(9000),
+  });
+  const msgs = (db) => db.collection("chats").doc(chatId).collection("messages");
+  // Solo el iniciador puede enviar el saludo, con id fijo
+  await assertFails(msgs(aliceDb).doc("otro").set(msg(ALICE_UID, "Alicia Luz", "Hola")));
+  await assertFails(msgs(bobDb).doc("greeting").set(msg(BOB_UID, "Roberto Sol", "Hola")));
+  await assertSucceeds(msgs(aliceDb).doc("greeting").set(msg(ALICE_UID, "Alicia Luz", "Hola")));
+  // El iniciador no puede aceptar su propia solicitud
+  await assertFails(aliceDb.collection("chats").doc(chatId).update({ status: "active", updatedAt: pastDate(8000) }));
+  // El receptor rechaza; después ni puede escribirse ni reabrir el iniciador
+  await assertSucceeds(bobDb.collection("chats").doc(chatId).update({ status: "declined", updatedAt: pastDate(8000) }));
+  await assertFails(msgs(aliceDb).doc("m2").set(msg(ALICE_UID, "Alicia Luz", "Por favor")));
+  await assertFails(aliceDb.collection("chats").doc(chatId).update({ status: "active", updatedAt: pastDate(7000) }));
+  await assertFails(aliceDb.collection("chats").doc(chatId).update({ status: "pending", updatedAt: pastDate(7000) }));
+  // El receptor puede cambiar de opinión
+  await assertSucceeds(bobDb.collection("chats").doc(chatId).update({ status: "active", updatedAt: pastDate(6000) }));
+  await assertSucceeds(msgs(aliceDb).doc("m3").set(msg(ALICE_UID, "Alicia Luz", "Gracias")));
 });

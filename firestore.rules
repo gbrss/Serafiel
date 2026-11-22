@@ -171,6 +171,20 @@ service cloud.firestore {
              isValidTimestamp(data.updatedAt);
     }
 
+    // pending -> active/declined solo por quien recibió la solicitud;
+    // declined solo la puede reabrir quien la rechazó; active <-> closed libre.
+    function validStatusChange() {
+      return incoming().status == existing().status ||
+             (existing().status == 'pending' &&
+              request.auth.uid != existing().initiatorId &&
+              incoming().status in ['active', 'declined']) ||
+             (existing().status == 'declined' &&
+              request.auth.uid != existing().initiatorId &&
+              incoming().status == 'active') ||
+             (existing().status in ['active', 'closed'] &&
+              incoming().status in ['active', 'closed']);
+    }
+
     function isValidChat(data) {
       return data.participantIds is list && data.participantIds.size() == 2 &&
              data.participantIds[0] is string && isValidId(data.participantIds[0]) &&
@@ -180,7 +194,7 @@ service cloud.firestore {
              data.participantColors is map && data.participantColors.size() == 2 &&
              data.initiatorId is string && data.initiatorId in data.participantIds &&
              isValidPurpose(data.purpose) &&
-             data.status in ['active', 'closed'] &&
+             data.status in ['pending', 'active', 'closed', 'declined'] &&
              data.lastMessage is string && data.lastMessage.size() <= 500 &&
              data.zoneName is string && data.zoneName.size() <= 80 &&
              isValidTimestamp(data.createdAt) &&
@@ -438,7 +452,7 @@ service cloud.firestore {
                        isValidId(chatId) &&
                        request.auth.uid in incoming().participantIds &&
                        incoming().initiatorId == request.auth.uid &&
-                       incoming().status == 'active' &&
+                       incoming().status == 'pending' &&
                        incoming().keys().hasAll([
                          'participantIds', 'participantNames', 'participantColors',
                          'initiatorId', 'purpose', 'status', 'lastMessage',
@@ -463,6 +477,7 @@ service cloud.firestore {
                          'lastReadAt', 'lastDeliveredAt', 'typingAt', 'unreadCount',
                          'pinnedMessageId', 'pinnedPreview'
                        ]) &&
+                       validStatusChange() &&
                        isValidPin(incoming()) &&
                        isValidUnreadUpdate() &&
                        (!incoming().diff(existing()).affectedKeys().hasAny(['lastSenderId']) ||
@@ -506,7 +521,11 @@ service cloud.firestore {
                            'edited', 'editedAt', 'chunkCount', 'mediaSizeBytes', 'waveform', 'forwarded'
                          ]) &&
                          isValidDirectMessage(incoming()) &&
-                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds &&
+                         (get(/databases/$(database)/documents/chats/$(chatId)).data.status in ['active', 'closed'] ||
+                          (get(/databases/$(database)/documents/chats/$(chatId)).data.status == 'pending' &&
+                           get(/databases/$(database)/documents/chats/$(chatId)).data.initiatorId == request.auth.uid &&
+                           messageId == 'greeting'));
 
         allow update: if isSignedIn() &&
                          isValidId(chatId) &&

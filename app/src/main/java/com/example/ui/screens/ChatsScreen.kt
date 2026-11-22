@@ -66,6 +66,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -153,6 +154,7 @@ fun ChatsTabScreen(
     onReactToMessage: (DirectChat, String, String?) -> Unit = { _, _, _ -> },
     onComposerTyping: (DirectChat, Boolean) -> Unit = { _, _ -> },
     onMarkChatRead: (DirectChat, String) -> Unit = { _, _ -> },
+    onRespondToRequest: (DirectChat, Boolean) -> Unit = { _, _ -> },
     mediaUploadLabel: String? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -196,6 +198,7 @@ fun ChatsTabScreen(
             onReactToMessage = { msgId, emoji -> onReactToMessage(activeChat, msgId, emoji) },
             onComposerTyping = { hasText -> onComposerTyping(activeChat, hasText) },
             onMarkChatRead = { latestId -> onMarkChatRead(activeChat, latestId) },
+            onRespondToRequest = { accept -> onRespondToRequest(activeChat, accept) },
             mediaUploadLabel = mediaUploadLabel,
             modifier = modifier,
         )
@@ -505,7 +508,8 @@ private fun ChatsListScreen(
                                                 overflow = TextOverflow.Ellipsis,
                                             )
                                             Text(
-                                                text = chat.lastMessage.ifBlank { tr(R.string.s_conversacion_abierta) },
+                                                text = (if (chat.status == "pending" && chat.initiatorId != currentUserId) tr(R.string.chat_request_prefix) + " " else "") +
+                                                    chat.lastMessage.ifBlank { tr(R.string.s_conversacion_abierta) },
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
@@ -645,6 +649,7 @@ private fun DirectChatDetailScreen(
     onReactToMessage: (String, String?) -> Unit,
     onComposerTyping: (Boolean) -> Unit,
     onMarkChatRead: (String) -> Unit,
+    onRespondToRequest: (Boolean) -> Unit = {},
     mediaUploadLabel: String?,
     modifier: Modifier = Modifier,
 ) {
@@ -1105,8 +1110,18 @@ private fun DirectChatDetailScreen(
                 }
             }
 
+            // Solicitud de chat sin resolver: sin caja de texto
+            val requestBlocked = chat.status == "pending" || chat.status == "declined"
+            if (requestBlocked) {
+                ChatRequestBar(
+                    iAmInitiator = chat.initiatorId == currentUserId,
+                    declined = chat.status == "declined",
+                    peerName = peerName,
+                    onRespond = onRespondToRequest,
+                )
+            }
             // Composer
-            Column(modifier = Modifier.fillMaxWidth()) {
+            if (!requestBlocked) Column(modifier = Modifier.fillMaxWidth()) {
                 if (showAttachmentsPanel) {
                         ChatAttachmentOptionsBar(
                             onTakeCameraPhoto = { launchCameraFlow() },
@@ -1430,5 +1445,47 @@ private fun DirectChatDetailScreen(
                 if (alsoBlock) onBack()
             },
         )
+    }
+}
+
+
+@Composable
+private fun ChatRequestBar(
+    iAmInitiator: Boolean,
+    declined: Boolean,
+    peerName: String,
+    onRespond: (Boolean) -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (iAmInitiator) {
+                Text(
+                    text = tr(R.string.chat_request_waiting, peerName),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    text = if (declined) tr(R.string.chat_request_declined_me) else tr(R.string.chat_request_incoming, peerName),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (!declined) {
+                        OutlinedButton(onClick = { onRespond(false) }, modifier = Modifier.weight(1f)) {
+                            Text(tr(R.string.chat_request_decline))
+                        }
+                    }
+                    Button(onClick = { onRespond(true) }, modifier = Modifier.weight(1f)) {
+                        Text(tr(R.string.chat_request_accept))
+                    }
+                }
+            }
+        }
     }
 }

@@ -1014,6 +1014,7 @@ private fun SerafielAuthenticatedShell(
                             onReactToMessage = { chat, msgId, emoji -> viewModel.reactToDirectMessage(chat, msgId, emoji) },
                             onComposerTyping = { chat, hasText -> viewModel.onComposerTyping(chat, hasText) },
                             onMarkChatRead = { chat, latestId -> viewModel.markChatRead(chat, latestId) },
+                            onRespondToRequest = { chat, accept -> viewModel.respondToChatRequest(chat, accept) },
                             mediaUploadLabel = mediaUploadLabel,
                             onBlockUser = { uid, name -> viewModel.blockUser(uid, name) },
                             onSubmitReport = { peerId, peerName, chatId, reason, details, alsoBlock ->
