@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -96,6 +97,37 @@ fun Modifier.chatBackground(): Modifier {
 
 @Composable
 fun AppearanceCard() {
+    var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth().clickable { open = true }.testTag("appearance_open"),
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(tr(R.string.appearance_title), style = MaterialTheme.typography.titleSmall)
+            Text(
+                tr(R.string.appearance_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    if (open) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { open = false },
+            title = { Text(tr(R.string.appearance_title)) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) { AppearanceContent() }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { open = false }) { Text(tr(R.string.appearance_close)) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun AppearanceContent() {
     val context = LocalContext.current
     val mode by ThemeSettings.mode.collectAsState()
     val accent by ThemeSettings.accent.collectAsState()
@@ -105,18 +137,55 @@ fun AppearanceCard() {
             android.widget.Toast.makeText(context, tr(R.string.appearance_photo_error), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(tr(R.string.appearance_title), style = MaterialTheme.typography.titleSmall)
-            Text(
-                tr(R.string.appearance_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+    val appTheme by ThemeSettings.appTheme.collectAsState()
+    run {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(tr(R.string.appearance_theme), style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                ThemeSettings.AppTheme.entries.forEach { t ->
+                    val label = when (t) {
+                        ThemeSettings.AppTheme.DEFAULT -> R.string.theme_default
+                        ThemeSettings.AppTheme.AMOLED -> R.string.theme_amoled
+                        ThemeSettings.AppTheme.NIGHT_BLUE -> R.string.theme_night_blue
+                        ThemeSettings.AppTheme.FOREST -> R.string.theme_forest
+                        ThemeSettings.AppTheme.WINE -> R.string.theme_wine
+                        ThemeSettings.AppTheme.GRAPHITE -> R.string.theme_graphite
+                        ThemeSettings.AppTheme.PAPER -> R.string.theme_paper
+                        ThemeSettings.AppTheme.SKY -> R.string.theme_sky
+                        ThemeSettings.AppTheme.MINT -> R.string.theme_mint
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { ThemeSettings.setAppTheme(context, t) }.testTag("app_theme_${t.name}"),
+                    ) {
+                        val fill = if (t == ThemeSettings.AppTheme.DEFAULT) MaterialTheme.colorScheme.surface else Color(t.bg)
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(fill)
+                                .border(
+                                    if (appTheme == t) 3.dp else 1.dp,
+                                    if (appTheme == t) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                    CircleShape,
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(Modifier.size(16.dp).clip(CircleShape).background(
+                                if (t == ThemeSettings.AppTheme.DEFAULT) MaterialTheme.colorScheme.primary else Color(t.container)
+                            ))
+                        }
+                        Text(tr(label), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                    }
+                }
+            }
+            if (appTheme != ThemeSettings.AppTheme.DEFAULT) {
+                Text(
+                    tr(R.string.appearance_theme_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
                 listOf(
                     ThemeSettings.Mode.SYSTEM to R.string.appearance_mode_system,

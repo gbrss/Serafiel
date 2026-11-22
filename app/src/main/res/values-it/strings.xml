@@ -670,4 +670,16 @@
     <string name="rules_title">Regole di Serafiel</string>
     <string name="rules_body">Serafiel serve per conoscere persone vicine in sicurezza. Per prenderci cura gli uni degli altri:\n\n• Rispetta gli altri. Molestie, odio e minacce non sono tollerati.\n• Non chiedere né condividere dati privati di nessuno senza il suo permesso.\n• Non inviare contenuti sessuali o violenti, né spam.\n• Un saluto è una richiesta: se non rispondono o rifiutano, non insistere.\n• Non usare l\'app per seguire, localizzare o intimidire qualcuno.\n• Segnala e blocca chi infrange queste regole.\n\nChi le infrange può essere sospeso.</string>
     <string name="rules_accept">Accetto le regole</string>
+    <string name="appearance_theme">Tema dell\'app</string>
+    <string name="theme_default">Serafiel</string>
+    <string name="theme_amoled">Nero puro</string>
+    <string name="theme_night_blue">Blu notte</string>
+    <string name="theme_forest">Bosco</string>
+    <string name="theme_wine">Vino</string>
+    <string name="theme_graphite">Grafite</string>
+    <string name="theme_paper">Carta</string>
+    <string name="theme_sky">Cielo</string>
+    <string name="theme_mint">Menta</string>
+    <string name="appearance_theme_hint">I temi diversi da Serafiel fissano chiaro o scuro e ignorano la modalità sopra.</string>
+    <string name="appearance_close">Fatto</string>
 </resources>

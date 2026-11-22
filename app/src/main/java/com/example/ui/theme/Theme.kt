@@ -79,10 +79,13 @@ val SerafielShapes = Shapes(
 
 @Composable
 fun SerafielTheme(
-    darkTheme: Boolean = when (ThemeSettings.mode.collectAsState().value) {
-        ThemeSettings.Mode.LIGHT -> false
-        ThemeSettings.Mode.DARK -> true
-        ThemeSettings.Mode.SYSTEM -> isSystemInDarkTheme()
+    darkTheme: Boolean = ThemeSettings.appTheme.collectAsState().value.let { t ->
+        if (t != ThemeSettings.AppTheme.DEFAULT) t.isDark
+        else when (ThemeSettings.mode.collectAsState().value) {
+            ThemeSettings.Mode.LIGHT -> false
+            ThemeSettings.Mode.DARK -> true
+            ThemeSettings.Mode.SYSTEM -> isSystemInDarkTheme()
+        }
     },
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
@@ -96,15 +99,31 @@ fun SerafielTheme(
         darkTheme -> SerafielDarkColorScheme
         else -> SerafielLightColorScheme
     }
-    val colorScheme = if (accent == ThemeSettings.Accent.AMBER) baseScheme else if (darkTheme) {
-        baseScheme.copy(
+    val appTheme by ThemeSettings.appTheme.collectAsState()
+    val themedScheme = if (appTheme == ThemeSettings.AppTheme.DEFAULT) baseScheme else baseScheme.copy(
+        background = Color(appTheme.bg),
+        surface = Color(appTheme.surface),
+        surfaceVariant = Color(appTheme.container),
+        surfaceContainerLowest = Color(appTheme.bg),
+        surfaceContainerLow = Color(appTheme.surface),
+        surfaceContainer = Color(appTheme.container),
+        surfaceContainerHigh = Color(appTheme.containerHigh),
+        surfaceContainerHighest = Color(appTheme.containerHigh),
+        onBackground = Color(appTheme.ink),
+        onSurface = Color(appTheme.ink),
+        onSurfaceVariant = Color(appTheme.muted),
+        outline = Color(appTheme.outline),
+        outlineVariant = Color(appTheme.containerHigh),
+    )
+    val colorScheme = if (accent == ThemeSettings.Accent.AMBER) themedScheme else if (darkTheme) {
+        themedScheme.copy(
             primary = Color(accent.darkPrimary),
             onPrimary = Color(0xFF1A1A1A),
             primaryContainer = Color(accent.darkContainer),
             onPrimaryContainer = Color(accent.darkOnContainer),
         )
     } else {
-        baseScheme.copy(
+        themedScheme.copy(
             primary = Color(accent.lightPrimary),
             onPrimary = Color.White,
             primaryContainer = Color(accent.lightContainer),

@@ -670,4 +670,16 @@
     <string name="rules_title">Serafiel rules</string>
     <string name="rules_body">Serafiel is for meeting people nearby, safely. To look after each other:\n\n• Treat others with respect. Harassment, hate and threats are not tolerated.\n• Don\'t ask for or share anyone\'s private information without their permission.\n• Don\'t send sexual or violent content, or spam.\n• A greeting is a request: if they don\'t answer or decline, don\'t insist.\n• Don\'t use the app to follow, locate or intimidate anyone.\n• Report and block anyone who breaks these rules.\n\nAnyone who breaks them may be suspended.</string>
     <string name="rules_accept">I accept the rules</string>
+    <string name="appearance_theme">App theme</string>
+    <string name="theme_default">Serafiel</string>
+    <string name="theme_amoled">Pure black</string>
+    <string name="theme_night_blue">Midnight blue</string>
+    <string name="theme_forest">Forest</string>
+    <string name="theme_wine">Wine</string>
+    <string name="theme_graphite">Graphite</string>
+    <string name="theme_paper">Paper</string>
+    <string name="theme_sky">Sky</string>
+    <string name="theme_mint">Mint</string>
+    <string name="appearance_theme_hint">Themes other than Serafiel fix light or dark and ignore the mode above.</string>
+    <string name="appearance_close">Done</string>
 </resources>

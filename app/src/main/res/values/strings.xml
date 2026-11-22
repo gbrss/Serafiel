@@ -636,7 +636,7 @@
     <string name="s_reporte_enviado_gracias_por_cuidar">Reporte enviado. Gracias por cuidar la comunidad de Serafiel.</string>
     <string name="s_no_se_pudo_enviar_el_7">No se pudo enviar el reporte</string>
     <string name="appearance_title">Apariencia</string>
-    <string name="appearance_hint">Tema, color y fondo de los chats. Solo cambia en este teléfono.</string>
+    <string name="appearance_hint">Tema, color de acento y fondo de los chats. Toca para cambiar. Solo afecta a este teléfono.</string>
     <string name="appearance_mode_system">Sistema</string>
     <string name="appearance_mode_light">Claro</string>
     <string name="appearance_mode_dark">Oscuro</string>
@@ -672,4 +672,16 @@
     <string name="rules_title">Normas de Serafiel</string>
     <string name="rules_body">Serafiel es para conocer gente cerca de forma segura. Para cuidarnos todos:\n\n• Trata a los demás con respeto. No se tolera el acoso, el odio ni las amenazas.\n• No pidas ni compartas datos privados de nadie sin su permiso.\n• No envíes contenido sexual ni violento, ni spam.\n• Un saludo es una solicitud: si no te responden o te rechazan, no insistas.\n• No uses la app para seguir, localizar o intimidar a otra persona.\n• Reporta y bloquea a quien rompa estas normas.\n\nQuien las incumpla puede ser suspendido.</string>
     <string name="rules_accept">Acepto las normas</string>
+    <string name="appearance_theme">Tema de la app</string>
+    <string name="theme_default">Serafiel</string>
+    <string name="theme_amoled">Negro puro</string>
+    <string name="theme_night_blue">Azul noche</string>
+    <string name="theme_forest">Bosque</string>
+    <string name="theme_wine">Vino</string>
+    <string name="theme_graphite">Grafito</string>
+    <string name="theme_paper">Papel</string>
+    <string name="theme_sky">Cielo</string>
+    <string name="theme_mint">Menta</string>
+    <string name="appearance_theme_hint">Los temas distintos de Serafiel fijan claro u oscuro y ignoran el modo de arriba.</string>
+    <string name="appearance_close">Listo</string>
 </resources>
