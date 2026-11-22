@@ -667,4 +667,7 @@
     <string name="chat_request_incoming">%1$s quer conversar com você. Só verá sua localização precisa se você aceitar.</string>
     <string name="chat_request_decline">Recusar</string>
     <string name="chat_request_accept">Aceitar</string>
+    <string name="rules_title">Normas do Serafiel</string>
+    <string name="rules_body">O Serafiel serve para conhecer pessoas por perto com segurança. Para cuidarmos uns dos outros:\n\n• Trate os outros com respeito. Assédio, ódio e ameaças não são tolerados.\n• Não peça nem compartilhe dados privados de ninguém sem permissão.\n• Não envie conteúdo sexual ou violento, nem spam.\n• Uma saudação é um pedido: se não responderem ou recusarem, não insista.\n• Não use o app para seguir, localizar ou intimidar alguém.\n• Denuncie e bloqueie quem descumprir estas normas.\n\nQuem as descumprir pode ser suspenso.</string>
+    <string name="rules_accept">Aceito as normas</string>
 </resources>

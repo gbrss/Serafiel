@@ -63,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -448,6 +449,29 @@ private fun SerafielAuthenticatedShell(
         }
     }
 
+    // Normas de convivencia: se aceptan una vez, antes de usar la app.
+    var showRules by remember { mutableStateOf(!com.example.data.PrivacySettings.hasAcceptedRules(context)) }
+    if (showRules) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {},
+            title = { Text(tr(R.string.rules_title)) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                ) {
+                    Text(tr(R.string.rules_body), style = MaterialTheme.typography.bodyMedium)
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    com.example.data.PrivacySettings.markRulesAccepted(context)
+                    showRules = false
+                }) { Text(tr(R.string.rules_accept)) }
+            },
+        )
+    }
+
     // Aviso de primera vez: cómo se usa tu ubicación y elección de precisión.
     var showPrecisionIntro by remember { mutableStateOf(false) }
     LaunchedEffect(hasLocationPermission) {
@@ -455,7 +479,7 @@ private fun SerafielAuthenticatedShell(
             showPrecisionIntro = true
         }
     }
-    if (showPrecisionIntro) {
+    if (showPrecisionIntro && !showRules) {
         val currentPrecision by viewModel.locationPrecision.collectAsStateWithLifecycle()
         androidx.compose.material3.AlertDialog(
             onDismissRequest = {},

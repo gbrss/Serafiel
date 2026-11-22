@@ -53,6 +53,13 @@ object PrivacySettings {
     /** ¿Ya eligió el usuario su precisión (aviso de primera vez)? */
     fun hasChosenPrecision(context: Context): Boolean = prefs(context).getBoolean("precision_chosen", false)
 
+    /** ¿Ya aceptó las normas de convivencia? */
+    fun hasAcceptedRules(context: Context): Boolean = prefs(context).getBoolean("rules_accepted", false)
+
+    fun markRulesAccepted(context: Context) {
+        prefs(context).edit().putBoolean("rules_accepted", true).apply()
+    }
+
     fun markPrecisionChosen(context: Context) {
         prefs(context).edit().putBoolean("precision_chosen", true).apply()
     }

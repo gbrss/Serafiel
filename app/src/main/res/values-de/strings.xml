@@ -667,4 +667,7 @@
     <string name="chat_request_incoming">%1$s möchte mit dir chatten. Dein genauer Standort ist nur sichtbar, wenn du annimmst.</string>
     <string name="chat_request_decline">Ablehnen</string>
     <string name="chat_request_accept">Annehmen</string>
+    <string name="rules_title">Serafiel-Regeln</string>
+    <string name="rules_body">Serafiel dient dazu, Menschen in der Nähe sicher kennenzulernen. Damit wir aufeinander achten:\n\n• Geh respektvoll mit anderen um. Belästigung, Hass und Drohungen werden nicht geduldet.\n• Frag nicht nach privaten Daten anderer und teile sie nicht ohne Erlaubnis.\n• Sende keine sexuellen oder gewalttätigen Inhalte und keinen Spam.\n• Ein Gruß ist eine Anfrage: Bleibt eine Antwort aus oder wird abgelehnt, dränge nicht.\n• Nutze die App nicht, um jemanden zu verfolgen, zu orten oder einzuschüchtern.\n• Melde und blockiere alle, die gegen diese Regeln verstoßen.\n\nWer dagegen verstößt, kann gesperrt werden.</string>
+    <string name="rules_accept">Ich akzeptiere die Regeln</string>
 </resources>

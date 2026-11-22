@@ -667,4 +667,7 @@
     <string name="chat_request_incoming">%1$s wants to chat with you. They will only see your precise location if you accept.</string>
     <string name="chat_request_decline">Decline</string>
     <string name="chat_request_accept">Accept</string>
+    <string name="rules_title">Serafiel rules</string>
+    <string name="rules_body">Serafiel is for meeting people nearby, safely. To look after each other:\n\n• Treat others with respect. Harassment, hate and threats are not tolerated.\n• Don\'t ask for or share anyone\'s private information without their permission.\n• Don\'t send sexual or violent content, or spam.\n• A greeting is a request: if they don\'t answer or decline, don\'t insist.\n• Don\'t use the app to follow, locate or intimidate anyone.\n• Report and block anyone who breaks these rules.\n\nAnyone who breaks them may be suspended.</string>
+    <string name="rules_accept">I accept the rules</string>
 </resources>
