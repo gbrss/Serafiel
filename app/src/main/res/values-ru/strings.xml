@@ -656,4 +656,8 @@
     <string name="travel_search_hint">Поиск города…</string>
     <string name="travel_no_results">Нет результатов</string>
     <string name="offline_banner">Нет связи · сообщения отправятся при подключении</string>
+    <string name="privacy_intro_title">Ваше местоположение и приватность</string>
+    <string name="privacy_intro_body">Serafiel использует GPS, чтобы показывать людей рядом и чтобы вас видели на радаре. Выберите точность:</string>
+    <string name="privacy_intro_footer">Точное местоположение отправляется только если вы делитесь им в чате. Это можно изменить в профиле.</string>
+    <string name="privacy_intro_ok">Продолжить</string>
 </resources>

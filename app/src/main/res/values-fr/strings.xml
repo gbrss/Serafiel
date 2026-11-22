@@ -656,4 +656,8 @@
     <string name="travel_search_hint">Chercher une ville…</string>
     <string name="travel_no_results">Aucun résultat</string>
     <string name="offline_banner">Hors ligne · vos messages seront envoyés à la reconnexion</string>
+    <string name="privacy_intro_title">Votre position et votre vie privée</string>
+    <string name="privacy_intro_body">Serafiel utilise votre GPS pour vous montrer les personnes proches et pour qu’on vous voie sur le radar. Choisissez votre précision :</string>
+    <string name="privacy_intro_footer">Votre position exacte n’est envoyée que si vous la partagez dans un chat. Vous pouvez la modifier à tout moment dans le profil.</string>
+    <string name="privacy_intro_ok">Continuer</string>
 </resources>

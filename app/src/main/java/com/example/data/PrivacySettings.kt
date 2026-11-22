@@ -52,6 +52,13 @@ object PrivacySettings {
         _ghostUntilMs.value = p.getLong(KEY_GHOST_UNTIL, 0L)
     }
 
+    /** ¿Ya eligió el usuario su precisión (aviso de primera vez)? */
+    fun hasChosenPrecision(context: Context): Boolean = prefs(context).getBoolean("precision_chosen", false)
+
+    fun markPrecisionChosen(context: Context) {
+        prefs(context).edit().putBoolean("precision_chosen", true).apply()
+    }
+
     fun setPrecision(context: Context, value: Precision) {
         prefs(context).edit().putInt(KEY_PRECISION, value.level).apply()
         precision = value

@@ -446,6 +446,58 @@ private fun SerafielAuthenticatedShell(
         }
     }
 
+    // Aviso de primera vez: cómo se usa tu ubicación y elección de precisión.
+    var showPrecisionIntro by remember { mutableStateOf(false) }
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission && !com.example.data.PrivacySettings.hasChosenPrecision(context)) {
+            showPrecisionIntro = true
+        }
+    }
+    if (showPrecisionIntro) {
+        val currentPrecision by viewModel.locationPrecision.collectAsStateWithLifecycle()
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {},
+            title = { Text(tr(R.string.privacy_intro_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(tr(R.string.privacy_intro_body), style = MaterialTheme.typography.bodyMedium)
+                    com.example.data.PrivacySettings.Precision.entries.forEach { option ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setLocationPrecision(context, option) },
+                        ) {
+                            androidx.compose.material3.RadioButton(
+                                selected = currentPrecision == option,
+                                onClick = { viewModel.setLocationPrecision(context, option) },
+                            )
+                            Column {
+                                Text(option.label, style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    option.hint,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        tr(R.string.privacy_intro_footer),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    com.example.data.PrivacySettings.markPrecisionChosen(context)
+                    showPrecisionIntro = false
+                }) { Text(tr(R.string.privacy_intro_ok)) }
+            },
+        )
+    }
+
     LaunchedEffect(currentZone) {
         NotificationSessionState.updateZone(currentZone.zoneKey, currentZone.zoneName)
     }

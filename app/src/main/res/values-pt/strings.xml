@@ -656,4 +656,8 @@
     <string name="travel_search_hint">Buscar cidade…</string>
     <string name="travel_no_results">Sem resultados</string>
     <string name="offline_banner">Sem conexão · suas mensagens serão enviadas ao reconectar</string>
+    <string name="privacy_intro_title">Sua localização e privacidade</string>
+    <string name="privacy_intro_body">O Serafiel usa seu GPS para mostrar pessoas por perto e para que vejam você no radar. Escolha com que precisão você aparece:</string>
+    <string name="privacy_intro_footer">Sua localização exata só é enviada se você a compartilhar em um chat. Você pode mudar isso quando quiser no perfil.</string>
+    <string name="privacy_intro_ok">Continuar</string>
 </resources>
