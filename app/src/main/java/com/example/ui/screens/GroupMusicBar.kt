@@ -120,7 +120,7 @@ fun GroupMusicDialog(group: SocialGroup, hasMusic: Boolean, onDismiss: () -> Uni
     )
 }
 
-private class PlayerBridge {
+internal class PlayerBridge {
     private val main = Handler(Looper.getMainLooper())
     var onReadyCb: () -> Unit = {}
     var onTrackCb: (Int) -> Unit = {}
@@ -152,7 +152,7 @@ object MusicSession {
     private var bridge: PlayerBridge? = null
 
     @SuppressLint("SetJavaScriptEnabled")
-    fun obtain(context: android.content.Context, np: NowPlaying): Pair<WebView, PlayerBridge> {
+    internal fun obtain(context: android.content.Context, np: NowPlaying): Pair<WebView, PlayerBridge> {
         val k = listOf(np.provider, np.url, np.videoId, np.listId).joinToString("|")
         val v = view; val br = bridge
         if (k == key && v != null && br != null) return v to br
@@ -321,7 +321,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
                 IconButton(onClick = { muted = !muted }, modifier = Modifier.size(36.dp)) {
                     Icon(if (muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp, tr(R.string.music_cd_mute))
                 }
-                IconButton(onClick = { startSkew[0] = 0L; resyncTick++ }, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = { MusicSession.startSkew[skewKey] = 0L; resyncTick++ }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Rounded.Refresh, tr(R.string.music_cd_resync))
                 }
                 IconButton(
