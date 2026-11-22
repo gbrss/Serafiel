@@ -102,6 +102,7 @@ import com.example.R
 import com.example.data.LocationHelper
 import com.example.model.AvatarColor
 import com.example.model.PeerVisualInfo
+import com.example.model.DirectMessage
 import com.example.model.ProximityBeacon
 import com.example.model.ReportReason
 import com.example.model.SocialPurpose
@@ -482,6 +483,7 @@ fun RadarScreen(
         }
         val isPeerOnline = peerVisualMap[peer.userId]?.isOnline ?: peer.isCurrentlyOnline()
         ActivePersonDetailDialog(
+            viewerZone = currentZone,
             beacon = peer,
             isOnline = isPeerOnline,
             distanceLabel = distanceLabel,
@@ -1387,6 +1389,7 @@ private fun EmptyRadarCard(
 
 @Composable
 private fun ActivePersonDetailDialog(
+    viewerZone: ZoneLocation,
     beacon: ProximityBeacon,
     isOnline: Boolean,
     distanceLabel: String,
@@ -1398,6 +1401,24 @@ private fun ActivePersonDetailDialog(
 ) {
     val purpose = SocialPurpose.fromRaw(beacon.purpose)
     val avatarColor = AvatarColor.fromKey(beacon.avatarColor)
+    var showMap by remember { mutableStateOf(false) }
+    if (showMap) {
+        InAppDynamicLocationDialog(
+            message = DirectMessage(
+                messageType = DirectMessage.TYPE_LOCATION,
+                latitude = beacon.approxLat,
+                longitude = beacon.approxLon,
+                locationLabel = beacon.zoneName.ifBlank { beacon.displayName },
+            ),
+            viewerZone = viewerZone,
+            isMine = false,
+            senderPhotoData = beacon.photoData,
+            senderPhotoUrl = beacon.photoUrl,
+            senderColor = avatarColor,
+            onStopLiveLocation = {},
+            onDismiss = { showMap = false },
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1441,8 +1462,11 @@ private fun ActivePersonDetailDialog(
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
+                    val hasCoords = beacon.approxLat != 0.0 || beacon.approxLon != 0.0
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier
+                            .then(if (hasCoords) Modifier.clickable { showMap = true } else Modifier)
+                            .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
@@ -1457,13 +1481,8 @@ private fun ActivePersonDetailDialog(
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
-                            val hasCoords = beacon.approxLat != 0.0 || beacon.approxLon != 0.0
                             Text(
-                                text = if (hasCoords) {
-                                    "$distanceLabel (${String.format(java.util.Locale.US, "%.5f, %.5f", beacon.approxLat, beacon.approxLon)})"
-                                } else {
-                                    distanceLabel
-                                },
+                                text = distanceLabel,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
                             )
