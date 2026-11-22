@@ -148,7 +148,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
     var error by remember(np.url) { mutableStateOf(false) }
     var localStopped by remember(np.url) { mutableStateOf(false) }
     var muted by remember { mutableStateOf(false) }
-    var expanded by remember(np.provider) { mutableStateOf(np.isYoutube) }
+    var expanded by remember(np.provider) { mutableStateOf(true) }
     var resyncTick by remember { mutableIntStateOf(0) }
     var checkTick by remember(np.url) { mutableIntStateOf(0) }
     var ignoreTrackUntil by remember(np.url) { mutableStateOf(0L) }

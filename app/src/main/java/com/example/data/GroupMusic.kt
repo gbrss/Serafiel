@@ -109,6 +109,22 @@ object GroupMusic {
         }
     }
 
+    /** Los enlaces cortos (on.soundcloud.com) no los entiende el reproductor: se resuelven al enlace real. */
+    suspend fun resolve(link: MusicLink): MusicLink {
+        if (link.provider != NowPlaying.PROVIDER_SOUNDCLOUD || !link.url.contains("://on.soundcloud.com")) return link
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val conn = (URL(link.url).openConnection() as HttpURLConnection).apply {
+                    instanceFollowRedirects = true; connectTimeout = 6000; readTimeout = 6000
+                }
+                try {
+                    conn.inputStream.close()
+                    parse(conn.url.toString())?.takeIf { it.provider == NowPlaying.PROVIDER_SOUNDCLOUD && !it.url.contains("://on.") } ?: link
+                } finally { conn.disconnect() }
+            }.getOrDefault(link)
+        }
+    }
+
     /** Título vía oEmbed (sin clave). Si falla, devuelve un título genérico. */
     suspend fun fetchTitle(link: MusicLink, fallback: String): String = withContext(Dispatchers.IO) {
         runCatching {
@@ -182,7 +198,7 @@ function stopAll(){try{pl.stopVideo();}catch(x){}}
 
     private fun soundcloudHtml(np: NowPlaying): String {
         val src = "https://w.soundcloud.com/player/?url=" + Uri.encode(np.url) +
-            "&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=false"
+            "&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=false&color=%23ff5500"
         return """<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>$COMMON iframe{border:0}</style></head><body>
 <iframe id="p" src="$src" allow="autoplay"></iframe>
@@ -200,8 +216,8 @@ window.onload=function(){
 function sync(playing,ms,idx){
   try{
     if(idx>=0){w.getCurrentSoundIndex(function(c){ if(c!==idx){w.skip(idx);} });}
-    w.seekTo(ms);
-    if(playing){w.play();}else{w.pause();}
+    if(playing){w.play(); setTimeout(function(){w.seekTo(ms);},800);}
+    else{w.seekTo(ms); w.pause();}
   }catch(x){}
 }
 function check(ms){

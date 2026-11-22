@@ -1587,7 +1587,7 @@ class SerafielViewModel(
      */
     /** Pega un enlace y lo reproduce para todo el grupo. Devuelve false si el enlace no es válido. */
     suspend fun startGroupMusic(group: SocialGroup, rawLink: String): Boolean {
-        val link = com.example.data.GroupMusic.parse(rawLink) ?: return false
+        val link = com.example.data.GroupMusic.parse(rawLink)?.let { com.example.data.GroupMusic.resolve(it) } ?: return false
         val myName = group.memberNames[currentUserId].orEmpty().ifBlank { tr(R.string.s_usuario_serafiel) }
         val title = com.example.data.GroupMusic.fetchTitle(link, link.url.removePrefix("https://").take(80))
         val np = mapOf<String, Any>(
