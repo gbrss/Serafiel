@@ -66,8 +66,38 @@ object ServerClock {
 
     fun now(): Long = System.currentTimeMillis() + offsetMs
 
+    @Volatile private var calibrated = false
+
+    /**
+     * Mide la diferencia con la hora real usando la cabecera Date de un servidor de Google
+     * (±1 s). Sin esto, un teléfono con el reloj desfasado calcula mal la posición y se
+     * "corrige" saltando una y otra vez al inicio.
+     */
+    suspend fun calibrate() {
+        if (calibrated) return
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val t0 = System.currentTimeMillis()
+                val conn = (URL("https://www.gstatic.com/generate_204").openConnection() as HttpURLConnection).apply {
+                    requestMethod = "HEAD"; connectTimeout = 5000; readTimeout = 5000; useCaches = false
+                }
+                try {
+                    conn.responseCode
+                    val t1 = System.currentTimeMillis()
+                    val date = conn.date
+                    if (date > 0L) {
+                        // Date trunca a segundos: +500 ms es la media del truncado.
+                        val est = date + 500L - (t0 + t1) / 2
+                        if (kotlin.math.abs(est) < 3_600_000L) { offsetMs = est; calibrated = true }
+                    }
+                } finally { conn.disconnect() }
+            }
+        }
+    }
+
     /** [serverAtMs] llegó ahora mismo (≈150 ms de latencia de entrega). */
     fun observeLive(serverAtMs: Long) {
+        if (calibrated) return // la medición por HTTP es más fiable que la latencia de entrega
         val estimate = serverAtMs + 150L - System.currentTimeMillis()
         // Ignora valores absurdos (> 10 min) y suaviza las variaciones de latencia.
         if (kotlin.math.abs(estimate) > 600_000L) return
@@ -151,7 +181,7 @@ object GroupMusic {
 
     private fun youtubeHtml(np: NowPlaying): String {
         val vars = buildString {
-            append("playsinline:1,controls:0,rel:0,modestbranding:1,fs:0,iv_load_policy:3")
+            append("playsinline:1,controls:1,disablekb:1,rel:0,modestbranding:1,fs:0,iv_load_policy:3")
             if (np.listId.isNotEmpty()) append(",listType:'playlist',list:'${np.listId}'")
         }
         val video = if (np.listId.isNotEmpty() && np.videoId.isEmpty()) "" else "videoId:'${np.videoId}',"
@@ -159,7 +189,16 @@ object GroupMusic {
 <style>$COMMON</style></head><body><div id="p"></div>
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
-var pl=null;
+var pl=null, prog=0, lastPos=-1, lastT=0;
+function mark(){prog=Date.now()+2500;}
+setInterval(function(){
+  try{
+    if(!pl||pl.getPlayerState()!==1){lastPos=-1;return;}
+    var cur=pl.getCurrentTime()*1000, now=Date.now();
+    if(lastPos>=0 && now>prog && Math.abs(cur-(lastPos+(now-lastT)))>2000){Bridge.onSeek(Math.round(cur));}
+    lastPos=cur; lastT=now;
+  }catch(x){}
+},1000);
 function onYouTubeIframeAPIReady(){
   pl=new YT.Player('p',{width:'100%',height:'100%',${video}playerVars:{$vars},events:{
     onReady:function(){Bridge.onReady();},
@@ -175,7 +214,9 @@ function sync(playing,ms,idx){
   try{
     var changed=false;
     if(idx>=0 && ${if (np.listId.isNotEmpty()) "true" else "false"}){var c=pl.getPlaylistIndex(); if(c!==idx){pl.playVideoAt(idx);changed=true;}}
+    mark();
     var go=function(){
+      mark();
       pl.seekTo(ms/1000,true);
       if(playing){pl.playVideo();}else{pl.pauseVideo();}
     };
@@ -188,7 +229,7 @@ function check(ms){
     if(st===3){return;}
     if(st!==1){pl.playVideo();return;}
     var d=pl.getCurrentTime()*1000-ms;
-    if(Math.abs(d)>1000){pl.seekTo(ms/1000,true);}
+    if(Math.abs(d)>2000){mark();pl.seekTo(ms/1000,true);}
   }catch(x){}
 }
 function vol(n){try{pl.setVolume(n);}catch(x){}}
@@ -204,27 +245,30 @@ function stopAll(){try{pl.stopVideo();}catch(x){}}
 <iframe id="p" src="$src" allow="autoplay"></iframe>
 <script src="https://w.soundcloud.com/player/api.js"></script>
 <script>
-var w=null, ready=false;
+var w=null, ready=false, prog=0;
+function mark(){prog=Date.now()+2500;}
 window.onload=function(){
   w=SC.Widget(document.getElementById('p'));
   w.bind(SC.Widget.Events.READY,function(){ready=true;Bridge.onReady();});
   w.bind(SC.Widget.Events.PLAY,function(){w.getCurrentSoundIndex(function(i){Bridge.onTrack(i);});Bridge.onState(1);});
   w.bind(SC.Widget.Events.PAUSE,function(){Bridge.onState(2);});
   w.bind(SC.Widget.Events.FINISH,function(){Bridge.onState(0);});
+  w.bind(SC.Widget.Events.SEEK,function(e){ if(Date.now()>prog){Bridge.onSeek(Math.round(e.currentPosition));} });
   w.bind(SC.Widget.Events.ERROR,function(){Bridge.onError('sc');});
 };
 function sync(playing,ms,idx){
   try{
+    mark();
     if(idx>=0){w.getCurrentSoundIndex(function(c){ if(c!==idx){w.skip(idx);} });}
-    if(playing){w.play(); setTimeout(function(){w.seekTo(ms);},800);}
-    else{w.seekTo(ms); w.pause();}
+    if(playing){w.play(); setTimeout(function(){mark();w.seekTo(ms);},800);}
+    else{mark();w.seekTo(ms); w.pause();}
   }catch(x){}
 }
 function check(ms){
   try{
     w.isPaused(function(p){
       if(p){w.play();return;}
-      w.getPosition(function(pos){ if(Math.abs(pos-ms)>1000){w.seekTo(ms);} });
+      w.getPosition(function(pos){ if(Math.abs(pos-ms)>2000){mark();w.seekTo(ms);} });
     });
   }catch(x){}
 }

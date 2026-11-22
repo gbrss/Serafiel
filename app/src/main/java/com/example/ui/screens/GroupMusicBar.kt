@@ -123,12 +123,14 @@ private class PlayerBridge(
     private val onTrackCb: (Int) -> Unit,
     private val onErrorCb: () -> Unit,
     private val onPlayingCb: () -> Unit,
+    private val onSeekCb: (Long) -> Unit,
 ) {
     private val main = Handler(Looper.getMainLooper())
 
     @JavascriptInterface fun onReady() { main.post { onReadyCb() } }
     @JavascriptInterface fun onTrack(index: Int) { main.post { onTrackCb(index) } }
     @JavascriptInterface fun onState(state: Int) { if (state == 1) main.post { onPlayingCb() } }
+    @JavascriptInterface fun onSeek(posMs: Long) { main.post { onSeekCb(posMs) } }
     @JavascriptInterface fun onError(code: String) { main.post { onErrorCb() } }
 }
 
@@ -189,6 +191,11 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
                     },
                     onErrorCb = { error = true },
                     onPlayingCb = { checkTick++ },
+                    onSeekCb = { pos ->
+                        // Alguien movió la barra: pasa a ser la posición de todo el grupo.
+                        val cur = npState.value
+                        actions.playback(groupState.value, cur.playing, pos, cur.index)
+                    },
                 ),
                 "Bridge",
             )
@@ -198,6 +205,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
     DisposableEffect(webView) { onDispose { webView.destroy() } }
 
     // Sincroniza con el estado compartido (al entrar, al pausar/reanudar, al cambiar de pista).
+    LaunchedEffect(Unit) { ServerClock.calibrate(); resyncTick++ }
     LaunchedEffect(ready, np.playing, np.posMs, np.atMs, np.index, localStopped, resyncTick) {
         if (!ready || localStopped) return@LaunchedEffect
         ignoreTrackUntil = System.currentTimeMillis() + 4000
