@@ -395,13 +395,14 @@ test("1:1 Rich messages: image/voice/location validation and sender-only live_lo
       participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
       initiatorId: ALICE_UID,
       purpose: "FRIENDSHIP",
-      status: "active",
+      status: "pending",
       lastMessage: "Hola",
       zoneName: "Zona Abierta",
       createdAt: created,
       updatedAt: created,
     })
   );
+  await assertSucceeds(bobDb.collection("chats").doc(chatId).update({ status: "active", updatedAt: pastDate(9500) }));
 
   // Text message can be edited by sender with edited=true, cannot be edited by peer or without edited=true, and can be deleted only by sender
   await assertSucceeds(
