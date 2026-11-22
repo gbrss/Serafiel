@@ -129,6 +129,16 @@ class SerafielRepository(
                 if (online != null) updates["online"] = online
                 docRef.update(updates).await()
             }
+            runCatching {
+                db.collection("beaconsPrivate").document(uid).set(
+                    mapOf(
+                        "userId" to uid,
+                        "fineLat" to fineLat,
+                        "fineLon" to fineLon,
+                        "updatedAt" to FieldValue.serverTimestamp(),
+                    )
+                ).await()
+            }
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
@@ -382,7 +392,10 @@ class SerafielRepository(
             val cleanZoneName = tr(R.string.s_zona_aproximada)
             val clampedRadius = radiusKm.coerceIn(1, ProximityBeacon.GLOBAL_RADIUS_KM).toLong()
             // Privacidad: la baliza publica una posición ajustada, no la real.
-            val (pubLat, pubLon) = PrivacySettings.blur(zone.approxLat, zone.approxLon)
+            // Pública: zona gruesa (~2 km). La fina (según la precisión elegida) va a un
+            // documento privado que solo lee el dueño o quien tenga un chat aceptado.
+            val (pubLat, pubLon) = PrivacySettings.blur(zone.approxLat, zone.approxLon, PrivacySettings.Precision.ZONE)
+            val (fineLat, fineLon) = PrivacySettings.blur(zone.approxLat, zone.approxLon)
             val cleanAcc: Int? = null
 
             val docRef = db.collection("beacons").document(uid)
@@ -441,6 +454,18 @@ class SerafielRepository(
             handleFirestoreError(e, OperationType.WRITE, docPath)
             Result.failure(e)
         }
+    }
+
+    /** Posición fina de otra persona; solo si hay un chat aceptado (si no, null). */
+    suspend fun getPeerFineLocation(peerId: String): Pair<Double, Double>? = try {
+        val doc = db.collection("beaconsPrivate").document(peerId).get().await()
+        val lat = doc.getDouble("fineLat")
+        val lon = doc.getDouble("fineLon")
+        if (lat != null && lon != null && (lat != 0.0 || lon != 0.0)) lat to lon else null
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
     }
 
     suspend fun updateBeaconRadius(userId: String, radiusKm: Int): Result<Unit> {

@@ -682,4 +682,5 @@
     <string name="theme_mint">Minze</string>
     <string name="appearance_theme_hint">Andere Designs als Serafiel legen Hell oder Dunkel fest und ignorieren den Modus oben.</string>
     <string name="appearance_close">Fertig</string>
+    <string name="fine_location_hint">Der genaue Standort ist erst nach einem angenommenen Chat sichtbar.</string>
 </resources>

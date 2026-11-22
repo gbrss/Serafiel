@@ -905,3 +905,43 @@ test("Solicitudes de chat: nace pending, solo un saludo, solo el receptor acepta
   await assertSucceeds(bobDb.collection("chats").doc(chatId).update({ status: "active", updatedAt: pastDate(6000) }));
   await assertSucceeds(msgs(aliceDb).doc("m3").set(msg(ALICE_UID, "Alicia Luz", "Gracias")));
 });
+
+test("Posición fina privada: solo el dueño o quien tiene un chat aceptado la lee", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+  const fine = { userId: ALICE_UID, fineLat: 37.78125, fineLon: -122.42125, updatedAt: serverNow() };
+  const ref = (db) => db.collection("beaconsPrivate").doc(ALICE_UID);
+  await assertSucceeds(ref(aliceDb).set(fine));
+  await assertFails(ref(bobDb).set({ ...fine, userId: BOB_UID }));
+  await assertFails(ref(aliceDb).set({ ...fine, fineLat: 37.78123 }));
+  await assertFails(ref(aliceDb).set({ ...fine, extra: 1 }));
+  // Sin chat: nadie más la lee; tampoco se puede listar
+  await assertSucceeds(ref(aliceDb).get());
+  await assertFails(ref(bobDb).get());
+  await assertFails(ref(charlieDb).get());
+  await assertFails(testEnv.authenticatedContext(BOB_UID).firestore().collection("beaconsPrivate").get());
+  // Chat pendiente: aún no
+  const chatId = `${ALICE_UID}_${BOB_UID}`;
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("chats").doc(chatId).set({
+      participantIds: [ALICE_UID, BOB_UID],
+      participantNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+      participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+      initiatorId: BOB_UID, purpose: "FRIENDSHIP", status: "pending", lastMessage: "Hola",
+      zoneName: "Zona Abierta", createdAt: pastDate(10000), updatedAt: pastDate(10000),
+    });
+  });
+  await assertFails(ref(bobDb).get());
+  // Aceptado: Bob sí, Charlie no
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("chats").doc(chatId).update({ status: "active" });
+  });
+  await assertSucceeds(ref(bobDb).get());
+  await assertFails(ref(charlieDb).get());
+  // Rechazado: se pierde el acceso
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("chats").doc(chatId).update({ status: "declined" });
+  });
+  await assertFails(ref(bobDb).get());
+});

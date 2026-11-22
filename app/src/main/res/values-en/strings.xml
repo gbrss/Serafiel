@@ -682,4 +682,5 @@
     <string name="theme_mint">Mint</string>
     <string name="appearance_theme_hint">Themes other than Serafiel fix light or dark and ignore the mode above.</string>
     <string name="appearance_close">Done</string>
+    <string name="fine_location_hint">Their precise location is visible only after a chat is accepted.</string>
 </resources>

@@ -682,4 +682,5 @@
     <string name="theme_mint">Menthe</string>
     <string name="appearance_theme_hint">Les thèmes autres que Serafiel imposent clair ou sombre et ignorent le mode ci-dessus.</string>
     <string name="appearance_close">Terminé</string>
+    <string name="fine_location_hint">Sa position précise n\'est visible qu\'après acceptation d\'un chat.</string>
 </resources>

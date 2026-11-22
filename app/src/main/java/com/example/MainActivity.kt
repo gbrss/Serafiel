@@ -825,6 +825,7 @@ private fun SerafielAuthenticatedShell(
                             currentZone = currentZone,
                             travelZone = travelZone,
                             onSetTravelZone = { viewModel.setTravelZone(it) },
+                            onLoadFineLocation = { viewModel.loadPeerFineLocation(it) },
                             hasLocationPermission = hasLocationPermission,
                             hasNotificationPermission = hasNotificationPermission,
                             isRefreshingLocation = isRefreshingLocation,

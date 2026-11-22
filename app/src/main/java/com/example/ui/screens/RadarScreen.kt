@@ -120,6 +120,7 @@ fun RadarScreen(
     currentZone: ZoneLocation,
     travelZone: ZoneLocation? = null,
     onSetTravelZone: (ZoneLocation?) -> Unit = {},
+    onLoadFineLocation: suspend (String) -> Pair<Double, Double>? = { null },
     hasLocationPermission: Boolean,
     hasNotificationPermission: Boolean,
     isRefreshingLocation: Boolean,
@@ -487,6 +488,7 @@ fun RadarScreen(
             beacon = peer,
             isOnline = isPeerOnline,
             distanceLabel = distanceLabel,
+            onLoadFineLocation = onLoadFineLocation,
             onDismiss = { inspectTarget = null },
             onGreet = {
                 inspectTarget = null
@@ -1393,6 +1395,7 @@ private fun ActivePersonDetailDialog(
     beacon: ProximityBeacon,
     isOnline: Boolean,
     distanceLabel: String,
+    onLoadFineLocation: suspend (String) -> Pair<Double, Double>? = { null },
     onDismiss: () -> Unit,
     onGreet: () -> Unit,
     onAddToGroup: () -> Unit,
@@ -1402,12 +1405,15 @@ private fun ActivePersonDetailDialog(
     val purpose = SocialPurpose.fromRaw(beacon.purpose)
     val avatarColor = AvatarColor.fromKey(beacon.avatarColor)
     var showMap by remember { mutableStateOf(false) }
-    if (showMap) {
+    // Posición precisa: solo existe si hay un chat aceptado con esta persona.
+    var fine by remember(beacon.userId) { mutableStateOf<Pair<Double, Double>?>(null) }
+    LaunchedEffect(beacon.userId) { fine = onLoadFineLocation(beacon.userId) }
+    if (showMap && fine != null) {
         InAppDynamicLocationDialog(
             message = DirectMessage(
                 messageType = DirectMessage.TYPE_LOCATION,
-                latitude = beacon.approxLat,
-                longitude = beacon.approxLon,
+                latitude = fine!!.first,
+                longitude = fine!!.second,
                 locationLabel = beacon.zoneName.ifBlank { beacon.displayName },
             ),
             viewerZone = viewerZone,
@@ -1462,7 +1468,7 @@ private fun ActivePersonDetailDialog(
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    val hasCoords = beacon.approxLat != 0.0 || beacon.approxLon != 0.0
+                    val hasCoords = fine != null
                     Row(
                         modifier = Modifier
                             .then(if (hasCoords) Modifier.clickable { showMap = true } else Modifier)
@@ -1486,6 +1492,13 @@ private fun ActivePersonDetailDialog(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
                             )
+                            if (fine == null) {
+                                Text(
+                                    text = tr(R.string.fine_location_hint),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+                                )
+                            }
                         }
                     }
                 }

@@ -436,6 +436,38 @@ service cloud.firestore {
                        existing().senderId == request.auth.uid;
     }
 
+    // --- 3b. POSICIÓN FINA PRIVADA ---
+    // La baliza pública solo lleva la zona gruesa; la posición fina la lee
+    // únicamente su dueño o quien tenga un chat ACEPTADO con él.
+    function chatIdWith(other) {
+      return request.auth.uid < other ? request.auth.uid + '_' + other : other + '_' + request.auth.uid;
+    }
+
+    function hasAcceptedChatWith(other) {
+      return get(/databases/$(database)/documents/chats/$(chatIdWith(other))).data.status == 'active';
+    }
+
+    function isValidFinePosition(data) {
+      return data.keys().hasAll(['userId', 'fineLat', 'fineLon', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'fineLat', 'fineLon', 'updatedAt']) &&
+             data.userId == request.auth.uid &&
+             data.fineLat is number && data.fineLat >= -90.0 && data.fineLat <= 90.0 &&
+             data.fineLon is number && data.fineLon >= -180.0 && data.fineLon <= 180.0 &&
+             ((data.fineLat == 0 && data.fineLon == 0) || (onFineGrid(data.fineLat) && onFineGrid(data.fineLon))) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    match /beaconsPrivate/{ownerId} {
+      allow get: if isSignedIn() &&
+                    isValidId(ownerId) &&
+                    (ownerId == request.auth.uid || hasAcceptedChatWith(ownerId));
+      allow list: if false;
+      allow create, update: if isSignedIn() &&
+                               ownerId == request.auth.uid &&
+                               isValidFinePosition(incoming());
+      allow delete: if isSignedIn() && ownerId == request.auth.uid;
+    }
+
     // --- 4. 1:1 DIRECT CHATS & MESSAGES ---
     match /chats/{chatId} {
       allow get: if isSignedIn() &&

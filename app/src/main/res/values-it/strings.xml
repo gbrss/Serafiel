@@ -682,4 +682,5 @@
     <string name="theme_mint">Menta</string>
     <string name="appearance_theme_hint">I temi diversi da Serafiel fissano chiaro o scuro e ignorano la modalità sopra.</string>
     <string name="appearance_close">Fatto</string>
+    <string name="fine_location_hint">La posizione precisa è visibile solo con una chat accettata.</string>
 </resources>

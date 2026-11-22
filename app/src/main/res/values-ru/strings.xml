@@ -682,4 +682,5 @@
     <string name="theme_mint">Мята</string>
     <string name="appearance_theme_hint">Темы, кроме Serafiel, задают светлый или тёмный вид и игнорируют режим выше.</string>
     <string name="appearance_close">Готово</string>
+    <string name="fine_location_hint">Точное местоположение видно только после принятия чата.</string>
 </resources>

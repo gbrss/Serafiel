@@ -1585,6 +1585,8 @@ class SerafielViewModel(
      * Llamar en cada cambio del texto del compositor. Envía un pulso de "escribiendo"
      * como mucho cada 4 s y lo borra tras 5 s sin teclear.
      */
+    suspend fun loadPeerFineLocation(peerId: String): Pair<Double, Double>? = repository.getPeerFineLocation(peerId)
+
     fun respondToChatRequest(chat: DirectChat, accept: Boolean) {
         viewModelScope.launch {
             repository.respondToChatRequest(chat.id, accept).onFailure { err ->
