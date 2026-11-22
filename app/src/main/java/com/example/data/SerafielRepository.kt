@@ -129,16 +129,6 @@ class SerafielRepository(
                 if (online != null) updates["online"] = online
                 docRef.update(updates).await()
             }
-            runCatching {
-                db.collection("beaconsPrivate").document(uid).set(
-                    mapOf(
-                        "userId" to uid,
-                        "fineLat" to fineLat,
-                        "fineLon" to fineLon,
-                        "updatedAt" to FieldValue.serverTimestamp(),
-                    )
-                ).await()
-            }
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
@@ -446,6 +436,16 @@ class SerafielRepository(
                 if (online != null) updates["online"] = online
                 if (cleanAcc != null) updates["accuracyMeters"] = cleanAcc
                 docRef.update(updates).await()
+            }
+            runCatching {
+                db.collection("beaconsPrivate").document(uid).set(
+                    mapOf(
+                        "userId" to uid,
+                        "fineLat" to fineLat,
+                        "fineLon" to fineLon,
+                        "updatedAt" to FieldValue.serverTimestamp(),
+                    )
+                ).await()
             }
             Result.success(Unit)
         } catch (e: CancellationException) {
