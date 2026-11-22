@@ -168,6 +168,14 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
             onDispose { MusicSession.visibleBars-- }
         }
     }
+    // Al iniciar una pista nueva, cada teléfono tarda en cargar el reproductor: en vez de
+    // empezar a los 2 s, el reloj de esta pista arranca cuando el reproductor está listo.
+    val startSkew = remember(np.atMs, np.url) { longArrayOf(-1L) }
+    fun target(): Long {
+        val t = np.targetPositionMs()
+        if (startSkew[0] < 0L) startSkew[0] = if (np.playing && np.posMs == 0L && t in 0L..10_000L) t else 0L
+        return (t - startSkew[0]).coerceAtLeast(0L)
+    }
     val npState = rememberUpdatedState(np)
     val groupState = rememberUpdatedState(group)
 
@@ -235,7 +243,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
         if (!ready || localStopped) return@LaunchedEffect
         ignoreTrackUntil = System.currentTimeMillis() + 4000
         val idx = if (np.listId.isNotEmpty() || !np.isYoutube) np.index else -1
-        webView.evaluateJavascript("sync(${np.playing},${np.targetPositionMs()},$idx)", null)
+        webView.evaluateJavascript("sync(${np.playing},${target()},$idx)", null)
     }
     // Afina el reloj del servidor con cada actualización en vivo (no con la primera lectura).
     var firstAt by remember(np.url) { mutableStateOf(np.atMs) }
@@ -247,7 +255,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
         if (!ready || localStopped || !np.playing) return@LaunchedEffect
         kotlinx.coroutines.delay(2500)
         while (true) {
-            webView.evaluateJavascript("check(${np.targetPositionMs()})", null)
+            webView.evaluateJavascript("check(${target()})", null)
             kotlinx.coroutines.delay(4000)
         }
     }
@@ -277,13 +285,13 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
                     )
                 }
                 IconButton(
-                    onClick = { actions.playback(group, !np.playing, np.targetPositionMs(), np.index) },
+                    onClick = { actions.playback(group, !np.playing, target(), np.index) },
                     modifier = Modifier.size(36.dp),
                 ) { Icon(if (np.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, tr(R.string.music_cd_playpause)) }
                 IconButton(onClick = { muted = !muted }, modifier = Modifier.size(36.dp)) {
                     Icon(if (muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp, tr(R.string.music_cd_mute))
                 }
-                IconButton(onClick = { resyncTick++ }, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = { startSkew[0] = 0L; resyncTick++ }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Rounded.Refresh, tr(R.string.music_cd_resync))
                 }
                 IconButton(
