@@ -1250,6 +1250,9 @@ private fun GroupDetailScreen(
                 )
             }
             val nowPlaying = remember(group.nowPlaying) { NowPlaying.from(group.nowPlaying) }
+            if (nowPlaying == null) {
+                LaunchedEffect(group.id) { stopSessionIfGroup(group.id) }
+            }
             if (nowPlaying != null) {
                 GroupMusicBar(group = group, np = nowPlaying, recording = voiceController.isActive)
             }

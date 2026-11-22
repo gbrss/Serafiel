@@ -688,6 +688,10 @@ private fun SerafielAuthenticatedShell(
                 viewModel.setPinnedMessage(isGroup, parentId, messageId, preview)
             },
         ) {
+        com.example.ui.screens.BackgroundGroupMusic(
+            groups = (myGroupsState as? UiState.Success)?.data.orEmpty(),
+            modifier = Modifier.align(Alignment.BottomEnd),
+        )
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = {},
@@ -1120,10 +1124,6 @@ private fun SerafielAuthenticatedShell(
                 }
             }
         }
-        com.example.ui.screens.BackgroundGroupMusic(
-            groups = (myGroupsState as? UiState.Success)?.data.orEmpty(),
-            modifier = Modifier.align(Alignment.BottomEnd),
-        )
         }
 
         val forwardRequest by viewModel.forwardRequest.collectAsStateWithLifecycle()

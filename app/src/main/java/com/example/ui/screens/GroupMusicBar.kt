@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -119,37 +120,82 @@ fun GroupMusicDialog(group: SocialGroup, hasMusic: Boolean, onDismiss: () -> Uni
     )
 }
 
-private class PlayerBridge(
-    private val onReadyCb: () -> Unit,
-    private val onTrackCb: (Int) -> Unit,
-    private val onErrorCb: () -> Unit,
-    private val onPlayingCb: () -> Unit,
-    private val onSeekCb: (Long) -> Unit,
-) {
+private class PlayerBridge {
     private val main = Handler(Looper.getMainLooper())
+    var onReadyCb: () -> Unit = {}
+    var onTrackCb: (Int) -> Unit = {}
+    var onErrorCb: () -> Unit = {}
+    var onPlayingCb: () -> Unit = {}
+    var onSeekCb: (Long) -> Unit = {}
 
-    @JavascriptInterface fun onReady() { main.post { onReadyCb() } }
+    @JavascriptInterface fun onReady() { main.post { MusicSession.readyKey = MusicSession.key; onReadyCb() } }
     @JavascriptInterface fun onTrack(index: Int) { main.post { onTrackCb(index) } }
     @JavascriptInterface fun onState(state: Int) { if (state == 1) main.post { onPlayingCb() } }
     @JavascriptInterface fun onSeek(posMs: Long) { main.post { onSeekCb(posMs) } }
     @JavascriptInterface fun onError(code: String) { main.post { onErrorCb() } }
 }
 
-/** Grupo cuya música sigue sonando aunque salgas de su chat, y cuántas barras visibles hay. */
+/**
+ * Un único reproductor para toda la app: sobrevive al salir del chat del grupo (no se recrea,
+ * así no se corta ni se recarga). Se libera al quitar la música o al cambiar de pista/grupo.
+ */
 object MusicSession {
     var groupId by mutableStateOf("")
     var visibleBars by mutableIntStateOf(0)
+    var key by mutableStateOf("")
+    var readyKey by mutableStateOf("")
+    var localStopped by mutableStateOf(false)
+    var muted by mutableStateOf(false)
+    /** Desfase de arranque por pista (clave: url@atMs). */
+    val startSkew = HashMap<String, Long>()
+    private var view: WebView? = null
+    private var bridge: PlayerBridge? = null
+
+    @SuppressLint("SetJavaScriptEnabled")
+    fun obtain(context: android.content.Context, np: NowPlaying): Pair<WebView, PlayerBridge> {
+        val k = listOf(np.provider, np.url, np.videoId, np.listId).joinToString("|")
+        val v = view; val br = bridge
+        if (k == key && v != null && br != null) return v to br
+        release()
+        val newBridge = PlayerBridge()
+        val wv = WebView(context.applicationContext).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.mediaPlaybackRequiresUserGesture = false
+            setBackgroundColor(android.graphics.Color.BLACK)
+            webViewClient = WebViewClient()
+            webChromeClient = android.webkit.WebChromeClient()
+            addJavascriptInterface(newBridge, "Bridge")
+            loadDataWithBaseURL("https://serafiel.app/", GroupMusic.playerHtml(np), "text/html", "utf-8", null)
+        }
+        view = wv; bridge = newBridge; key = k; localStopped = false
+        return wv to newBridge
+    }
+
+    fun release() {
+        view?.let { v -> (v.parent as? android.view.ViewGroup)?.removeView(v); v.destroy() }
+        view = null; bridge = null; key = ""; readyKey = ""; startSkew.clear()
+    }
 }
 
-/** Mantiene el reproductor vivo (oculto) al salir del chat del grupo; se detiene al quitar la música. */
+/** Reproductor sin interfaz cuando no estás en el chat del grupo (queda tapado por la app). */
 @Composable
 fun BackgroundGroupMusic(groups: List<SocialGroup>, modifier: Modifier = Modifier) {
     if (MusicSession.visibleBars > 0 || MusicSession.groupId.isEmpty()) return
-    val group = groups.firstOrNull { it.id == MusicSession.groupId } ?: return
-    val np = remember(group.nowPlaying) { NowPlaying.from(group.nowPlaying) } ?: return
-    Box(modifier.width(120.dp).height(1.dp)) {
+    val group = groups.firstOrNull { it.id == MusicSession.groupId }
+    val np = remember(group?.nowPlaying) { group?.let { NowPlaying.from(it.nowPlaying) } }
+    if (group == null || np == null) {
+        LaunchedEffect(Unit) { if (groups.isNotEmpty()) { MusicSession.release(); MusicSession.groupId = "" } }
+        return
+    }
+    Box(modifier.width(240.dp).height(135.dp)) {
         GroupMusicBar(group = group, np = np, recording = false, background = true)
     }
+}
+
+/** Se llama desde el chat del grupo cuando ya no hay música: corta el reproductor. */
+fun stopSessionIfGroup(groupId: String) {
+    if (MusicSession.groupId == groupId && MusicSession.key.isNotEmpty()) MusicSession.release()
 }
 
 /**
@@ -170,19 +216,20 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
     }
     // Al iniciar una pista nueva, cada teléfono tarda en cargar el reproductor: en vez de
     // empezar a los 2 s, el reloj de esta pista arranca cuando el reproductor está listo.
-    val startSkew = remember(np.atMs, np.url) { longArrayOf(-1L) }
+    val skewKey = "${np.url}@${np.atMs}"
     fun target(): Long {
         val t = np.targetPositionMs()
-        if (startSkew[0] < 0L) startSkew[0] = if (np.playing && np.posMs == 0L && t in 0L..10_000L) t else 0L
-        return (t - startSkew[0]).coerceAtLeast(0L)
+        val skew = MusicSession.startSkew.getOrPut(skewKey) {
+            if (np.playing && np.posMs == 0L && t in 0L..10_000L) t else 0L
+        }
+        return (t - skew).coerceAtLeast(0L)
     }
     val npState = rememberUpdatedState(np)
     val groupState = rememberUpdatedState(group)
 
-    var ready by remember(np.url) { mutableStateOf(false) }
     var error by remember(np.url) { mutableStateOf(false) }
-    var localStopped by remember(np.url) { mutableStateOf(false) }
-    var muted by remember { mutableStateOf(false) }
+    var localStopped by MusicSession::localStopped
+    var muted by MusicSession::muted
     var expanded by remember(np.provider) { mutableStateOf(true) }
     var resyncTick by remember { mutableIntStateOf(0) }
     var checkTick by remember(np.url) { mutableIntStateOf(0) }
@@ -197,45 +244,28 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
     }
     val volume by animateIntAsState(targetVolume, tween(350), label = "music_volume")
 
-    val webView = remember(np.provider, np.url, np.videoId, np.listId) {
-        WebView(context).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.mediaPlaybackRequiresUserGesture = false
-            setBackgroundColor(android.graphics.Color.BLACK)
-            webViewClient = WebViewClient()
-            webChromeClient = android.webkit.WebChromeClient()
-            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
-            layoutParams = android.view.ViewGroup.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-            )
-            addJavascriptInterface(
-                PlayerBridge(
-                    onReadyCb = { ready = true },
-                    onTrackCb = { idx ->
-                        val cur = npState.value
-                        val tracksMatter = cur.listId.isNotEmpty() || !cur.isYoutube
-                        if (tracksMatter && idx >= 0 && idx != cur.index && cur.playing &&
-                            System.currentTimeMillis() > ignoreTrackUntil
-                        ) {
-                            actions.playback(groupState.value, true, 0L, idx)
-                        }
-                    },
-                    onErrorCb = { error = true },
-                    onPlayingCb = { checkTick++ },
-                    onSeekCb = { pos ->
-                        // Alguien movió la barra: pasa a ser la posición de todo el grupo.
-                        val cur = npState.value
-                        actions.playback(groupState.value, cur.playing, pos, cur.index)
-                    },
-                ),
-                "Bridge",
-            )
-            loadDataWithBaseURL("https://serafiel.app/", GroupMusic.playerHtml(np), "text/html", "utf-8", null)
+    val (webView, bridge) = remember(np.provider, np.url, np.videoId, np.listId) { MusicSession.obtain(context, np) }
+    val ready = MusicSession.readyKey.isNotEmpty() && MusicSession.readyKey == MusicSession.key
+    SideEffect {
+        // Oculto detrás de la app no debe recibir toques.
+        if (background) webView.setOnTouchListener { _, _ -> true } else webView.setOnTouchListener(null)
+        bridge.onTrackCb = { idx ->
+            val cur = npState.value
+            val tracksMatter = cur.listId.isNotEmpty() || !cur.isYoutube
+            if (tracksMatter && idx >= 0 && idx != cur.index && cur.playing &&
+                System.currentTimeMillis() > ignoreTrackUntil
+            ) {
+                actions.playback(groupState.value, true, 0L, idx)
+            }
+        }
+        bridge.onErrorCb = { error = true }
+        bridge.onPlayingCb = { checkTick++ }
+        // Alguien movió la barra: pasa a ser la posición de todo el grupo.
+        bridge.onSeekCb = { pos ->
+            val cur = npState.value
+            actions.playback(groupState.value, cur.playing, pos, cur.index)
         }
     }
-    DisposableEffect(webView) { onDispose { webView.destroy() } }
 
     // Sincroniza con el estado compartido (al entrar, al pausar/reanudar, al cambiar de pista).
     LaunchedEffect(Unit) { ServerClock.calibrate(); resyncTick++ }
@@ -264,7 +294,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
     }
 
     if (background) {
-        AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize())
+        AndroidView(factory = { (webView.parent as? android.view.ViewGroup)?.removeView(webView); webView }, modifier = Modifier.fillMaxSize())
         return
     }
     Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth().testTag("group_music_bar")) {
@@ -333,7 +363,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
                         else Modifier.height(166.dp)
                     ),
             ) {
-                AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize())
+                AndroidView(factory = { (webView.parent as? android.view.ViewGroup)?.removeView(webView); webView }, modifier = Modifier.fillMaxSize())
             }
         }
     }
