@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -151,7 +153,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
     val voicePlaying = ChatAudioPlayer.playbackState.collectAsState().value.isPlaying
     val targetVolume = when {
         muted -> 0
-        recording -> 10
+        recording -> 5
         voicePlaying -> 30
         else -> 100
     }
@@ -164,6 +166,12 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
             settings.mediaPlaybackRequiresUserGesture = false
             setBackgroundColor(android.graphics.Color.BLACK)
             webViewClient = WebViewClient()
+            webChromeClient = android.webkit.WebChromeClient()
+            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+            layoutParams = android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            )
             addJavascriptInterface(
                 PlayerBridge(
                     onReadyCb = { ready = true },
@@ -252,12 +260,17 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
                 )
             }
             // El reproductor siempre está montado (para que siga sonando); plegado queda mínimo.
+            val showPlayer = !localStopped && expanded
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (!localStopped && expanded) (if (np.isYoutube) 190.dp else 166.dp) else 1.dp),
+                    .then(
+                        if (!showPlayer) Modifier.height(1.dp)
+                        else if (np.isYoutube) Modifier.aspectRatio(16f / 9f)
+                        else Modifier.height(166.dp)
+                    ),
             ) {
-                AndroidView(factory = { webView }, modifier = Modifier.fillMaxWidth().height(if (expanded) (if (np.isYoutube) 190.dp else 166.dp) else 1.dp))
+                AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize())
             }
         }
     }
