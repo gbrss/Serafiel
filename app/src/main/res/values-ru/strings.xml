@@ -698,4 +698,8 @@
     <string name="music_cd_resync">Синхронизировать</string>
     <string name="music_cd_stop_local">Остановить только для меня</string>
     <string name="music_cd_expand">Показать или скрыть плеер</string>
+    <string name="group_leave_q">Выйти из группы \"%1$s\"?</string>
+    <string name="group_leave_body">Вы перестанете получать её сообщения. Чтобы вернуться, кто-то должен будет снова вас добавить.</string>
+    <string name="group_delete_q">Удалить группу \"%1$s\"?</string>
+    <string name="group_delete_body">Она будет удалена для всех участников вместе с сообщениями. Это нельзя отменить.</string>
 </resources>

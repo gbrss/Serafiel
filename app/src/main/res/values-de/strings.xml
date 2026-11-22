@@ -698,4 +698,8 @@
     <string name="music_cd_resync">Neu synchronisieren</string>
     <string name="music_cd_stop_local">Nur für mich stoppen</string>
     <string name="music_cd_expand">Player ein- oder ausblenden</string>
+    <string name="group_leave_q">Gruppe \"%1$s\" verlassen?</string>
+    <string name="group_leave_body">Du erhältst keine Nachrichten mehr. Um zurückzukehren, muss dich jemand erneut hinzufügen.</string>
+    <string name="group_delete_q">Gruppe \"%1$s\" löschen?</string>
+    <string name="group_delete_body">Sie wird für alle Mitglieder samt Nachrichten gelöscht. Das kann nicht rückgängig gemacht werden.</string>
 </resources>

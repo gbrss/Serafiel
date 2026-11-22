@@ -700,4 +700,8 @@
     <string name="music_cd_resync">Επανασυγχρονισμός</string>
     <string name="music_cd_stop_local">Διακοπή μόνο για εμένα</string>
     <string name="music_cd_expand">Εμφάνιση ή απόκρυψη αναπαραγωγέα</string>
+    <string name="group_leave_q">Αποχώρηση από την ομάδα \"%1$s\";</string>
+    <string name="group_leave_body">Θα σταματήσεις να λαμβάνεις τα μηνύματά της. Για να επιστρέψεις, κάποιος θα πρέπει να σε προσθέσει ξανά.</string>
+    <string name="group_delete_q">Διαγραφή της ομάδας \"%1$s\";</string>
+    <string name="group_delete_body">Θα διαγραφεί για όλα τα μέλη μαζί με τα μηνύματά της. Δεν μπορεί να αναιρεθεί.</string>
 </resources>

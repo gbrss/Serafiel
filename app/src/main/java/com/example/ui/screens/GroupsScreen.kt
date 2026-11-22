@@ -882,6 +882,7 @@ private fun GroupDetailScreen(
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
     var showMusicDialog by remember { mutableStateOf(false) }
+    var confirmLeave by remember { mutableStateOf(false) }
     val voiceController = rememberVoiceNoteController(
         key = group.id,
         onSend = onSendVoiceNote,
@@ -1176,7 +1177,7 @@ private fun GroupDetailScreen(
                                     leadingIcon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null) },
                                     onClick = {
                                         menuExpanded = false
-                                        onLeaveOrDeleteGroup()
+                                        confirmLeave = true
                                     },
                                 )
                             }
@@ -1255,6 +1256,22 @@ private fun GroupDetailScreen(
             }
             if (nowPlaying != null) {
                 GroupMusicBar(group = group, np = nowPlaying, recording = voiceController.isActive)
+            }
+            if (confirmLeave) {
+                AlertDialog(
+                    onDismissRequest = { confirmLeave = false },
+                    title = { Text(tr(if (isCreator) R.string.group_delete_q else R.string.group_leave_q, group.name)) },
+                    text = { Text(tr(if (isCreator) R.string.group_delete_body else R.string.group_leave_body)) },
+                    confirmButton = {
+                        TextButton(onClick = { confirmLeave = false; onLeaveOrDeleteGroup() }) {
+                            Text(
+                                tr(if (isCreator) R.string.s_eliminar_grupo else R.string.s_salir_del_grupo),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    },
+                    dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text(tr(R.string.s_cancelar)) } },
+                )
             }
             if (showMusicDialog) {
                 GroupMusicDialog(group = group, hasMusic = nowPlaying != null, onDismiss = { showMusicDialog = false })

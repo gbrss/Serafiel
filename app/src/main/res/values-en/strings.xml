@@ -698,4 +698,8 @@
     <string name="music_cd_resync">Resync</string>
     <string name="music_cd_stop_local">Stop just for me</string>
     <string name="music_cd_expand">Show or hide player</string>
+    <string name="group_leave_q">Leave the group \"%1$s\"?</string>
+    <string name="group_leave_body">You will stop receiving its messages. To come back, someone will have to add you again.</string>
+    <string name="group_delete_q">Delete the group \"%1$s\"?</string>
+    <string name="group_delete_body">It will be deleted for all members along with its messages. This cannot be undone.</string>
 </resources>
