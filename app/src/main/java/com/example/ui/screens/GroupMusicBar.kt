@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
@@ -134,15 +135,39 @@ private class PlayerBridge(
     @JavascriptInterface fun onError(code: String) { main.post { onErrorCb() } }
 }
 
+/** Grupo cuya música sigue sonando aunque salgas de su chat, y cuántas barras visibles hay. */
+object MusicSession {
+    var groupId by mutableStateOf("")
+    var visibleBars by mutableIntStateOf(0)
+}
+
+/** Mantiene el reproductor vivo (oculto) al salir del chat del grupo; se detiene al quitar la música. */
+@Composable
+fun BackgroundGroupMusic(groups: List<SocialGroup>, modifier: Modifier = Modifier) {
+    if (MusicSession.visibleBars > 0 || MusicSession.groupId.isEmpty()) return
+    val group = groups.firstOrNull { it.id == MusicSession.groupId } ?: return
+    val np = remember(group.nowPlaying) { NowPlaying.from(group.nowPlaying) } ?: return
+    Box(modifier.width(120.dp).height(1.dp)) {
+        GroupMusicBar(group = group, np = np, recording = false, background = true)
+    }
+}
+
 /**
  * Barra de música compartida: todos oyen lo mismo a la vez (sincronía aproximada).
  * Silenciar, detener y el volumen son locales; pausar/reanudar valen para todo el grupo.
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
+fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, background: Boolean = false) {
     val context = LocalContext.current
     val actions = LocalGroupMusic.current
+    if (!background) {
+        DisposableEffect(group.id) {
+            MusicSession.groupId = group.id
+            MusicSession.visibleBars++
+            onDispose { MusicSession.visibleBars-- }
+        }
+    }
     val npState = rememberUpdatedState(np)
     val groupState = rememberUpdatedState(group)
 
@@ -230,6 +255,10 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean) {
         if (ready) webView.evaluateJavascript("vol($volume)", null)
     }
 
+    if (background) {
+        AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize())
+        return
+    }
     Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth().testTag("group_music_bar")) {
         Column {
             Row(

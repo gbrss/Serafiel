@@ -1120,6 +1120,10 @@ private fun SerafielAuthenticatedShell(
                 }
             }
         }
+        com.example.ui.screens.BackgroundGroupMusic(
+            groups = (myGroupsState as? UiState.Success)?.data.orEmpty(),
+            modifier = Modifier.align(Alignment.BottomEnd),
+        )
         }
 
         val forwardRequest by viewModel.forwardRequest.collectAsStateWithLifecycle()
