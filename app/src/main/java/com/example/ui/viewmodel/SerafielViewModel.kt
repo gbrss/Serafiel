@@ -2478,6 +2478,23 @@ class SerafielViewModel(
         }
     }
 
+    /** Borra datos y cuenta. [onResult]: true si todo salió bien, false si algo falló (se puede reintentar). */
+    fun deleteAccount(credentialManager: androidx.credentials.CredentialManager, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val ok = try {
+                repository.deleteAccountData(currentUserId).getOrThrow()
+                appPrefsContext?.let { ctx -> BlockedProfilePrefs.save(ctx, currentUserId, emptyMap()) }
+                com.example.auth.deleteAuthUser(credentialManager)
+                true
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                false
+            }
+            onResult(ok)
+        }
+    }
+
     fun unblockUser(targetUserId: String) {
         val updated = _cachedBlockedProfiles.value - targetUserId
         _cachedBlockedProfiles.value = updated

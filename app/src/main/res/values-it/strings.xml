@@ -702,4 +702,11 @@
     <string name="group_leave_body">Non riceverai più i suoi messaggi. Per rientrare, qualcuno dovrà aggiungerti di nuovo.</string>
     <string name="group_delete_q">Eliminare il gruppo \"%1$s\"?</string>
     <string name="group_delete_body">Verrà eliminato per tutti i membri insieme ai messaggi. Non si può annullare.</string>
+    <string name="account_delete">Elimina il mio account</string>
+    <string name="account_delete_title">Eliminare il tuo account?</string>
+    <string name="account_delete_body">Verranno eliminati il tuo profilo, il faro, le chat private (anche per l\'altra persona), i messaggi nei gruppi e i gruppi che hai creato. Non si può annullare. Dovrai confermare con il tuo account Google.</string>
+    <string name="account_delete_confirm">Elimina definitivamente</string>
+    <string name="account_deleting">Eliminazione dell\'account…</string>
+    <string name="account_deleted">Il tuo account e i tuoi dati sono stati eliminati</string>
+    <string name="account_delete_error">Impossibile eliminare completamente l\'account. Riprova.</string>
 </resources>

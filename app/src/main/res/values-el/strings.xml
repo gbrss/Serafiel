@@ -704,4 +704,11 @@
     <string name="group_leave_body">Θα σταματήσεις να λαμβάνεις τα μηνύματά της. Για να επιστρέψεις, κάποιος θα πρέπει να σε προσθέσει ξανά.</string>
     <string name="group_delete_q">Διαγραφή της ομάδας \"%1$s\";</string>
     <string name="group_delete_body">Θα διαγραφεί για όλα τα μέλη μαζί με τα μηνύματά της. Δεν μπορεί να αναιρεθεί.</string>
+    <string name="account_delete">Διαγραφή του λογαριασμού μου</string>
+    <string name="account_delete_title">Διαγραφή του λογαριασμού σου;</string>
+    <string name="account_delete_body">Θα διαγραφούν το προφίλ, ο φάρος, οι ιδιωτικές συνομιλίες (και για το άλλο άτομο), τα μηνύματα σε ομάδες και οι ομάδες που δημιούργησες. Δεν μπορεί να αναιρεθεί. Θα χρειαστεί να επιβεβαιώσεις με τον λογαριασμό Google.</string>
+    <string name="account_delete_confirm">Οριστική διαγραφή</string>
+    <string name="account_deleting">Διαγραφή λογαριασμού…</string>
+    <string name="account_deleted">Ο λογαριασμός και τα δεδομένα σου διαγράφηκαν</string>
+    <string name="account_delete_error">Δεν ήταν δυνατή η πλήρης διαγραφή του λογαριασμού. Δοκίμασε ξανά.</string>
 </resources>

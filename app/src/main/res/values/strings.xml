@@ -704,4 +704,11 @@
     <string name="group_leave_body">Dejarás de recibir sus mensajes. Para volver, alguien tendrá que añadirte de nuevo.</string>
     <string name="group_delete_q">¿Eliminar el grupo \"%1$s\"?</string>
     <string name="group_delete_body">Se eliminará para todos los miembros junto con sus mensajes. No se puede deshacer.</string>
+    <string name="account_delete">Eliminar mi cuenta</string>
+    <string name="account_delete_title">¿Eliminar tu cuenta?</string>
+    <string name="account_delete_body">Se borrarán tu perfil, tu baliza, tus chats privados (también para la otra persona), tus mensajes en grupos y los grupos que creaste. No se puede deshacer. Tendrás que confirmar con tu cuenta de Google.</string>
+    <string name="account_delete_confirm">Eliminar definitivamente</string>
+    <string name="account_deleting">Eliminando tu cuenta…</string>
+    <string name="account_deleted">Tu cuenta y tus datos fueron eliminados</string>
+    <string name="account_delete_error">No se pudo eliminar la cuenta por completo. Vuelve a intentarlo.</string>
 </resources>

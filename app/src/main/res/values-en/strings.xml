@@ -702,4 +702,11 @@
     <string name="group_leave_body">You will stop receiving its messages. To come back, someone will have to add you again.</string>
     <string name="group_delete_q">Delete the group \"%1$s\"?</string>
     <string name="group_delete_body">It will be deleted for all members along with its messages. This cannot be undone.</string>
+    <string name="account_delete">Delete my account</string>
+    <string name="account_delete_title">Delete your account?</string>
+    <string name="account_delete_body">Your profile, beacon, private chats (for the other person too), group messages and the groups you created will be deleted. This cannot be undone. You will need to confirm with your Google account.</string>
+    <string name="account_delete_confirm">Delete permanently</string>
+    <string name="account_deleting">Deleting your account…</string>
+    <string name="account_deleted">Your account and data were deleted</string>
+    <string name="account_delete_error">The account could not be fully deleted. Please try again.</string>
 </resources>

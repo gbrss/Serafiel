@@ -138,3 +138,25 @@ fun signOut(
         }
     }
 }
+
+
+/** Confirma la identidad con Google (obligatorio para eliminar la cuenta). Lanza si se cancela. */
+suspend fun reauthenticateWithGoogle(context: Context, credentialManager: CredentialManager) {
+    val clientId = context.getString(R.string.default_web_client_id)
+    val request = GetCredentialRequest.Builder()
+        .addCredentialOption(GetSignInWithGoogleOption.Builder(serverClientId = clientId).build())
+        .build()
+    val activity = context as? Activity ?: throw IllegalStateException(tr(R.string.s_se_requiere_un_contexto_de))
+    val cred = credentialManager.getCredential(activity, request).credential
+    check(cred is CustomCredential && cred.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL)
+    val token = GoogleIdTokenCredential.createFrom(cred.data).idToken
+    val user = Firebase.auth.currentUser ?: throw IllegalStateException("no user")
+    user.reauthenticate(GoogleAuthProvider.getCredential(token, null)).await()
+}
+
+/** Elimina la cuenta de acceso (Firebase Auth) y limpia las credenciales del dispositivo. */
+suspend fun deleteAuthUser(credentialManager: CredentialManager) {
+    Firebase.auth.currentUser?.delete()?.await()
+    runCatching { credentialManager.clearCredentialState(ClearCredentialStateRequest()) }
+    Firebase.auth.signOut()
+}

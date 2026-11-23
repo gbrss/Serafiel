@@ -702,4 +702,11 @@
     <string name="group_leave_body">Вы перестанете получать её сообщения. Чтобы вернуться, кто-то должен будет снова вас добавить.</string>
     <string name="group_delete_q">Удалить группу \"%1$s\"?</string>
     <string name="group_delete_body">Она будет удалена для всех участников вместе с сообщениями. Это нельзя отменить.</string>
+    <string name="account_delete">Удалить мой аккаунт</string>
+    <string name="account_delete_title">Удалить аккаунт?</string>
+    <string name="account_delete_body">Будут удалены ваш профиль, маяк, личные чаты (в том числе у собеседника), сообщения в группах и созданные вами группы. Это нельзя отменить. Нужно будет подтвердить через аккаунт Google.</string>
+    <string name="account_delete_confirm">Удалить навсегда</string>
+    <string name="account_deleting">Удаление аккаунта…</string>
+    <string name="account_deleted">Аккаунт и данные удалены</string>
+    <string name="account_delete_error">Не удалось полностью удалить аккаунт. Попробуйте ещё раз.</string>
 </resources>

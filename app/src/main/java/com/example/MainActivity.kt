@@ -1240,6 +1240,23 @@ private fun SerafielAuthenticatedShell(
                 MessageListenerService.stop(context)
                 signOut(credentialManager = credentialManager, scope = scope)
             },
+            onDeleteAccount = {
+                scope.launch {
+                    try {
+                        com.example.auth.reauthenticateWithGoogle(context, credentialManager)
+                    } catch (e: Exception) {
+                        viewModel.emitMessage(tr(R.string.account_delete_error))
+                        return@launch
+                    }
+                    viewModel.emitMessage(tr(R.string.account_deleting))
+                    viewModel.updateOnlinePresence(false)
+                    MessageListenerService.stop(context)
+                    viewModel.deleteAccount(credentialManager) { ok ->
+                        viewModel.emitMessage(tr(if (ok) R.string.account_deleted else R.string.account_delete_error))
+                        if (ok) showProfileSheet = false
+                    }
+                }
+            },
         )
     }
 

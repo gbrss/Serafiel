@@ -702,4 +702,11 @@
     <string name="group_leave_body">Vous ne recevrez plus ses messages. Pour revenir, quelqu\'un devra vous ajouter à nouveau.</string>
     <string name="group_delete_q">Supprimer le groupe \"%1$s\" ?</string>
     <string name="group_delete_body">Il sera supprimé pour tous les membres avec ses messages. Action irréversible.</string>
+    <string name="account_delete">Supprimer mon compte</string>
+    <string name="account_delete_title">Supprimer votre compte ?</string>
+    <string name="account_delete_body">Votre profil, votre balise, vos conversations privées (aussi pour l\'autre personne), vos messages de groupe et les groupes que vous avez créés seront supprimés. Action irréversible. Vous devrez confirmer avec votre compte Google.</string>
+    <string name="account_delete_confirm">Supprimer définitivement</string>
+    <string name="account_deleting">Suppression du compte…</string>
+    <string name="account_deleted">Votre compte et vos données ont été supprimés</string>
+    <string name="account_delete_error">Le compte n\'a pas pu être entièrement supprimé. Réessayez.</string>
 </resources>

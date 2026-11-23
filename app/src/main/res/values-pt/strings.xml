@@ -702,4 +702,11 @@
     <string name="group_leave_body">Você deixará de receber as mensagens. Para voltar, alguém terá que te adicionar de novo.</string>
     <string name="group_delete_q">Excluir o grupo \"%1$s\"?</string>
     <string name="group_delete_body">Ele será excluído para todos os membros junto com as mensagens. Não é possível desfazer.</string>
+    <string name="account_delete">Excluir minha conta</string>
+    <string name="account_delete_title">Excluir sua conta?</string>
+    <string name="account_delete_body">Seu perfil, farol, conversas privadas (também para a outra pessoa), mensagens em grupos e os grupos que você criou serão apagados. Não é possível desfazer. Você precisará confirmar com sua conta Google.</string>
+    <string name="account_delete_confirm">Excluir definitivamente</string>
+    <string name="account_deleting">Excluindo sua conta…</string>
+    <string name="account_deleted">Sua conta e seus dados foram excluídos</string>
+    <string name="account_delete_error">Não foi possível excluir a conta por completo. Tente novamente.</string>
 </resources>

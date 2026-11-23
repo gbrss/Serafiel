@@ -702,4 +702,11 @@
     <string name="group_leave_body">Du erhältst keine Nachrichten mehr. Um zurückzukehren, muss dich jemand erneut hinzufügen.</string>
     <string name="group_delete_q">Gruppe \"%1$s\" löschen?</string>
     <string name="group_delete_body">Sie wird für alle Mitglieder samt Nachrichten gelöscht. Das kann nicht rückgängig gemacht werden.</string>
+    <string name="account_delete">Mein Konto löschen</string>
+    <string name="account_delete_title">Konto löschen?</string>
+    <string name="account_delete_body">Dein Profil, deine Bake, private Chats (auch für die andere Person), Gruppennachrichten und von dir erstellte Gruppen werden gelöscht. Das kann nicht rückgängig gemacht werden. Du musst mit deinem Google-Konto bestätigen.</string>
+    <string name="account_delete_confirm">Endgültig löschen</string>
+    <string name="account_deleting">Konto wird gelöscht…</string>
+    <string name="account_deleted">Dein Konto und deine Daten wurden gelöscht</string>
+    <string name="account_delete_error">Das Konto konnte nicht vollständig gelöscht werden. Versuche es erneut.</string>
 </resources>

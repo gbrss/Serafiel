@@ -91,9 +91,11 @@ fun ProfileSafetySheet(
     onEditProfileBeacon: () -> Unit,
     onUnblockUser: (String) -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showGuidelines by remember { mutableStateOf(false) }
+    var confirmDeleteAccount by remember { mutableStateOf(false) }
 
     val resolvedName = profile?.displayName?.ifBlank { null }
         ?: beacon?.displayName?.ifBlank { null }
@@ -449,7 +451,30 @@ fun ProfileSafetySheet(
                 Spacer(Modifier.width(8.dp))
                 Text(tr(R.string.s_cerrar_sesion))
             }
+
+            androidx.compose.material3.TextButton(
+                onClick = { confirmDeleteAccount = true },
+                modifier = Modifier.fillMaxWidth().testTag("delete_account_button"),
+            ) {
+                Text(tr(R.string.account_delete), color = MaterialTheme.colorScheme.error)
+            }
         }
+    }
+
+    if (confirmDeleteAccount) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDeleteAccount = false },
+            title = { Text(tr(R.string.account_delete_title)) },
+            text = { Text(tr(R.string.account_delete_body)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDeleteAccount = false; onDeleteAccount() }) {
+                    Text(tr(R.string.account_delete_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDeleteAccount = false }) { Text(tr(R.string.s_cancelar)) }
+            },
+        )
     }
 
     if (showGuidelines) {

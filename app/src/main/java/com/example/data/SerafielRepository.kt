@@ -1344,6 +1344,49 @@ class SerafielRepository(
         }
     }
 
+    /**
+     * Borra todo lo del usuario: chats directos (completos), mensajes propios en grupos, grupos que creó,
+     * su baliza, su posición fina y su perfil. Cada paso es independiente: si uno falla se sigue con el resto
+     * y se devuelve el error al final para que el usuario pueda reintentar.
+     */
+    suspend fun deleteAccountData(userId: String): Result<Unit> {
+        return try {
+            val uid = requireUserId()
+            check(uid == userId)
+            var failure: Throwable? = null
+            suspend fun step(block: suspend () -> Unit) {
+                try { block() } catch (e: CancellationException) { throw e } catch (e: Exception) { failure = e }
+            }
+            step {
+                val chatIds = db.collection("chats").whereArrayContains("participantIds", uid).get().await().documents.map { it.id }
+                deleteDirectChats(uid, chatIds).getOrThrow()
+            }
+            step {
+                val groups = db.collection("groups").whereArrayContains("memberIds", uid).get().await()
+                    .toObjects(SocialGroup::class.java)
+                for (g in groups) {
+                    runCatching {
+                        val mine = db.collection("groups").document(g.id).collection("messages")
+                            .whereEqualTo("senderId", uid).get().await().documents
+                        for (chunk in mine.chunked(400)) {
+                            val batch = db.batch(); chunk.forEach { batch.delete(it.reference) }; batch.commit().await()
+                        }
+                    }
+                    if (g.creatorId == uid) deleteGroup(uid, g.id).getOrThrow()
+                    else if (g.memberIds.size > 1) leaveGroup(uid, g).getOrThrow()
+                }
+            }
+            step { db.collection("beaconsPrivate").document(uid).delete().await() }
+            step { db.collection("beacons").document(uid).delete().await() }
+            step { db.collection("users").document(uid).delete().await() }
+            failure?.let { Result.failure(it) } ?: Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun deleteGroup(userId: String, groupId: String): Result<Unit> {
         val path = "groups/$groupId"
         return try {
