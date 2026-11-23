@@ -709,4 +709,14 @@
     <string name="account_deleting">Konto wird gelöscht…</string>
     <string name="account_deleted">Dein Konto und deine Daten wurden gelöscht</string>
     <string name="account_delete_error">Das Konto konnte nicht vollständig gelöscht werden. Versuche es erneut.</string>
+    <string name="trusted_title">Vertrauenskontakt</string>
+    <string name="trusted_hint">Teile deinen Live-Standort mit einem Fingertipp mit einer Vertrauensperson, z. B. vor einem Date oder beim nächtlichen Heimweg. Sie sieht deine Position im Chat, bis die Zeit abläuft oder du stoppst.</string>
+    <string name="trusted_no_chats">Du hast noch keine akzeptierten Chats. Sobald du mit einer Vertrauensperson schreibst, kannst du sie hier wählen.</string>
+    <string name="trusted_choose">Vertrauenskontakt wählen</string>
+    <string name="trusted_current">Vertrauenskontakt: %1$s</string>
+    <string name="trusted_share">Live-Standort teilen</string>
+    <string name="trusted_stop">Teilen beenden</string>
+    <string name="trusted_change">Kontakt ändern</string>
+    <string name="trusted_share_with">Mit %1$s teilen</string>
+    <string name="trusted_comment">🛡️ Ich bin unterwegs: verfolge meinen Standort zur Sicherheit.</string>
 </resources>

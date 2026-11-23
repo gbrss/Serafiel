@@ -711,4 +711,14 @@
     <string name="account_deleting">Διαγραφή λογαριασμού…</string>
     <string name="account_deleted">Ο λογαριασμός και τα δεδομένα σου διαγράφηκαν</string>
     <string name="account_delete_error">Δεν ήταν δυνατή η πλήρης διαγραφή του λογαριασμού. Δοκίμασε ξανά.</string>
+    <string name="trusted_title">Έμπιστη επαφή</string>
+    <string name="trusted_hint">Μοιράσου την τοποθεσία σου σε πραγματικό χρόνο με ένα άτομο που εμπιστεύεσαι με ένα άγγιγμα, π.χ. πριν από ένα ραντεβού ή όταν γυρνάς σπίτι τη νύχτα. Θα βλέπει τη θέση σου στη συνομιλία μέχρι να λήξει ο χρόνος ή να τη σταματήσεις.</string>
+    <string name="trusted_no_chats">Δεν έχεις ακόμα αποδεκτές συνομιλίες. Όταν μιλήσεις με κάποιον που εμπιστεύεσαι, θα μπορείς να τον επιλέξεις εδώ.</string>
+    <string name="trusted_choose">Επιλογή έμπιστης επαφής</string>
+    <string name="trusted_current">Έμπιστη επαφή: %1$s</string>
+    <string name="trusted_share">Κοινοποίηση τοποθεσίας σε πραγματικό χρόνο</string>
+    <string name="trusted_stop">Διακοπή κοινοποίησης</string>
+    <string name="trusted_change">Αλλαγή επαφής</string>
+    <string name="trusted_share_with">Κοινοποίηση με %1$s</string>
+    <string name="trusted_comment">🛡️ Είμαι εν κινήσει: παρακολούθησε την τοποθεσία μου για ασφάλεια.</string>
 </resources>

@@ -709,4 +709,14 @@
     <string name="account_deleting">Excluindo sua conta…</string>
     <string name="account_deleted">Sua conta e seus dados foram excluídos</string>
     <string name="account_delete_error">Não foi possível excluir a conta por completo. Tente novamente.</string>
+    <string name="trusted_title">Contato de confiança</string>
+    <string name="trusted_hint">Compartilhe sua localização ao vivo com uma pessoa de confiança com um toque, por exemplo antes de um encontro ou ao voltar à noite. Ela verá sua posição no chat até acabar o tempo ou você parar.</string>
+    <string name="trusted_no_chats">Você ainda não tem conversas aceitas. Quando falar com alguém de confiança, poderá escolhê-lo aqui.</string>
+    <string name="trusted_choose">Escolher contato de confiança</string>
+    <string name="trusted_current">Contato de confiança: %1$s</string>
+    <string name="trusted_share">Compartilhar minha localização ao vivo</string>
+    <string name="trusted_stop">Parar de compartilhar</string>
+    <string name="trusted_change">Mudar contato</string>
+    <string name="trusted_share_with">Compartilhar com %1$s</string>
+    <string name="trusted_comment">🛡️ Estou em movimento: acompanhe minha localização por segurança.</string>
 </resources>

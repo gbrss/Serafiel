@@ -92,6 +92,7 @@ fun ProfileSafetySheet(
     onUnblockUser: (String) -> Unit,
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit = {},
+    safetyExtra: @Composable () -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showGuidelines by remember { mutableStateOf(false) }
@@ -436,6 +437,8 @@ fun ProfileSafetySheet(
             }
 
             Spacer(Modifier.height(4.dp))
+
+            safetyExtra()
 
             OutlinedButton(
                 onClick = onSignOut,

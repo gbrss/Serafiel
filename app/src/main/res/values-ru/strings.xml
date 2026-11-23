@@ -709,4 +709,14 @@
     <string name="account_deleting">Удаление аккаунта…</string>
     <string name="account_deleted">Аккаунт и данные удалены</string>
     <string name="account_delete_error">Не удалось полностью удалить аккаунт. Попробуйте ещё раз.</string>
+    <string name="trusted_title">Доверенный контакт</string>
+    <string name="trusted_hint">Поделитесь геопозицией в реальном времени с доверенным человеком одним касанием, например перед свиданием или по дороге домой ночью. Он будет видеть вашу позицию в чате, пока не истечёт время или вы не остановите.</string>
+    <string name="trusted_no_chats">У вас пока нет принятых чатов. Когда вы начнёте общаться с доверенным человеком, его можно будет выбрать здесь.</string>
+    <string name="trusted_choose">Выбрать доверенный контакт</string>
+    <string name="trusted_current">Доверенный контакт: %1$s</string>
+    <string name="trusted_share">Делиться геопозицией</string>
+    <string name="trusted_stop">Прекратить делиться</string>
+    <string name="trusted_change">Сменить контакт</string>
+    <string name="trusted_share_with">Поделиться с %1$s</string>
+    <string name="trusted_comment">🛡️ Я в пути: следите за моей геопозицией для безопасности.</string>
 </resources>

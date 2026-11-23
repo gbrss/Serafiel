@@ -709,4 +709,14 @@
     <string name="account_deleting">Suppression du compte…</string>
     <string name="account_deleted">Votre compte et vos données ont été supprimés</string>
     <string name="account_delete_error">Le compte n\'a pas pu être entièrement supprimé. Réessayez.</string>
+    <string name="trusted_title">Contact de confiance</string>
+    <string name="trusted_hint">Partagez votre position en direct avec une personne de confiance en un geste, par exemple avant un rendez-vous ou en rentrant le soir. Elle verra votre position dans le chat jusqu\'à la fin du temps ou jusqu\'à ce que vous l\'arrêtiez.</string>
+    <string name="trusted_no_chats">Vous n\'avez pas encore de conversation acceptée. Quand vous parlerez à une personne de confiance, vous pourrez la choisir ici.</string>
+    <string name="trusted_choose">Choisir un contact de confiance</string>
+    <string name="trusted_current">Contact de confiance : %1$s</string>
+    <string name="trusted_share">Partager ma position en direct</string>
+    <string name="trusted_stop">Arrêter le partage</string>
+    <string name="trusted_change">Changer de contact</string>
+    <string name="trusted_share_with">Partager avec %1$s</string>
+    <string name="trusted_comment">🛡️ Je me déplace : suivez ma position par sécurité.</string>
 </resources>

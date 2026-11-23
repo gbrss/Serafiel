@@ -50,6 +50,13 @@ object PrivacySettings {
         _ghostUntilMs.value = p.getLong(KEY_GHOST_UNTIL, 0L)
     }
 
+    /** Contacto de confianza para compartir la ubicación en vivo por seguridad ("" = ninguno). */
+    fun trustedContactId(context: Context): String = prefs(context).getString("trusted_contact", "").orEmpty()
+
+    fun setTrustedContactId(context: Context, id: String) {
+        prefs(context).edit().putString("trusted_contact", id).apply()
+    }
+
     /** ¿Ya eligió el usuario su precisión (aviso de primera vez)? */
     fun hasChosenPrecision(context: Context): Boolean = prefs(context).getBoolean("precision_chosen", false)
 

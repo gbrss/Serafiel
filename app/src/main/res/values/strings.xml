@@ -711,4 +711,14 @@
     <string name="account_deleting">Eliminando tu cuenta…</string>
     <string name="account_deleted">Tu cuenta y tus datos fueron eliminados</string>
     <string name="account_delete_error">No se pudo eliminar la cuenta por completo. Vuelve a intentarlo.</string>
+    <string name="trusted_title">Contacto de confianza</string>
+    <string name="trusted_hint">Comparte tu ubicación en vivo con una persona de confianza con un solo toque, por ejemplo antes de una cita o al volver de noche. Verá tu posición en el chat hasta que termine el tiempo o tú la detengas.</string>
+    <string name="trusted_no_chats">Aún no tienes chats aceptados. Cuando hables con alguien de confianza, podrás elegirlo aquí.</string>
+    <string name="trusted_choose">Elegir contacto de confianza</string>
+    <string name="trusted_current">Contacto de confianza: %1$s</string>
+    <string name="trusted_share">Compartir mi ubicación en vivo</string>
+    <string name="trusted_stop">Dejar de compartir</string>
+    <string name="trusted_change">Cambiar contacto</string>
+    <string name="trusted_share_with">Compartir con %1$s</string>
+    <string name="trusted_comment">🛡️ Me estoy moviendo: sigue mi ubicación por seguridad.</string>
 </resources>

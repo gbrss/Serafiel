@@ -1240,6 +1240,23 @@ private fun SerafielAuthenticatedShell(
                 MessageListenerService.stop(context)
                 signOut(credentialManager = credentialManager, scope = scope)
             },
+            safetyExtra = {
+                var trustedId by remember { mutableStateOf(com.example.data.PrivacySettings.trustedContactId(context)) }
+                val chatsList = (myChatsState as? UiState.Success)?.data.orEmpty()
+                val trustedChat = chatsList.firstOrNull { c -> c.participantIds.any { it == trustedId } && trustedId.isNotBlank() }
+                com.example.ui.screens.TrustedContactCard(
+                    myId = currentUserId,
+                    chats = chatsList,
+                    trustedId = trustedId,
+                    sharing = liveLocationState.isActive && liveLocationState.targetType == "chat" &&
+                        trustedChat != null && liveLocationState.chatId == trustedChat.id,
+                    onPick = { id -> trustedId = id; com.example.data.PrivacySettings.setTrustedContactId(context, id) },
+                    onShare = { chat, mins ->
+                        viewModel.startLiveLocation(context, chat, mins, tr(R.string.trusted_comment), null)
+                    },
+                    onStop = { viewModel.stopLiveLocation() },
+                )
+            },
             onDeleteAccount = {
                 scope.launch {
                     try {

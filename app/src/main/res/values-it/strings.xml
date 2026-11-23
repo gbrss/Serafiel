@@ -709,4 +709,14 @@
     <string name="account_deleting">Eliminazione dell\'account…</string>
     <string name="account_deleted">Il tuo account e i tuoi dati sono stati eliminati</string>
     <string name="account_delete_error">Impossibile eliminare completamente l\'account. Riprova.</string>
+    <string name="trusted_title">Contatto di fiducia</string>
+    <string name="trusted_hint">Condividi la tua posizione in tempo reale con una persona di fiducia con un tocco, per esempio prima di un appuntamento o tornando a casa la sera. Vedrà la tua posizione nella chat finché il tempo non scade o finché non la fermi.</string>
+    <string name="trusted_no_chats">Non hai ancora chat accettate. Quando parlerai con una persona di fiducia potrai sceglierla qui.</string>
+    <string name="trusted_choose">Scegli il contatto di fiducia</string>
+    <string name="trusted_current">Contatto di fiducia: %1$s</string>
+    <string name="trusted_share">Condividi la mia posizione in tempo reale</string>
+    <string name="trusted_stop">Interrompi la condivisione</string>
+    <string name="trusted_change">Cambia contatto</string>
+    <string name="trusted_share_with">Condividi con %1$s</string>
+    <string name="trusted_comment">🛡️ Sono in movimento: segui la mia posizione per sicurezza.</string>
 </resources>

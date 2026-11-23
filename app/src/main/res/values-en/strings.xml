@@ -709,4 +709,14 @@
     <string name="account_deleting">Deleting your account…</string>
     <string name="account_deleted">Your account and data were deleted</string>
     <string name="account_delete_error">The account could not be fully deleted. Please try again.</string>
+    <string name="trusted_title">Trusted contact</string>
+    <string name="trusted_hint">Share your live location with someone you trust in one tap, for example before a date or when getting home at night. They will see your position in the chat until time runs out or you stop it.</string>
+    <string name="trusted_no_chats">You have no accepted chats yet. When you talk to someone you trust, you can pick them here.</string>
+    <string name="trusted_choose">Choose trusted contact</string>
+    <string name="trusted_current">Trusted contact: %1$s</string>
+    <string name="trusted_share">Share my live location</string>
+    <string name="trusted_stop">Stop sharing</string>
+    <string name="trusted_change">Change contact</string>
+    <string name="trusted_share_with">Share with %1$s</string>
+    <string name="trusted_comment">🛡️ I\'m on the move: follow my location for safety.</string>
 </resources>
