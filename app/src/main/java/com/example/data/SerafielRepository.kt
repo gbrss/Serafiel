@@ -1367,7 +1367,7 @@ class SerafielRepository(
                 for (g in groups) {
                     runCatching {
                         val mine = db.collection("groups").document(g.id).collection("messages")
-                            .whereEqualTo("senderId", uid).get().await().documents
+                            .whereArrayContains("memberIds", uid).whereEqualTo("senderId", uid).get().await().documents
                         for (chunk in mine.chunked(400)) {
                             val batch = db.batch(); chunk.forEach { batch.delete(it.reference) }; batch.commit().await()
                         }
