@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -158,6 +159,29 @@ class SerafielViewModel(
                 initialValue = UiState.Loading,
             )
 
+    /** Quiénes me bloquearon (se ocultan igual que los que yo bloqueé). */
+    private val blockedByState: StateFlow<Set<String>> =
+        repository.observeBlockedBy(currentUserId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), emptySet())
+
+    /** Perfil con la lista de bloqueados ampliada con quienes me bloquearon: solo para filtrar la vista. */
+    private val visibilityProfileState: StateFlow<UiState<UserProfile?>> =
+        combine(userProfileState, blockedByState) { profileUi, by ->
+            val data = (profileUi as? UiState.Success)?.data
+            if (data == null || by.isEmpty()) profileUi
+            else UiState.Success(data.copy(blockedUserIds = (data.blockedUserIds + by).distinct()))
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), UiState.Loading)
+
+    init {
+        // Los bloqueos anteriores a esta función se reflejan en `blocks/` una vez por sesión.
+        viewModelScope.launch {
+            userProfileState.first { it is UiState.Success }.let { ui ->
+                val ids = (ui as? UiState.Success)?.data?.blockedUserIds.orEmpty()
+                if (ids.isNotEmpty()) repository.syncBlockDocs(currentUserId, ids)
+            }
+        }
+    }
+
     val myBeaconState: StateFlow<UiState<ProximityBeacon?>> =
         repository.observeMyBeacon(currentUserId)
             .onEach { beacon ->
@@ -209,7 +233,7 @@ class SerafielViewModel(
     val nearbyBeaconsState: StateFlow<UiState<List<ProximityBeacon>>> =
         combine(
             rawBeaconsState,
-            userProfileState,
+            visibilityProfileState,
             _selectedPurposeFilter,
             radarZone,
             _radiusKm,
@@ -259,7 +283,7 @@ class SerafielViewModel(
     val outsideRadiusCountState: StateFlow<Int> =
         combine(
             rawBeaconsState,
-            userProfileState,
+            visibilityProfileState,
             _selectedPurposeFilter,
             radarZone,
             _radiusKm,
@@ -305,7 +329,7 @@ class SerafielViewModel(
             )
 
     val zoneMessagesState: StateFlow<UiState<List<ZoneMessage>>> =
-        combine(rawZoneMessagesState, userProfileState) { messagesUi, profileUi ->
+        combine(rawZoneMessagesState, visibilityProfileState) { messagesUi, profileUi ->
             when (messagesUi) {
                 is UiState.Loading -> UiState.Loading
                 is UiState.Error -> messagesUi
@@ -335,7 +359,7 @@ class SerafielViewModel(
             )
 
     val myChatsState: StateFlow<UiState<List<DirectChat>>> =
-        combine(rawChatsState, userProfileState) { chatsUi, profileUi ->
+        combine(rawChatsState, visibilityProfileState) { chatsUi, profileUi ->
             when (chatsUi) {
                 is UiState.Loading -> UiState.Loading
                 is UiState.Error -> chatsUi
@@ -577,7 +601,7 @@ class SerafielViewModel(
             )
 
     val knownContactsState: StateFlow<List<KnownContact>> =
-        combine(rawBeaconsState, myChatsState, userProfileState) { beaconsUi, chatsUi, profileUi ->
+        combine(rawBeaconsState, myChatsState, visibilityProfileState) { beaconsUi, chatsUi, profileUi ->
             val blockedIds = (profileUi as? UiState.Success)?.data?.blockedUserIds.orEmpty().toSet()
             val contacts = linkedMapOf<String, KnownContact>()
             (beaconsUi as? UiState.Success)?.data.orEmpty().forEach { beacon ->
@@ -1111,6 +1135,10 @@ class SerafielViewModel(
             ?: tr(R.string.s_usuario_serafiel)
         val myColor = AvatarColor.fromKey(profile?.avatarColor ?: beacon?.avatarColor)
 
+        if (peerId in blockedByState.value) {
+            _snackbarEvents.tryEmit(tr(R.string.s_no_se_pudo_abrir_la_3))
+            return
+        }
         viewModelScope.launch {
             _isBusy.value = true
             val result = repository.startOrOpenDirectChat(

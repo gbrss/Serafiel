@@ -976,3 +976,44 @@ test("Música del grupo: solo miembros, enlaces https de YouTube/SoundCloud y ca
   // Quitarla para todos
   await assertSucceeds(g(aliceDb).update({ nowPlaying: firebaseCompat.firestore.FieldValue.delete() }));
 });
+
+test("Bloqueos en ambos sentidos: el bloqueado no puede saludar, escribir ni leer la posición fina", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const charlieDb = testEnv.authenticatedContext(CHARLIE_UID).firestore();
+  const blockRef = (db) => db.collection("blocks").doc(`${ALICE_UID}_${BOB_UID}`);
+  // Solo el bloqueador crea; id y campos exactos
+  await assertFails(blockRef(bobDb).set({ blockerId: ALICE_UID, blockedId: BOB_UID, createdAt: serverNow() }));
+  await assertFails(blockRef(aliceDb).set({ blockerId: ALICE_UID, blockedId: BOB_UID, createdAt: serverNow(), extra: 1 }));
+  await assertFails(aliceDb.collection("blocks").doc("otro_id").set({ blockerId: ALICE_UID, blockedId: BOB_UID, createdAt: serverNow() }));
+  await assertSucceeds(blockRef(aliceDb).set({ blockerId: ALICE_UID, blockedId: BOB_UID, createdAt: serverNow() }));
+  // Lo leen los dos, un tercero no
+  await assertSucceeds(blockRef(aliceDb).get());
+  await assertSucceeds(blockRef(bobDb).get());
+  await assertFails(blockRef(charlieDb).get());
+  await assertSucceeds(bobDb.collection("blocks").where("blockedId", "==", BOB_UID).get());
+  await assertFails(bobDb.collection("blocks").where("blockerId", "==", ALICE_UID).get());
+  // Bob no puede iniciar chat con Alice
+  const chatId = `${ALICE_UID}_${BOB_UID}`;
+  const base = {
+    participantIds: [BOB_UID, ALICE_UID],
+    participantNames: { [ALICE_UID]: "Alicia Luz", [BOB_UID]: "Roberto Sol" },
+    participantColors: { [ALICE_UID]: "amber", [BOB_UID]: "teal" },
+    initiatorId: BOB_UID, purpose: "FRIENDSHIP", status: "pending", lastMessage: "Hola",
+    zoneName: "Zona Abierta", createdAt: pastDate(10000), updatedAt: pastDate(10000),
+  };
+  await assertFails(bobDb.collection("chats").doc(chatId).set(base));
+  // Chat activo previo: Bob tampoco puede escribir ni leer la posición fina de Alice
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection("chats").doc(chatId).set({ ...base, status: "active" });
+    await context.firestore().collection("beaconsPrivate").doc(ALICE_UID).set({ userId: ALICE_UID, fineLat: 37.78125, fineLon: -122.42125, updatedAt: new Date() });
+  });
+  await assertFails(bobDb.collection("beaconsPrivate").doc(ALICE_UID).get());
+  await assertFails(bobDb.collection("chats").doc(chatId).collection("messages").doc("m1").set({
+    chatId, participantIds: [ALICE_UID, BOB_UID], senderId: BOB_UID, senderName: "Roberto Sol", text: "Hola", createdAt: pastDate(9000),
+  }));
+  // Al desbloquear, vuelve todo
+  await assertFails(blockRef(bobDb).delete());
+  await assertSucceeds(blockRef(aliceDb).delete());
+  await assertSucceeds(bobDb.collection("beaconsPrivate").doc(ALICE_UID).get());
+});

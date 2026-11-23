@@ -260,6 +260,27 @@ class SerafielRepository(
         }
     }
 
+    /** Quiénes me tienen bloqueado: no los veo en el radar ni ellos a mí. */
+    fun observeBlockedBy(userId: String): Flow<Set<String>> {
+        if (userId.isBlank()) return flow { emit(emptySet()) }
+        return db.collection("blocks").whereEqualTo("blockedId", userId).snapshots()
+            .map { snap -> snap.documents.mapNotNull { it.getString("blockerId") }.toSet() }
+            .catch { emit(emptySet()) }
+    }
+
+    /** Refleja mis bloqueos en `blocks/` (para que el bloqueo valga en ambos sentidos). Idempotente. */
+    suspend fun syncBlockDocs(userId: String, blockedIds: Collection<String>) {
+        if (auth.currentUser?.uid != userId) return
+        for (target in blockedIds.distinct().filter { it.isNotBlank() && it != userId }) {
+            runCatching {
+                val ref = db.collection("blocks").document("${userId}_$target")
+                if (!ref.get().await().exists()) {
+                    ref.set(mapOf("blockerId" to userId, "blockedId" to target, "createdAt" to FieldValue.serverTimestamp())).await()
+                }
+            }
+        }
+    }
+
     suspend fun setUserBlocked(userId: String, targetUserId: String, blocked: Boolean): Result<Unit> {
         val docPath = "users/$userId"
         return try {
@@ -291,6 +312,14 @@ class SerafielRepository(
                         "updatedAt" to FieldValue.serverTimestamp(),
                     )
                 ).await()
+            }
+            runCatching {
+                val blockRef = db.collection("blocks").document("${uid}_$targetUserId")
+                if (blocked) {
+                    blockRef.set(mapOf("blockerId" to uid, "blockedId" to targetUserId, "createdAt" to FieldValue.serverTimestamp())).await()
+                } else {
+                    blockRef.delete().await()
+                }
             }
             Result.success(Unit)
         } catch (e: CancellationException) {
@@ -1375,6 +1404,10 @@ class SerafielRepository(
                     if (g.creatorId == uid) deleteGroup(uid, g.id).getOrThrow()
                     else if (g.memberIds.size > 1) leaveGroup(uid, g).getOrThrow()
                 }
+            }
+            step {
+                val mine = db.collection("blocks").whereEqualTo("blockerId", uid).get().await().documents
+                for (d in mine) d.reference.delete().await()
             }
             step { db.collection("beaconsPrivate").document(uid).delete().await() }
             step { db.collection("beacons").document(uid).delete().await() }

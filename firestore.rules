@@ -460,6 +460,15 @@ service cloud.firestore {
       return request.auth.uid < other ? request.auth.uid + '_' + other : other + '_' + request.auth.uid;
     }
 
+    function otherOf(ids) {
+      return ids[0] == request.auth.uid ? ids[1] : ids[0];
+    }
+
+    // ¿`other` me tiene bloqueado? (el id del bloqueo es "bloqueador_bloqueado")
+    function blockedBy(other) {
+      return exists(/databases/$(database)/documents/blocks/$(other + '_' + request.auth.uid));
+    }
+
     function hasAcceptedChatWith(other) {
       return get(/databases/$(database)/documents/chats/$(chatIdWith(other))).data.status == 'active';
     }
@@ -477,12 +486,30 @@ service cloud.firestore {
     match /beaconsPrivate/{ownerId} {
       allow get: if isSignedIn() &&
                     isValidId(ownerId) &&
-                    (ownerId == request.auth.uid || hasAcceptedChatWith(ownerId));
+                    (ownerId == request.auth.uid || (hasAcceptedChatWith(ownerId) && !blockedBy(ownerId)));
       allow list: if false;
       allow create, update: if isSignedIn() &&
                                ownerId == request.auth.uid &&
                                isValidFinePosition(incoming());
       allow delete: if isSignedIn() && ownerId == request.auth.uid;
+    }
+
+    // --- BLOQUEOS (en ambos sentidos): id = "bloqueador_bloqueado" ---
+    match /blocks/{blockId} {
+      allow get: if isSignedIn() &&
+                    blockId.matches('^(' + request.auth.uid + '_.*|.*_' + request.auth.uid + ')$');
+      allow list: if isSignedIn() &&
+                     (resource.data.blockerId == request.auth.uid || resource.data.blockedId == request.auth.uid);
+      allow create: if isSignedIn() &&
+                       incoming().keys().hasOnly(['blockerId', 'blockedId', 'createdAt']) &&
+                       incoming().keys().hasAll(['blockerId', 'blockedId', 'createdAt']) &&
+                       incoming().blockerId == request.auth.uid &&
+                       incoming().blockedId is string && isValidId(incoming().blockedId) &&
+                       incoming().blockedId != request.auth.uid &&
+                       blockId == request.auth.uid + '_' + incoming().blockedId &&
+                       isValidTimestamp(incoming().createdAt);
+      allow update: if false;
+      allow delete: if isSignedIn() && existing().blockerId == request.auth.uid;
     }
 
     // --- 4. 1:1 DIRECT CHATS & MESSAGES ---
@@ -502,6 +529,7 @@ service cloud.firestore {
                        request.auth.uid in incoming().participantIds &&
                        incoming().initiatorId == request.auth.uid &&
                        incoming().status == 'pending' &&
+                       !blockedBy(otherOf(incoming().participantIds)) &&
                        incoming().keys().hasAll([
                          'participantIds', 'participantNames', 'participantColors',
                          'initiatorId', 'purpose', 'status', 'lastMessage',
@@ -556,6 +584,7 @@ service cloud.firestore {
                          request.auth.uid in incoming().participantIds &&
                          incoming().senderId == request.auth.uid &&
                          incoming().chatId == chatId &&
+                         !blockedBy(otherOf(incoming().participantIds)) &&
                          incoming().keys().hasAll([
                            'chatId', 'participantIds', 'senderId',
                            'senderName', 'text', 'createdAt'
