@@ -149,6 +149,14 @@ object MusicSession {
     /** Desfase de arranque por pista (clave: url@atMs). */
     val startSkew = HashMap<String, Long>()
     private var view: WebView? = null
+    private var appContext: android.content.Context? = null
+
+    /** Detener solo en este teléfono (botón ■ o la notificación). */
+    fun stopLocal() {
+        localStopped = true
+        view?.evaluateJavascript("stopAll()", null)
+        appContext?.let { com.example.data.MusicPlaybackService.stop(it) }
+    }
     private var bridge: PlayerBridge? = null
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -157,6 +165,8 @@ object MusicSession {
         val v = view; val br = bridge
         if (k == key && v != null && br != null) return v to br
         release()
+        appContext = context.applicationContext
+        com.example.data.MusicPlaybackService.onStopRequested = { Handler(Looper.getMainLooper()).post { stopLocal() } }
         val newBridge = PlayerBridge()
         val wv = WebView(context).apply {
             settings.javaScriptEnabled = true
@@ -179,6 +189,7 @@ object MusicSession {
     }
 
     fun release() {
+        appContext?.let { com.example.data.MusicPlaybackService.stop(it) }
         view?.let { v -> (v.parent as? android.view.ViewGroup)?.removeView(v); v.destroy() }
         view = null; bridge = null; key = ""; readyKey = ""; startSkew.clear()
     }
@@ -295,6 +306,11 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
             kotlinx.coroutines.delay(8000)
         }
     }
+    // Notificación fija: mantiene la música con la app minimizada o la pantalla apagada.
+    LaunchedEffect(np.playing, localStopped, np.title, np.url) {
+        if (np.playing && !localStopped) com.example.data.MusicPlaybackService.start(context, np.title.ifBlank { np.url })
+        else com.example.data.MusicPlaybackService.stop(context)
+    }
     LaunchedEffect(ready, volume) {
         if (ready) webView.evaluateJavascript("vol($volume)", null)
     }
@@ -331,10 +347,7 @@ fun GroupMusicBar(group: SocialGroup, np: NowPlaying, recording: Boolean, backgr
                     Icon(Icons.Rounded.Refresh, tr(R.string.music_cd_resync))
                 }
                 IconButton(
-                    onClick = {
-                        localStopped = true
-                        webView.evaluateJavascript("stopAll()", null)
-                    },
+                    onClick = { MusicSession.stopLocal() },
                     modifier = Modifier.size(36.dp),
                 ) { Icon(Icons.Rounded.Stop, tr(R.string.music_cd_stop_local)) }
                 IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(36.dp)) {

@@ -189,7 +189,7 @@ object GroupMusic {
 <style>$COMMON</style></head><body><div id="p"></div>
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
-var pl=null, prog=0, lastPos=-1, lastT=0;
+var want=false, pl=null, prog=0, lastPos=-1, lastT=0;
 function mark(){prog=Date.now()+2500;}
 setInterval(function(){
   try{
@@ -206,12 +206,14 @@ function onYouTubeIframeAPIReady(){
     onStateChange:function(e){
       var idx=-1; try{idx=pl.getPlaylistIndex();}catch(x){}
       if(e.data===1){Bridge.onTrack(idx);}
+      if(e.data===2 && want && document.hidden){setTimeout(function(){try{pl.playVideo();}catch(x){}},300);}
       Bridge.onState(e.data);
     },
     onError:function(e){Bridge.onError(String(e.data));}
   }});
 }
 function sync(playing,ms,idx){
+  want=playing;
   try{
     var changed=false;
     if(idx>=0 && ${if (np.listId.isNotEmpty()) "true" else "false"}){var c=pl.getPlaylistIndex(); if(c!==idx){pl.playVideoAt(idx);changed=true;}}
@@ -235,7 +237,7 @@ function check(ms){
   }catch(x){}
 }
 function vol(n){try{pl.setVolume(n);}catch(x){}}
-function stopAll(){try{pl.stopVideo();}catch(x){}}
+function stopAll(){want=false;try{pl.stopVideo();}catch(x){}}
 </script></body></html>"""
     }
 
@@ -247,18 +249,19 @@ function stopAll(){try{pl.stopVideo();}catch(x){}}
 <iframe id="p" src="$src" allow="autoplay"></iframe>
 <script src="https://w.soundcloud.com/player/api.js"></script>
 <script>
-var w=null, ready=false, prog=0;
+var want=false, w=null, ready=false, prog=0;
 function mark(){prog=Date.now()+2500;}
 window.onload=function(){
   w=SC.Widget(document.getElementById('p'));
   w.bind(SC.Widget.Events.READY,function(){ready=true;Bridge.onReady();});
   w.bind(SC.Widget.Events.PLAY,function(){w.getCurrentSoundIndex(function(i){Bridge.onTrack(i);});Bridge.onState(1);});
-  w.bind(SC.Widget.Events.PAUSE,function(){Bridge.onState(2);});
+  w.bind(SC.Widget.Events.PAUSE,function(){ if(want && document.hidden){setTimeout(function(){w.play();},300);} Bridge.onState(2);});
   w.bind(SC.Widget.Events.FINISH,function(){Bridge.onState(0);});
   w.bind(SC.Widget.Events.SEEK,function(e){ if(Date.now()>prog){Bridge.onSeek(Math.round(e.currentPosition));} });
   w.bind(SC.Widget.Events.ERROR,function(){Bridge.onError('sc');});
 };
 function sync(playing,ms,idx){
+  want=playing;
   try{
     mark();
     if(idx>=0){w.getCurrentSoundIndex(function(c){ if(c!==idx){w.skip(idx);} });}
@@ -276,7 +279,7 @@ function check(ms){
   }catch(x){}
 }
 function vol(n){try{w.setVolume(n);}catch(x){}}
-function stopAll(){try{w.pause();}catch(x){}}
+function stopAll(){want=false;try{w.pause();}catch(x){}}
 </script></body></html>"""
     }
 }
